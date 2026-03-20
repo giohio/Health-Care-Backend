@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "healthai-cache"
+version = "0.1.0"
+description = "Redis cache layer with distributed locks, stampede protection, and idempotency"
+authors = ["HealthAI Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+redis = {version = "^5.0", extras = ["hiredis"]}
+uuid-extension = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+fakeredis = {version = "*", extras = ["aioredis"]}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

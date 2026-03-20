@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "healthai-db"
+version = "0.1.0"
+description = "Shared DB layer for HealthAI services"
+authors = ["HealthAI Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sqlalchemy = "^2.0"
+asyncpg = "^0.29"
+alembic = "^1.13"
+uuid-extension = "*"
+pydantic = "^2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+pytest-postgresql = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
