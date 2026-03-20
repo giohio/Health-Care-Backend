@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy[asyncio]
+asyncpg
+pydantic-settings
+uuid_extension
+aio-pika
+# Additional dependencies for Patient Service
+alembic
+psycopg2-binary
+email-validator

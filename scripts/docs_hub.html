@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Healthcare API Documentation Hub</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <style>
+      html { box-sizing: border-box; overflow-y: scroll; }
+      *, *:before, *:after { box-sizing: inherit; }
+      body { margin: 0; background: #fafafa; }
+
+      .topbar {
+        background-color: #1b1b1b;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .topbar h2 { color: white; font-family: sans-serif; margin: 0; font-size: 1rem; }
+      
+      .instructions {
+        color: #aaa;
+        font-family: sans-serif;
+        font-size: 0.85rem;
+      }
+      .instructions code { background: #333; padding: 2px 6px; border-radius: 4px; color: #4CAF50;}
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <h2>Healthcare Microservices — API Gateway Hub</h2>
+      <div class="instructions">
+        Auto-Authenticated via HttpOnly Cookies. Call <code>POST /auth/login</code> first.
+      </div>
+    </div>
+
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+      window.onload = function () {
+        const ui = SwaggerUIBundle({
+          urls: [
+            { url: "/auth/openapi.json",         name: "Auth Service" },
+            { url: "/patients/openapi.json",      name: "Patient Service" },
+            { url: "/doctors/openapi.json",       name: "Doctor Service" },
+            { url: "/appointments/openapi.json",  name: "Appointment Service" },
+          ],
+          dom_id: "#swagger-ui",
+          deepLinking: true,
+          persistAuthorization: true,
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+          plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+          layout: "StandaloneLayout",
+          requestInterceptor: (request) => {
+            // Ensure cookies are sent with every request
+            request.credentials = "include";
+            return request;
+          },
+        });
+        globalThis.ui = ui;
+      };
+    </script>
+  </body>
+</html>

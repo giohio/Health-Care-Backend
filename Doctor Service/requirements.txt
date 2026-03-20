@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+pydantic-settings
+alembic
+psycopg2-binary
+email-validator
+uuid-extension
+pika
+aio-pika
+python-dotenv
+PyJWT[crypto]

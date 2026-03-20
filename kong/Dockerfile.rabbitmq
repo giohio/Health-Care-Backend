@@ -1,0 +1,7 @@
+FROM rabbitmq:3.13-management
+
+# Copy file plugin đã tải sẵn vào đúng thư mục của RabbitMQ
+COPY kong/rabbitmq_delayed_message_exchange-3.13.0.ez /opt/rabbitmq/plugins/
+
+# Bật plugin lên
+RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange

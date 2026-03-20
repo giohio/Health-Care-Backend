@@ -1,0 +1,145 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: auth-service
+    url: http://auth_service:8000
+    routes:
+      - name: auth-routes
+        paths:
+          - /auth
+        strip_path: true
+      - name: global-health
+        paths:
+          - /health
+        strip_path: false
+      - name: gateway-ping
+        paths:
+          - /ping
+        strip_path: true
+
+  - name: patient-service
+    url: http://patient_service:8000
+    routes:
+      - name: patient-routes
+        paths:
+          - /patients
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: doctor-service
+    url: http://doctor_service:8000
+    routes:
+      - name: doctor-routes
+        paths:
+          - /doctors
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: appointment-service
+    url: http://appointment_service:8000
+    routes:
+      - name: appointment-routes
+        paths:
+          - /appointments
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: docs-hub
+    url: http://static_docs:80
+    routes:
+      - name: docs-hub-route
+        paths:
+          - /docs-hub
+        strip_path: true
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+      exposed_headers:
+        - X-Auth-Token
+      max_age: 3600
+      credentials: true
+
+  - name: rate-limiting
+    config:
+      minute: 100
+      policy: local
+
+  - name: pre-function
+    config:
+      access:
+        - |
+          local token = ngx.var.cookie_access_token
+          if token then
+            local parts = {}
+            for part in token:gmatch("[^.]+") do
+              table.insert(parts, part)
+            end
+            if #parts >= 2 then
+              local payload = parts[2]
+              local mod = #payload % 4
+              if mod == 2 then payload = payload .. "=="
+              elseif mod == 3 then payload = payload .. "="
+              end
+              payload = payload:gsub("%-", "+"):gsub("_", "/")
+              local decoded = ngx.decode_base64(payload)
+              if decoded then
+                local user_id = decoded:match('"user_id"%s*:%s*"([^"]+)"')
+                local role = decoded:match('"role"%s*:%s*"([^"]+)"')
+                if user_id then
+                  kong.service.request.set_header("X-User-Id", user_id)
+                end
+                if role then
+                  kong.service.request.set_header("X-User-Role", role)
+                end
+              end
+            end
+          end
+
+consumers:
+  - username: anonymous-user
+
+  - username: healthcare-app
+    jwt_secrets:
+      - key: "healthcare-system-issuer"
+        rsa_public_key: |
+        ###RSA_PUBLIC_KEY###
+        algorithm: RS256

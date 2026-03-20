@@ -1,0 +1,15 @@
+fastapi==0.109.0
+uvicorn==0.27.0
+sqlalchemy[asyncio]==2.0.25
+asyncpg==0.29.0
+pydantic-settings==2.1.0
+alembic==1.13.1
+psycopg2-binary==2.9.9
+email-validator
+uuid-extension==0.1.0
+httpx==0.26.0
+python-dotenv==1.0.1
+pika==1.3.2
+aio-pika==9.4.0
+PyJWT[crypto]
+redis==5.0.0

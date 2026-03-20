@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy[asyncio]
+asyncpg
+pydantic-settings
+PyJWT[crypto]
+pwdlib[argon2]
+uuid_extension
+python-multipart
+# Additional dependencies for Auth Service
+alembic
+psycopg2-binary
+email-validator
