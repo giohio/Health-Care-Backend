@@ -163,7 +163,6 @@ class StampedeProtectedCache:
         self,
         result_key: str,
         fn: Callable,
-        ttl: int,
         *args,
         **kwargs
     ) -> Any:

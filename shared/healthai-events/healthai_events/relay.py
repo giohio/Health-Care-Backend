@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime
-from sqlalchemy import select, update
+from datetime import datetime, timezone
+from sqlalchemy import select
 from healthai_db import OutboxEvent
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ class OutboxRelay:
                 logger.error(f"OutboxRelay error: {e}")
                 await asyncio.sleep(self.POLL_INTERVAL)
 
-    async def stop(self):
+    def stop(self):
         self._running = False
 
     async def _process_batch(self) -> int:
@@ -85,12 +85,12 @@ class OutboxRelay:
                     return 0
 
                 for event in events:
-                    await self._process_one(session, event)
+                    await self._process_one(event)
 
                 # Commit tất cả status updates 1 lần
                 return len(events)
 
-    async def _process_one(self, session, event: OutboxEvent):
+    async def _process_one(self, event: OutboxEvent):
         try:
             await self._publisher.publish(
                 exchange=event.aggregate_type,
@@ -99,7 +99,7 @@ class OutboxRelay:
                 message_id=str(event.id)
             )
             event.status = 'published'
-            event.published_at = datetime.utcnow()
+            event.published_at = datetime.now(timezone.utc)
 
         except Exception as e:
             event.retry_count += 1
@@ -110,7 +110,7 @@ class OutboxRelay:
                 logger.error(
                     f"OutboxEvent {event.id} permanently failed: {e}"
                 )
-                # TODO: alert team via PagerDuty/Slack
+                logger.error("OutboxEvent requires manual alert handling")
             else:
                 logger.warning(
                     f"OutboxEvent {event.id} retry "

@@ -24,7 +24,7 @@ async def test_outbox_write_single(session_factory):
     """Test writing single outbox event."""
     async with session_factory() as session:
         appt_id = uuid7()
-        event = await OutboxWriter.write(
+        await OutboxWriter.write(
             session,
             aggregate_id=appt_id,
             aggregate_type='appointment_events',
@@ -58,7 +58,7 @@ async def test_outbox_write_many(session_factory):
             for _ in range(3)
         ]
         
-        events = await OutboxWriter.write_many(session, events_data)
+        await OutboxWriter.write_many(session, events_data)
         await session.commit()
 
         result = await session.execute(
