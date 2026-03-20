@@ -1,7 +1,7 @@
 import redis.asyncio as aioredis
-from .lock import DistributedLock
-from .stampede import StampedeProtectedCache
-from .idempotency import IdempotencyStore
+from healthai_cache.lock import DistributedLock
+from healthai_cache.stampede import StampedeProtectedCache
+from healthai_cache.idempotency import IdempotencyStore
 
 
 class CacheClient:

@@ -4,7 +4,7 @@ from sqlalchemy import String, Integer, Text, DateTime, Index
 from uuid_extension import uuid7, UUID7
 from datetime import datetime
 from typing import Optional, Any
-from .base import Base, UUIDMixin, TimestampMixin
+from healthai_db.base import Base, UUIDMixin, TimestampMixin
 
 
 class OutboxEvent(Base, UUIDMixin, TimestampMixin):

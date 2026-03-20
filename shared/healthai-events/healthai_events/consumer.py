@@ -3,7 +3,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from healthai_cache import CacheClient
-from .exceptions import RetryableError, NonRetryableError
+from healthai_events.exceptions import RetryableError, NonRetryableError
 
 logger = logging.getLogger(__name__)
 
