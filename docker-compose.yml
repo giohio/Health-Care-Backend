@@ -27,6 +27,17 @@ services:
     networks:
       - healthcare_net
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    container_name: healthcare_jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    networks:
+      - healthcare_net
+
   kong:
     image: kong:3.6-ubuntu
     container_name: healthcare_gateway
@@ -52,6 +63,7 @@ services:
       - patient_service
       - doctor_service
       - appointment_service
+      - jaeger
 
   auth_service:
     build:
@@ -62,6 +74,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/authentication
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /auth
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -78,6 +91,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /patients
       REDIS_URL: redis://redis:6379/0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -95,6 +109,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /doctors
       REDIS_URL: redis://redis:6379/0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -113,6 +128,7 @@ services:
       APP_ROOT_PATH: /appointments
       DOCTOR_SERVICE_URL: http://doctor_service:8000
       REDIS_URL: redis://redis:6379/0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:

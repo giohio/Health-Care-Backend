@@ -1,15 +1,23 @@
 import logging
 import os
 import asyncio
+import sys
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from presentation.routes import appointments_router
 from infrastructure.config import settings
-from infrastructure.database.session import AsyncSessionLocal
+from infrastructure.database.session import AsyncSessionLocal, engine
 from shared_lib.messaging import BaseConsumer
 from shared_lib.messaging.publisher import BasePublisher
 from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutHandler
+
+TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
+if str(TRACING_DIR) not in sys.path:
+    sys.path.append(str(TRACING_DIR))
+
+from telemetry import setup_logging, setup_telemetry
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +30,9 @@ app = FastAPI(
     version="1.0.0",
     root_path=os.getenv("APP_ROOT_PATH", "")
 )
+
+setup_logging("appointment-service")
+setup_telemetry(app, "appointment-service", db_engine=engine)
 
 # CORS
 app.add_middleware(

@@ -1,16 +1,24 @@
 import asyncio
 import logging
 import os
+import sys
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from infrastructure.config import settings
 from presentation.routes import specialties_router, doctors_router, schedules_router
 from shared_lib.messaging import BaseConsumer
-from infrastructure.database.session import AsyncSessionLocal
+from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.repositories import DoctorRepository
 from Application.use_cases.register_doctor import RegisterDoctorUseCase
 from Application.event_handlers.user_registered import UserRegisteredHandler
+
+TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
+if str(TRACING_DIR) not in sys.path:
+    sys.path.append(str(TRACING_DIR))
+
+from telemetry import setup_logging, setup_telemetry
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +31,9 @@ app = FastAPI(
     version="1.0.0",
     root_path=os.getenv("APP_ROOT_PATH", "")
 )
+
+setup_logging("doctor-service")
+setup_telemetry(app, "doctor-service", db_engine=engine)
 
 # CORS
 app.add_middleware(

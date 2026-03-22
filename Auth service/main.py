@@ -1,14 +1,22 @@
 import asyncio
+import sys
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from infrastructure.config import settings
 from infrastructure.config import settings
 from presentation.routes import auth_router
 from shared_lib.messaging import BaseConsumer
 from infrastructure import AsyncSessionLocal, UserRepository
+from infrastructure.database.session import engine
 from Application.event_handlers.profile_completed import ProfileCompletedHandler
 
 import os
+
+TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
+if str(TRACING_DIR) not in sys.path:
+    sys.path.append(str(TRACING_DIR))
+
+from telemetry import setup_logging, setup_telemetry
 
 app = FastAPI(
     title="Auth Service",
@@ -16,6 +24,9 @@ app = FastAPI(
     version="1.0.0",
     root_path=os.getenv("APP_ROOT_PATH", "")
 )
+
+setup_logging("auth-service")
+setup_telemetry(app, "auth-service", db_engine=engine)
 
 # Keep track of background tasks to prevent garbage collection
 background_tasks = set()
