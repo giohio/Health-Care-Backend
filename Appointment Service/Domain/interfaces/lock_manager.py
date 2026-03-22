@@ -10,3 +10,19 @@ class ILockManager(ABC):
     async def release_lock(self, key: str) -> bool:
         """Release a lock."""
         pass
+
+    @abstractmethod
+    async def acquire_slot(self, doctor_id: str, appointment_date: str, start_time: str) -> str | None:
+        """Acquire a slot lock and return lock token if successful."""
+        pass
+
+    @abstractmethod
+    async def release_slot(
+        self,
+        doctor_id: str,
+        appointment_date: str,
+        start_time: str,
+        token: str,
+    ) -> bool:
+        """Release a slot lock if the caller owns the token."""
+        pass

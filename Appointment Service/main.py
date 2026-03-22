@@ -3,15 +3,15 @@ import os
 import asyncio
 import sys
 from pathlib import Path
+import aio_pika
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from presentation.routes import appointments_router
 from infrastructure.config import settings
 from infrastructure.database.session import AsyncSessionLocal, engine
-from shared_lib.messaging import BaseConsumer
-from shared_lib.messaging.publisher import BasePublisher
-from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutHandler
+from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
+from healthai_cache import CacheClient
+from healthai_events import OutboxRelay, RabbitMQPublisher
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
 if str(TRACING_DIR) not in sys.path:
@@ -46,27 +46,62 @@ app.add_middleware(
 app.include_router(appointments_router)
 
 background_tasks = set()
+app.state.cache = None
+app.state.rabbit_connection = None
+app.state.publisher = None
+app.state.relay = None
 
 
 @app.on_event("startup")
 async def startup_event():
-    async def run_timeout_consumer():
-        consumer = BaseConsumer(
-            amqp_url=settings.RABBITMQ_URL,
-            queue_name="appointment.timeout_checker",
-            exchange_name="appointment_events",
-            routing_key="appointment.check_timeout",
-        )
-        handler = AppointmentTimeoutHandler(
-            session_factory=AsyncSessionLocal,
-            event_publisher=BasePublisher(settings.RABBITMQ_URL),
-        )
-        await consumer.start(handler_callback=handler.handle)
+    cache = CacheClient.from_url(settings.REDIS_URL)
+    app.state.cache = cache
 
-    task = asyncio.create_task(run_timeout_consumer())
+    connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
+    app.state.rabbit_connection = connection
+
+    publisher = await RabbitMQPublisher.connect(settings.RABBITMQ_URL)
+    app.state.publisher = publisher
+
+    relay = OutboxRelay(session_factory=AsyncSessionLocal, publisher=publisher)
+    app.state.relay = relay
+
+    timeout_consumer = AppointmentTimeoutConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+    )
+
+    task = asyncio.create_task(timeout_consumer.start())
+    relay_task = asyncio.create_task(relay.run())
     background_tasks.add(task)
+    background_tasks.add(relay_task)
     task.add_done_callback(background_tasks.discard)
+    relay_task.add_done_callback(background_tasks.discard)
     logger.info("Appointment timeout consumer started")
+    logger.info("Outbox relay started")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    relay = app.state.relay
+    if relay:
+        relay.stop()
+
+    for task in tuple(background_tasks):
+        task.cancel()
+
+    publisher = app.state.publisher
+    if publisher:
+        await publisher.close()
+
+    connection = app.state.rabbit_connection
+    if connection:
+        await connection.close()
+
+    cache = app.state.cache
+    if cache:
+        await cache.close()
 
 @app.get("/health")
 async def health_check():

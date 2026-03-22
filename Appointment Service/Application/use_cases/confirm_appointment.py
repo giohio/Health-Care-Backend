@@ -12,47 +12,41 @@ from Domain.exceptions.domain_exceptions import (
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
 
-class CancelAppointmentUseCase:
+
+class ConfirmAppointmentUseCase:
     def __init__(self, session, appointment_repo: IAppointmentRepository):
         self.session = session
         self.appointment_repo = appointment_repo
 
-    async def execute(
-        self,
-        appointment_id: UUID7,
-        actor_id: UUID7,
-        actor_role: str,
-        reason: str | None,
-    ) -> AppointmentResponse:
+    async def execute(self, appointment_id: UUID7, doctor_id: UUID7) -> AppointmentResponse:
         appointment = await self.appointment_repo.get_by_id_with_lock(appointment_id)
         if not appointment:
             raise AppointmentNotFoundException()
 
-        if not appointment.can_be_cancelled_by(actor_id, actor_role):
-            raise UnauthorizedActionError("You are not allowed to cancel this appointment")
+        if not appointment.can_be_confirmed_by(doctor_id):
+            raise UnauthorizedActionError("Only assigned doctor can confirm this appointment")
 
-        if not appointment.can_transition_to(AppointmentStatus.CANCELLED):
-            raise InvalidStatusTransitionError("Appointment cannot be cancelled from current status")
+        if not appointment.can_transition_to(AppointmentStatus.CONFIRMED):
+            raise InvalidStatusTransitionError("Appointment cannot be confirmed from current status")
 
-        appointment.status = AppointmentStatus.CANCELLED
-        appointment.cancelled_by = actor_role
-        appointment.cancelled_by_user_id = actor_id
-        appointment.cancelled_at = utcnow()
-        appointment.cancel_reason = reason
+        appointment.status = AppointmentStatus.CONFIRMED
+        appointment.confirmed_at = utcnow()
+        appointment.queue_number = await self.appointment_repo.get_next_queue_number(
+            appointment.doctor_id,
+            appointment.appointment_date,
+        )
         await self.appointment_repo.save(appointment)
 
         await OutboxWriter.write(
             self.session,
             aggregate_id=appointment.id,
             aggregate_type="appointment_events",
-            event_type="appointment.cancelled",
+            event_type="appointment.confirmed",
             payload={
                 "appointment_id": str(appointment.id),
-                "patient_id": str(appointment.patient_id),
                 "doctor_id": str(appointment.doctor_id),
-                "cancelled_by": actor_role,
-                "cancelled_by_user_id": str(actor_id),
-                "reason": reason,
+                "patient_id": str(appointment.patient_id),
+                "queue_number": appointment.queue_number,
             },
         )
         await OutboxWriter.write(
@@ -62,7 +56,6 @@ class CancelAppointmentUseCase:
             event_type="cache.invalidate",
             payload={
                 "patterns": [
-                    f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*",
                     f"queue:{appointment.doctor_id}:{appointment.appointment_date}",
                 ]
             },
