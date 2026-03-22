@@ -5,12 +5,17 @@ from Application.dtos import CreateAppointmentRequest, AppointmentResponse
 from Application.use_cases.book_appointment import BookAppointmentUseCase
 from Application.use_cases.list_patient_appointments import ListPatientAppointmentsUseCase
 from Application.use_cases.cancel_appointment import CancelAppointmentUseCase
+from Application.exceptions import (
+    AppointmentError,
+    SlotNotAvailableError,
+    DoctorNotAvailableError,
+)
 from presentation.dependencies import (
     get_book_appointment_use_case, 
     get_list_appointments_use_case, 
     get_cancel_appointment_use_case
 )
-from Domain.exceptions.domain_exceptions import NoDoctorAvailableException, AppointmentNotFoundException
+from Domain.exceptions.domain_exceptions import AppointmentNotFoundException
 from typing import Annotated
 
 router = APIRouter(tags=["Appointments"])
@@ -22,7 +27,11 @@ async def book_appointment(
 ):
     try:
         return await use_case.execute(request)
-    except NoDoctorAvailableException as e:
+    except SlotNotAvailableError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except DoctorNotAvailableError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except AppointmentError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/patient/{patient_id}", response_model=List[AppointmentResponse])

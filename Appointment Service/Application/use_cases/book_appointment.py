@@ -1,6 +1,6 @@
 from uuid_extension import UUID7
 from uuid import UUID
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 from Domain.entities.appointment import Appointment
 from Domain.interfaces import (
     IAppointmentRepository, 
@@ -8,13 +8,18 @@ from Domain.interfaces import (
     ILockManager,
     IEventPublisher
 )
-from Domain.exceptions.domain_exceptions import NoDoctorAvailableException
 from Application.dtos import CreateAppointmentRequest, AppointmentResponse
+from Application.exceptions import (
+    SlotNotAvailableError,
+    DoctorNotAvailableError,
+)
 import logging
 
 logger = logging.getLogger(__name__)
 
 class BookAppointmentUseCase:
+    TIMEOUT_MINUTES = 15
+
     def __init__(
         self, 
         appointment_repo: IAppointmentRepository,
@@ -39,7 +44,9 @@ class BookAppointmentUseCase:
         )
         
         if not available_doctors:
-            raise NoDoctorAvailableException()
+            raise DoctorNotAvailableError(
+                "No doctor available for the requested slot"
+            )
 
         # 3. Check for actual availability (not booked)
         selected_doctor_id = None
@@ -55,13 +62,15 @@ class BookAppointmentUseCase:
                 break
         
         if not selected_doctor_id:
-            raise NoDoctorAvailableException()
+            raise DoctorNotAvailableError(
+                "No doctor available for the requested slot"
+            )
 
         lock_key = f"lock:slot:{selected_doctor_id}:{request.appointment_date}:{request.start_time}"
 
         is_locked = await self.lock_manager.acquire_lock(lock_key, 15)
         if not is_locked:
-            raise HTTPException(status_code=409, detail="Slot is locked")
+            raise SlotNotAvailableError("Slot is locked")
         
         try:
              # 4. Create appointment (Assuming 30 min duration for simplicity)
@@ -81,11 +90,17 @@ class BookAppointmentUseCase:
             await self.appointment_repo.save(appointment)
             
             try:
+                timeout_at = datetime.now(timezone.utc) + timedelta(
+                    minutes=self.TIMEOUT_MINUTES
+                )
                 await self.event_publisher.publish(
                     exchange_name="appointment_events",
                     routing_key="appointment.check_timeout",
-                    message={"appointment_id": str(appointment.id)},
-                    delay_ms=60000  # 1 minute for testing, change to 900000 for 15 minutes later
+                    message={
+                        "appointment_id": str(appointment.id),
+                        "timeout_at": timeout_at.isoformat(),
+                    },
+                    delay_ms=self.TIMEOUT_MINUTES * 60 * 1000
                 )
                 logger.info(f"Published check_timeout event for appointment {appointment.id}")
             except Exception as e:

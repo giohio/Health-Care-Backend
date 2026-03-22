@@ -56,5 +56,5 @@ class IRefreshTokenRepository(ABC):
         pass
 
     @abstractmethod
-    async def revoke_all_for_user(self, user_id: UUID7) -> bool:
+    async def revoke_all_for_user(self, user_id: UUID7) -> int:
         pass

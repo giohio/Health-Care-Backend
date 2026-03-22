@@ -13,7 +13,12 @@ class RegisterService:
         self.email_validator = EmailValidator()
         self.password_validator = PasswordValidator()
 
-    async def execute(self, email: str, password: str) -> User:
+    async def execute(
+        self,
+        email: str,
+        password: str,
+        role: UserRole = UserRole.PATIENT
+    ) -> User:
         is_valid = self.email_validator.is_valid(email)
         if not is_valid:
             raise ValueError("Invalid email format")
@@ -30,7 +35,7 @@ class RegisterService:
         user = User(
             email=email,
             hashed_password=hashed_password,
-            role=UserRole.PATIENT
+            role=role
         )
 
         created_user = await self.user_repository.create(user)

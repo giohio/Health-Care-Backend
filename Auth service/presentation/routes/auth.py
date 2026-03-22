@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Header
 from presentation.schema import (
     UserRegister, UserLogin, UserResponse, TokenResponse,
-    RefreshTokenRequest, LogoutRequest
+    RefreshTokenRequest, LogoutRequest, RegisterStaffRequest
 )
 from typing import Annotated
 from presentation.dependencies import (
@@ -9,6 +9,7 @@ from presentation.dependencies import (
     get_logout_use_case, get_refresh_token_use_case
 )
 from Application import RegisterService, LoginUseCase, LogOutUseCase, RefreshTokenUseCase
+from Domain.entities.user import UserRole
 
 router = APIRouter(tags=["Authentication"])
 
@@ -38,6 +39,47 @@ async def register(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.post(
+    "/admin/register-staff",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def register_staff(
+    user_data: RegisterStaffRequest,
+    register_service: Annotated[RegisterService, Depends(get_register_service)],
+    x_user_role: Annotated[str | None, Header(alias="X-User-Role")] = None
+):
+    if x_user_role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin only"
+        )
+
+    if user_data.role not in (UserRole.DOCTOR, UserRole.ADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role for staff"
+        )
+
+    try:
+        user = await register_service.execute(
+            email=user_data.email,
+            password=user_data.password,
+            role=user_data.role,
+        )
+        return user
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR_MSG
         )
 
 
@@ -92,23 +134,18 @@ async def logout(
     logout_data: LogoutRequest,
     response: Response,
     logout_use_case: Annotated[LogOutUseCase, Depends(get_logout_use_case)],
-    refresh_token: Annotated[str | None, Cookie()] = None
+    refresh_token: Annotated[str | None, Cookie()] = None,
+    x_user_id: Annotated[str | None, Header(alias="X-User-Id")] = None
 ):
     try:
         token_to_use = logout_data.refresh_token or refresh_token
-        if not token_to_use:
-            raise ValueError("No refresh token provided")
-            
+
         await logout_use_case.execute(
             refresh_token_value=token_to_use,
-            user_id=None,  # Need to integrate Get Current User to get the actual user_id
+            user_id=x_user_id,
             logout_all_devices=logout_data.logout_all_devices
         )
-        
-        # Clear cookies
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
-        
+
         return {"success": True, "message": "Successfully logged out"}
     except ValueError as e:
         raise HTTPException(
@@ -120,6 +157,10 @@ async def logout(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=INTERNAL_SERVER_ERROR_MSG
         )
+    finally:
+        # Best effort logout: always clear client cookies.
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
 
 
 @router.post("/refresh", response_model=TokenResponse)

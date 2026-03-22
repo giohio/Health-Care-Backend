@@ -4,6 +4,7 @@ from Domain import (
     IPatientProfileRepository
 )
 from uuid_extension import UUID7
+from Application.use_cases.profile_helpers import get_or_create_profile
 
 
 class UpdateHealthBackgroundUseCase:
@@ -16,9 +17,7 @@ class UpdateHealthBackgroundUseCase:
         self.health_repo = health_repo
 
     async def execute(self, user_id: UUID7, **fields) -> PatientHealthBackground:
-        profile = await self.profile_repo.get_by_user_id(user_id)
-        if not profile:
-            profile = await self.profile_repo.create(PatientProfile(user_id=user_id))
+        profile = await get_or_create_profile(self.profile_repo, user_id)
 
         health_bg = await self.health_repo.get_by_patient_id(profile.id)
         if not health_bg:

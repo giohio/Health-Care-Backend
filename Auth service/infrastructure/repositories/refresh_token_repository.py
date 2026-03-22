@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from sqlalchemy import select, delete, update
 from uuid_extension import UUID7
@@ -63,19 +63,19 @@ class RefreshTokenRepository(IRefreshTokenRepository):
         )
         return result.rowcount > 0
 
-    async def revoke_all_for_user(self, user_id: UUID7) -> bool:
+    async def revoke_all_for_user(self, user_id: UUID7) -> int:
         result = await self.session.execute(
-            select(RefreshTokenModel).where(
+            update(RefreshTokenModel)
+            .where(
                 RefreshTokenModel.user_id == user_id,
                 RefreshTokenModel.is_revoked.is_(False)
             )
+            .values(
+                is_revoked=True,
+                revoked_at=datetime.now(timezone.utc)
+            )
         )
-        models = result.scalars().all()
-        for model in models:
-            model.is_revoked = True
-            model.revoked_at = datetime.now()
-
-        return True
+        return result.rowcount or 0
 
     def _to_entity(self, model: RefreshTokenModel) -> RefreshToken:
         return RefreshToken(

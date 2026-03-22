@@ -14,6 +14,12 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=8)
 
 
+class RegisterStaffRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    role: UserRole
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
