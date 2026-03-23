@@ -2,9 +2,9 @@ name: Microservices CI/CD
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, feature/**]
   push:
-    branches: [main, develop]
+    branches: [main, develop, feature/**]
   workflow_dispatch:
     inputs:
       deploy_to_production:
