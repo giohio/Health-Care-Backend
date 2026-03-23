@@ -7,6 +7,7 @@ from Domain.exceptions.domain_exceptions import (
 )
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
+from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
 from uuid_extension import UUID7
 
@@ -38,6 +39,8 @@ class CancelAppointmentUseCase:
         appointment.cancelled_by_user_id = actor_id
         appointment.cancelled_at = utcnow()
         appointment.cancel_reason = reason
+        if appointment.payment_status == PaymentStatus.PAID:
+            appointment.payment_status = PaymentStatus.REFUNDED
         await self.appointment_repo.save(appointment)
 
         await OutboxWriter.write(
@@ -66,4 +69,16 @@ class CancelAppointmentUseCase:
                 ]
             },
         )
+        if appointment.payment_status == PaymentStatus.REFUNDED:
+            await OutboxWriter.write(
+                self.session,
+                aggregate_id=appointment.id,
+                aggregate_type="payment_events",
+                event_type="payment.refund_requested",
+                payload={
+                    "appointment_id": str(appointment.id),
+                    "patient_id": str(appointment.patient_id),
+                    "reason": reason or "appointment_cancelled",
+                },
+            )
         return AppointmentResponse.model_validate(appointment)

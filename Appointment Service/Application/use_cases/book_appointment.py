@@ -1,10 +1,11 @@
-from datetime import date, timedelta
+from datetime import date
 
 from Application.dtos import AppointmentResponse, CreateAppointmentRequest
 from Application.use_cases._helpers import add_minutes, utcnow
 from Domain.entities.appointment import Appointment
 from Domain.exceptions.domain_exceptions import SlotNotAvailableError
 from Domain.value_objects.appointment_status import AppointmentStatus
+from Domain.value_objects.payment_status import PaymentStatus
 from healthai_common import SagaOrchestrator
 from healthai_db import OutboxWriter
 from healthai_events.exceptions import NonRetryableError
@@ -26,8 +27,6 @@ class BookAppointmentSaga(SagaOrchestrator):
         "create_appointment": "cancel_appointment",
         "acquire_slot_lock": "release_slot_lock",
     }
-    CONFIRMATION_TIMEOUT_MINUTES = 15
-
     def __init__(
         self,
         session,
@@ -87,7 +86,8 @@ class BookAppointmentSaga(SagaOrchestrator):
             appointment_type=ctx["appointment_type"],
             chief_complaint=ctx.get("chief_complaint"),
             note_for_doctor=ctx.get("note_for_doctor"),
-            status=AppointmentStatus.PENDING,
+            status=AppointmentStatus.PENDING_PAYMENT,
+            payment_status=PaymentStatus.PROCESSING,
         )
         self.session.add(appt)
         await self.session.flush()
@@ -96,31 +96,21 @@ class BookAppointmentSaga(SagaOrchestrator):
 
     async def execute_write_outbox(self, ctx):
         appt = ctx["appointment"]
-        timeout_at = utcnow() + timedelta(minutes=self.CONFIRMATION_TIMEOUT_MINUTES)
 
         await OutboxWriter.write(
             self.session,
             aggregate_id=appt.id,
-            aggregate_type="appointment_events",
-            event_type="appointment.created",
+            aggregate_type="payment_events",
+            event_type="payment.required",
             payload={
                 "appointment_id": str(appt.id),
                 "patient_id": str(appt.patient_id),
                 "doctor_id": str(appt.doctor_id),
                 "appointment_date": str(appt.appointment_date),
                 "start_time": str(appt.start_time),
+                "end_time": str(appt.end_time),
                 "appointment_type": appt.appointment_type,
                 "chief_complaint": appt.chief_complaint,
-            },
-        )
-        await OutboxWriter.write(
-            self.session,
-            aggregate_id=appt.id,
-            aggregate_type="appointment_events",
-            event_type="appointment.check_timeout",
-            payload={
-                "appointment_id": str(appt.id),
-                "timeout_at": timeout_at.isoformat(),
             },
         )
         await OutboxWriter.write(
@@ -141,6 +131,7 @@ class BookAppointmentSaga(SagaOrchestrator):
         if not appt:
             return
         appt.status = AppointmentStatus.CANCELLED
+        appt.payment_status = PaymentStatus.REFUNDED
         appt.cancel_reason = "saga_compensation"
         appt.cancelled_by = "system"
         appt.cancelled_at = utcnow()

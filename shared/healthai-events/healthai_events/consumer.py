@@ -97,7 +97,7 @@ class BaseConsumer(ABC):
                     await self._cache.set(f"processed_msg:{msg_id}", True, ttl=self.IDEMPOTENCY_TTL)
 
             except NonRetryableError as e:
-                logger.error(f"{self.__class__.__name__} " f"non-retryable error: {e}")
+                logger.error(f"{self.__class__.__name__} non-retryable error: {e}")
                 raise  # nack + DLQ
 
             except RetryableError as e:
@@ -111,18 +111,18 @@ class BaseConsumer(ABC):
                     await asyncio.sleep(delay)
                     raise  # nack to retry
                 else:
-                    logger.error(f"{self.__class__.__name__} " f"max retries exceeded: {e}")
+                    logger.error(f"{self.__class__.__name__} max retries exceeded: {e}")
                     raise
 
             except Exception as e:
                 # Unexpected error → treat as retryable
                 if retry_count < self.MAX_RETRIES:
                     delay = self.RETRY_DELAYS[min(retry_count, len(self.RETRY_DELAYS) - 1)]
-                    logger.warning(f"{self.__class__.__name__} " f"unexpected error, retry in {delay}s: {e}")
+                    logger.warning(f"{self.__class__.__name__} unexpected error, retry in {delay}s: {e}")
                     await asyncio.sleep(delay)
                     raise
                 else:
-                    logger.error(f"{self.__class__.__name__} " f"max retries exceeded (unexpected): {e}")
+                    logger.error(f"{self.__class__.__name__} max retries exceeded (unexpected): {e}")
                     raise
 
     @abstractmethod

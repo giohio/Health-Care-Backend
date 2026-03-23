@@ -21,6 +21,8 @@ class DoctorRepository(IDoctorRepository):
             full_name=doctor.full_name,
             title=doctor.title,
             experience_years=doctor.experience_years,
+            auto_confirm=doctor.auto_confirm,
+            confirmation_timeout_minutes=doctor.confirmation_timeout_minutes,
         )
         await self.session.merge(model)
         return doctor
@@ -36,6 +38,8 @@ class DoctorRepository(IDoctorRepository):
             full_name=model.full_name,
             title=model.title,
             experience_years=model.experience_years,
+            auto_confirm=model.auto_confirm,
+            confirmation_timeout_minutes=model.confirmation_timeout_minutes,
         )
 
     async def list_by_specialty(self, specialty_id: UUID7) -> List[Doctor]:
@@ -48,6 +52,8 @@ class DoctorRepository(IDoctorRepository):
                 full_name=m.full_name,
                 title=m.title,
                 experience_years=m.experience_years,
+                auto_confirm=m.auto_confirm,
+                confirmation_timeout_minutes=m.confirmation_timeout_minutes,
             )
             for m in models
         ]
@@ -78,6 +84,8 @@ class DoctorRepository(IDoctorRepository):
                 full_name=m.full_name,
                 title=m.title,
                 experience_years=m.experience_years,
+                auto_confirm=m.auto_confirm,
+                confirmation_timeout_minutes=m.confirmation_timeout_minutes,
             )
             for m in models
         ]

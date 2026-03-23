@@ -63,6 +63,7 @@ services:
       - patient_service
       - doctor_service
       - appointment_service
+      - notification_service
       - jaeger
 
   auth_service:
@@ -135,6 +136,24 @@ services:
       - postgres
       - rabbitmq
       - doctor_service
+      - redis
+
+  notification_service:
+    build:
+      context: .
+      dockerfile: ./Notifiaction Service/Dockerfile
+    container_name: notification_service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/notification_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+      APP_ROOT_PATH: /notifications
+      REDIS_URL: redis://redis:6379/0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    networks:
+      - healthcare_net
+    depends_on:
+      - postgres
+      - rabbitmq
       - redis
 
   redis:

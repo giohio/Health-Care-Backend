@@ -103,7 +103,7 @@ class SagaOrchestrator(ABC):
             return ctx["_results"]
 
         except Exception as e:
-            logger.error(f"Saga {saga.id} failed at " f"{saga.current_step}: {e}")
+            logger.error(f"Saga {saga.id} failed at {saga.current_step}: {e}")
             await self._compensate(saga, ctx, str(e))
             raise SagaFailedError(f"Saga failed: {e}", saga_id=str(saga.id)) from e
 

@@ -19,6 +19,8 @@ class DoctorDTO(BaseModel):
     specialty_id: UUID | None = None
     title: str | None = None
     experience_years: int = 0
+    auto_confirm: bool = True
+    confirmation_timeout_minutes: int = 15
 
     model_config = ConfigDict(from_attributes=True)
 

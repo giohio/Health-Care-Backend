@@ -18,8 +18,8 @@ class Appointment:
     appointment_type: str = "general"
     chief_complaint: str | None = None
     note_for_doctor: str | None = None
-    status: AppointmentStatus = AppointmentStatus.PENDING
-    payment_status: PaymentStatus = PaymentStatus.UNPAID
+    status: AppointmentStatus = AppointmentStatus.PENDING_PAYMENT
+    payment_status: PaymentStatus = PaymentStatus.PROCESSING
     confirmed_at: datetime | None = None
     completed_at: datetime | None = None
     cancelled_at: datetime | None = None

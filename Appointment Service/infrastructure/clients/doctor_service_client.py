@@ -93,3 +93,15 @@ class DoctorServiceClient(IDoctorServiceClient):
             return None
 
         return await self._cb.call(_fetch, fallback=_fallback)
+
+    async def get_doctor(self, doctor_id: str) -> dict | None:
+        async def _fetch():
+            response = await self._client.get(f"/{doctor_id}")
+            response.raise_for_status()
+            return response.json()
+
+        async def _fallback(*_args, **_kwargs):
+            await asyncio.sleep(0)
+            return None
+
+        return await self._cb.call(_fetch, fallback=_fallback)

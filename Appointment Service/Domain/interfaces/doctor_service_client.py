@@ -26,3 +26,7 @@ class IDoctorServiceClient(ABC):
     @abstractmethod
     async def get_patient_full_context(self, patient_id: str) -> dict | None:
         """Return patient full context payload for queue enrichment."""
+
+    @abstractmethod
+    async def get_doctor(self, doctor_id: str) -> dict | None:
+        """Return doctor profile payload including auto_confirm settings."""

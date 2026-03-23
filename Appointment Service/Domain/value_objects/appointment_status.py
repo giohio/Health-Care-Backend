@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class AppointmentStatus(str, Enum):
+    PENDING_PAYMENT = "pending_payment"
     PENDING = "pending"
     CONFIRMED = "confirmed"
     DECLINED = "declined"
@@ -18,6 +19,10 @@ class CancelledBy(str, Enum):
 
 
 VALID_TRANSITIONS = {
+    AppointmentStatus.PENDING_PAYMENT: [
+        AppointmentStatus.PENDING,
+        AppointmentStatus.CANCELLED,
+    ],
     AppointmentStatus.PENDING: [
         AppointmentStatus.CONFIRMED,
         AppointmentStatus.DECLINED,

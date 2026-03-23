@@ -6,6 +6,7 @@ from Domain.exceptions.domain_exceptions import (
 )
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
+from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
 from uuid_extension import UUID7
 
@@ -27,6 +28,8 @@ class MarkNoShowUseCase:
             raise InvalidStatusTransitionError("Appointment cannot be marked no-show from current status")
 
         appointment.status = AppointmentStatus.NO_SHOW
+        if appointment.payment_status == PaymentStatus.PAID:
+            appointment.payment_status = PaymentStatus.REFUNDED
         await self.appointment_repo.save(appointment)
 
         await OutboxWriter.write(
@@ -40,4 +43,28 @@ class MarkNoShowUseCase:
                 "doctor_id": str(appointment.doctor_id),
             },
         )
+        await OutboxWriter.write(
+            self.session,
+            aggregate_id=appointment.id,
+            aggregate_type="cache_events",
+            event_type="cache.invalidate",
+            payload={
+                "patterns": [
+                    f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*",
+                    f"queue:{appointment.doctor_id}:{appointment.appointment_date}",
+                ]
+            },
+        )
+        if appointment.payment_status == PaymentStatus.REFUNDED:
+            await OutboxWriter.write(
+                self.session,
+                aggregate_id=appointment.id,
+                aggregate_type="payment_events",
+                event_type="payment.refund_requested",
+                payload={
+                    "appointment_id": str(appointment.id),
+                    "patient_id": str(appointment.patient_id),
+                    "reason": "no_show_refund",
+                },
+            )
         return AppointmentResponse.model_validate(appointment)

@@ -105,4 +105,4 @@ class OutboxRelay:
                 logger.error(f"OutboxEvent {event.id} permanently failed: {e}")
                 logger.error("OutboxEvent requires manual alert handling")
             else:
-                logger.warning(f"OutboxEvent {event.id} retry " f"{event.retry_count}/{self.MAX_RETRIES}: {e}")
+                logger.warning(f"OutboxEvent {event.id} retry {event.retry_count}/{self.MAX_RETRIES}: {e}")

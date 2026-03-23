@@ -50,7 +50,7 @@ class AppointmentModel(Base):
             "doctor_id",
             "appointment_date",
             "start_time",
-            postgresql_where=("status IN ('pending','confirmed')"),
+            postgresql_where=("status IN ('pending_payment','pending','confirmed')"),
         ),
         Index("idx_doctor_queue", "doctor_id", "appointment_date", "status"),
         Index("idx_patient_history", "patient_id", "appointment_date"),

@@ -5,6 +5,12 @@ import sys
 from pathlib import Path
 
 import aio_pika
+from Application.consumers.payment_consumers import (
+    PaymentExpiredConsumer,
+    PaymentFailedConsumer,
+    PaymentPaidConsumer,
+    PaymentTimeoutConsumer,
+)
 from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -72,14 +78,47 @@ async def startup_event():
         cache=cache,
         session_factory=AsyncSessionLocal,
     )
+    payment_paid_consumer = PaymentPaidConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+    )
+    payment_failed_consumer = PaymentFailedConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+    )
+    payment_expired_consumer = PaymentExpiredConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+    )
+    payment_timeout_consumer = PaymentTimeoutConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+    )
 
     task = asyncio.create_task(timeout_consumer.start())
+    payment_paid_task = asyncio.create_task(payment_paid_consumer.start())
+    payment_failed_task = asyncio.create_task(payment_failed_consumer.start())
+    payment_expired_task = asyncio.create_task(payment_expired_consumer.start())
+    payment_timeout_task = asyncio.create_task(payment_timeout_consumer.start())
     relay_task = asyncio.create_task(relay.run())
     background_tasks.add(task)
+    background_tasks.add(payment_paid_task)
+    background_tasks.add(payment_failed_task)
+    background_tasks.add(payment_expired_task)
+    background_tasks.add(payment_timeout_task)
     background_tasks.add(relay_task)
     task.add_done_callback(background_tasks.discard)
+    payment_paid_task.add_done_callback(background_tasks.discard)
+    payment_failed_task.add_done_callback(background_tasks.discard)
+    payment_expired_task.add_done_callback(background_tasks.discard)
+    payment_timeout_task.add_done_callback(background_tasks.discard)
     relay_task.add_done_callback(background_tasks.discard)
     logger.info("Appointment timeout consumer started")
+    logger.info("Appointment payment consumers started")
     logger.info("Outbox relay started")
 
 

@@ -77,7 +77,7 @@ class CircuitBreaker:
         state = await self.get_state()
 
         if state == "OPEN":
-            logger.warning(f"Circuit {self.name} OPEN — " f"blocking request")
+            logger.warning(f"Circuit {self.name} OPEN — blocking request")
             if fallback:
                 return await fallback(*args, **kwargs)
             raise CircuitOpenError(f"Service {self.name} is unavailable")
@@ -88,7 +88,7 @@ class CircuitBreaker:
             if not is_probe:
                 if fallback:
                     return await fallback(*args, **kwargs)
-                raise CircuitOpenError(f"Circuit {self.name} HALF_OPEN " f"— probe in progress")
+                raise CircuitOpenError(f"Circuit {self.name} HALF_OPEN — probe in progress")
 
         try:
             result = await fn(*args, **kwargs)
@@ -113,4 +113,4 @@ class CircuitBreaker:
         if current_state == "HALF_OPEN" or failures >= self.failure_threshold:
             # Chuyển OPEN, tự động thử lại sau recovery_timeout
             await self.cache.set(self._state_key, "OPEN", ttl=self.recovery_timeout)
-            logger.error(f"Circuit {self.name} → OPEN " f"(failures: {failures})")
+            logger.error(f"Circuit {self.name} → OPEN (failures: {failures})")

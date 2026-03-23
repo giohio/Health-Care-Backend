@@ -27,6 +27,8 @@ class DoctorModel(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     title: Mapped[str | None] = mapped_column(String(50))
     experience_years: Mapped[int] = mapped_column(Integer, default=0)
+    auto_confirm: Mapped[bool] = mapped_column(default=True, nullable=False)
+    confirmation_timeout_minutes: Mapped[int] = mapped_column(Integer, default=15, nullable=False)
 
     specialty: Mapped["SpecialtyModel"] = relationship(back_populates="doctors")
     schedules: Mapped[list["DoctorScheduleModel"]] = relationship(back_populates="doctor")

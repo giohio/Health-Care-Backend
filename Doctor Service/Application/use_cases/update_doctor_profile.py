@@ -22,6 +22,8 @@ class UpdateDoctorProfileUseCase:
         doctor.title = dto.title
         doctor.experience_years = dto.experience_years
         doctor.specialty_id = dto.specialty_id
+        doctor.auto_confirm = dto.auto_confirm
+        doctor.confirmation_timeout_minutes = dto.confirmation_timeout_minutes
 
         saved = await self.doctor_repo.save(doctor)
 

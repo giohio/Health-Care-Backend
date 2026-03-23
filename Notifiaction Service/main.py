@@ -4,8 +4,10 @@ import os
 
 import aio_pika
 from Application.consumers.appointment_events_consumers import (
+    AppointmentAutoConfirmedConsumer,
     AppointmentCancelledConsumer,
     AppointmentConfirmedConsumer,
+    AppointmentCreatedConsumer,
     AppointmentReminderConsumer,
 )
 from fastapi import FastAPI
@@ -53,6 +55,8 @@ async def startup_event():
 
     consumers = [
         AppointmentConfirmedConsumer(connection, cache, AsyncSessionLocal, ws_manager),
+        AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, ws_manager),
+        AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, ws_manager),
         AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, ws_manager),
         AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, ws_manager),
     ]

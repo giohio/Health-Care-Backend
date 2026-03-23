@@ -4,6 +4,7 @@ from typing import Any
 
 from Application.use_cases._helpers import utcnow
 from Domain.value_objects.appointment_status import AppointmentStatus
+from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
 from healthai_events import BaseConsumer
 from healthai_events.exceptions import RetryableError
@@ -53,6 +54,9 @@ class AppointmentTimeoutConsumer(BaseConsumer):
                 appt.cancel_reason = "timeout_no_confirmation"
                 appt.cancelled_by = "system"
                 appt.cancelled_at = utcnow()
+                paid_before_timeout = appt.payment_status == PaymentStatus.PAID
+                if paid_before_timeout:
+                    appt.payment_status = PaymentStatus.REFUNDED
                 await OutboxWriter.write(
                     session,
                     aggregate_id=appt.id,
@@ -66,6 +70,30 @@ class AppointmentTimeoutConsumer(BaseConsumer):
                         "cancelled_by": "system",
                     },
                 )
+                await OutboxWriter.write(
+                    session,
+                    aggregate_id=appt.id,
+                    aggregate_type="cache_events",
+                    event_type="cache.invalidate",
+                    payload={
+                        "patterns": [
+                            f"slots:{appt.doctor_id}:{appt.appointment_date}:*",
+                            f"queue:{appt.doctor_id}:{appt.appointment_date}",
+                        ]
+                    },
+                )
+                if paid_before_timeout:
+                    await OutboxWriter.write(
+                        session,
+                        aggregate_id=appt.id,
+                        aggregate_type="payment_events",
+                        event_type="payment.refund_requested",
+                        payload={
+                            "appointment_id": str(appt.id),
+                            "patient_id": str(appt.patient_id),
+                            "reason": "timeout_no_confirmation",
+                        },
+                    )
 
     @staticmethod
     def _parse_timeout(raw: str | None) -> datetime | None:

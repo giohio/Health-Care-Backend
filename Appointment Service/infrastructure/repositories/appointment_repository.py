@@ -68,7 +68,13 @@ class AppointmentRepository(IAppointmentRepository):
                     AppointmentModel.doctor_id == uuid.UUID(str(doctor_id)),
                     AppointmentModel.appointment_date == appointment_date,
                     AppointmentModel.start_time == start_time,
-                    AppointmentModel.status.in_([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]),
+                    AppointmentModel.status.in_(
+                        [
+                            AppointmentStatus.PENDING_PAYMENT,
+                            AppointmentStatus.PENDING,
+                            AppointmentStatus.CONFIRMED,
+                        ]
+                    ),
                 )
             )
         )
@@ -98,6 +104,7 @@ class AppointmentRepository(IAppointmentRepository):
                 AppointmentModel.appointment_date == appointment_date,
                 AppointmentModel.status.in_(
                     [
+                        AppointmentStatus.PENDING_PAYMENT,
                         AppointmentStatus.PENDING,
                         AppointmentStatus.CONFIRMED,
                     ]
@@ -163,6 +170,7 @@ class AppointmentRepository(IAppointmentRepository):
                     AppointmentModel.appointment_date == appointment_date,
                     AppointmentModel.status.in_(
                         [
+                            AppointmentStatus.PENDING_PAYMENT,
                             AppointmentStatus.PENDING,
                             AppointmentStatus.CONFIRMED,
                         ]
