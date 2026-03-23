@@ -1,9 +1,7 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import pool
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,12 +12,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-import sys
 import os
+import sys
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
 from infrastructure.config import settings
 from infrastructure.database.models import Base
@@ -67,12 +65,11 @@ def run_migrations_online() -> None:
     # Replace asyncpg with psycopg2 for alembic
     url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
     from sqlalchemy import create_engine
+
     connectable = create_engine(url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

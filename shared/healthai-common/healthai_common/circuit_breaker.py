@@ -1,15 +1,14 @@
 import logging
-import time
-from typing import Callable, Optional, TypeVar, Any
+from typing import Callable, Optional, TypeVar
+
 from healthai_cache import CacheClient
 
 logger = logging.getLogger(__name__)
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class CircuitOpenError(Exception):
     """Raised when circuit is OPEN."""
-    pass
 
 
 class CircuitBreaker:
@@ -45,6 +44,7 @@ class CircuitBreaker:
             date=...
         )
     """
+
     def __init__(
         self,
         name: str,
@@ -71,41 +71,24 @@ class CircuitBreaker:
 
     async def get_state(self) -> str:
         state = await self.cache.get(self._state_key)
-        return state or 'CLOSED'
+        return state or "CLOSED"
 
-    async def call(
-        self,
-        fn: Callable[..., T],
-        fallback: Optional[Callable[..., T]] = None,
-        *args,
-        **kwargs
-    ) -> T:
+    async def call(self, fn: Callable[..., T], fallback: Optional[Callable[..., T]] = None, *args, **kwargs) -> T:
         state = await self.get_state()
 
-        if state == 'OPEN':
-            logger.warning(
-                f"Circuit {self.name} OPEN — "
-                f"blocking request"
-            )
+        if state == "OPEN":
+            logger.warning(f"Circuit {self.name} OPEN — " f"blocking request")
             if fallback:
                 return await fallback(*args, **kwargs)
-            raise CircuitOpenError(
-                f"Service {self.name} is unavailable"
-            )
+            raise CircuitOpenError(f"Service {self.name} is unavailable")
 
-        if state == 'HALF_OPEN':
+        if state == "HALF_OPEN":
             # Chỉ cho 1 probe request qua
-            is_probe = await self.cache._redis.set(
-                self._half_open_key, '1',
-                nx=True, ex=self.recovery_timeout
-            )
+            is_probe = await self.cache._redis.set(self._half_open_key, "1", nx=True, ex=self.recovery_timeout)
             if not is_probe:
                 if fallback:
                     return await fallback(*args, **kwargs)
-                raise CircuitOpenError(
-                    f"Circuit {self.name} HALF_OPEN "
-                    f"— probe in progress"
-                )
+                raise CircuitOpenError(f"Circuit {self.name} HALF_OPEN " f"— probe in progress")
 
         try:
             result = await fn(*args, **kwargs)
@@ -119,31 +102,15 @@ class CircuitBreaker:
 
     async def _on_success(self):
         """Reset về CLOSED state."""
-        await self.cache.delete(
-            self._state_key,
-            self._failure_key,
-            self._half_open_key
-        )
+        await self.cache.delete(self._state_key, self._failure_key, self._half_open_key)
         logger.info(f"Circuit {self.name} → CLOSED")
 
     async def _on_failure(self, current_state: str):
         """Tăng failure count, chuyển OPEN nếu đủ."""
-        failures = await self.cache._redis.incr(
-            self._failure_key
-        )
-        await self.cache._redis.expire(
-            self._failure_key,
-            self.recovery_timeout * 4
-        )
+        failures = await self.cache._redis.incr(self._failure_key)
+        await self.cache._redis.expire(self._failure_key, self.recovery_timeout * 4)
 
-        if current_state == 'HALF_OPEN' or \
-           failures >= self.failure_threshold:
+        if current_state == "HALF_OPEN" or failures >= self.failure_threshold:
             # Chuyển OPEN, tự động thử lại sau recovery_timeout
-            await self.cache.set(
-                self._state_key, 'OPEN',
-                ttl=self.recovery_timeout
-            )
-            logger.error(
-                f"Circuit {self.name} → OPEN "
-                f"(failures: {failures})"
-            )
+            await self.cache.set(self._state_key, "OPEN", ttl=self.recovery_timeout)
+            logger.error(f"Circuit {self.name} → OPEN " f"(failures: {failures})")

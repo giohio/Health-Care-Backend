@@ -1,23 +1,24 @@
+import asyncio
 import logging
 import os
-import asyncio
 import sys
 from pathlib import Path
+
 import aio_pika
+from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from presentation.routes import appointments_router
-from infrastructure.config import settings
-from infrastructure.database.session import AsyncSessionLocal, engine
-from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
 from healthai_cache import CacheClient
 from healthai_events import OutboxRelay, RabbitMQPublisher
+from infrastructure.config import settings
+from infrastructure.database.session import AsyncSessionLocal, engine
+from presentation.routes import appointments_router
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
 if str(TRACING_DIR) not in sys.path:
     sys.path.append(str(TRACING_DIR))
 
-from telemetry import setup_logging, setup_telemetry
+from telemetry import setup_logging, setup_telemetry  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +29,7 @@ app = FastAPI(
     title="Appointment Service",
     description="Service for managing medical appointments and schedules",
     version="1.0.0",
-    root_path=os.getenv("APP_ROOT_PATH", "")
+    root_path=os.getenv("APP_ROOT_PATH", ""),
 )
 
 setup_logging("appointment-service")
@@ -103,7 +104,7 @@ async def shutdown_event():
     if cache:
         await cache.close()
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "appointment-service"}
-

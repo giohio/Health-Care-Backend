@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+
 from uuid_extension import UUID7
+
 
 @dataclass
 class Doctor:

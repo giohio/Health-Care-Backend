@@ -1,36 +1,33 @@
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
+
+from Application import InitializeProfileUseCase, UserRegisteredHandler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.utils import get_openapi
-from infrastructure.database.models import Base
-from infrastructure.database.session import engine
-from shared_lib.messaging import BaseConsumer
-from Application import UserRegisteredHandler, InitializeProfileUseCase
-from infrastructure.repositories.repositories import PatientProfileRepository, PatientHealthRepository
-from infrastructure.database.session import AsyncSessionLocal
-from presentation.routes import patient, internal
 from infrastructure.config import settings
+from infrastructure.database.session import AsyncSessionLocal, engine
+from infrastructure.repositories.repositories import PatientHealthRepository, PatientProfileRepository
+from presentation.routes import internal, patient
+from shared_lib.messaging import BaseConsumer
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import os
-
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
 if str(TRACING_DIR) not in sys.path:
     sys.path.append(str(TRACING_DIR))
 
-from telemetry import setup_logging, setup_telemetry
+from telemetry import setup_logging, setup_telemetry  # noqa: E402
 
 app = FastAPI(
     title="Patient Profile Service",
     description="Service for managing patient demographics and health backgrounds",
     version="1.0.0",
-    root_path=os.getenv("APP_ROOT_PATH", "")
+    root_path=os.getenv("APP_ROOT_PATH", ""),
 )
 
 setup_logging("patient-service")
@@ -58,12 +55,12 @@ async def startup_event():
             health_repo = PatientHealthRepository(session)
             init_use_case = InitializeProfileUseCase(profile_repo, health_repo)
             handler = UserRegisteredHandler(init_use_case)
-            
+
             consumer = BaseConsumer(
                 amqp_url=settings.RABBITMQ_URL,
                 queue_name="patient_service_register_queue",
                 exchange_name="user_events",
-                routing_key="user.registered"
+                routing_key="user.registered",
             )
 
             try:
@@ -80,4 +77,3 @@ async def startup_event():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "patient-service"}
-

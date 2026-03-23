@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from uuid_extension import UUID7
 from datetime import time
+
 from Domain.value_objects.day_of_week import DayOfWeek
+from uuid_extension import UUID7
+
 
 @dataclass
 class DoctorSchedule:

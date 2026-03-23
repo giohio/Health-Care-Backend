@@ -3,7 +3,7 @@ from typing import Optional
 
 
 class EmailValidator:
-    EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
     @staticmethod
     def is_valid(email: str) -> bool:
@@ -18,7 +18,7 @@ class EmailValidator:
         if len(email) > 254:
             return False
 
-        local_part, _ = email.rsplit('@', 1)
+        local_part, _ = email.rsplit("@", 1)
 
         if len(local_part) > 64:
             return False
@@ -28,6 +28,6 @@ class EmailValidator:
     @staticmethod
     def get_domain(email: str) -> Optional[str]:
         try:
-            return email.split('@')[1].lower()
+            return email.split("@")[1].lower()
         except (IndexError, AttributeError):
             return None

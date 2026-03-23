@@ -1,5 +1,6 @@
-import pytest
 import asyncio
+
+import pytest
 from healthai_cache import DistributedLock
 
 
@@ -8,6 +9,7 @@ async def redis():
     """Use fakeredis for testing."""
     try:
         import fakeredis.aioredis
+
         return fakeredis.aioredis.FakeRedis()
     except ImportError:
         pytest.skip("fakeredis not installed")
@@ -55,10 +57,9 @@ async def test_concurrent_1000_only_one_wins(lock):
     Mô phỏng 1000 requests cùng lúc.
     Chỉ đúng 1 request acquire được lock.
     """
-    results = await asyncio.gather(*[
-        lock.acquire("slot:hotslot", ttl=30)
-        for _ in range(100)  # Use 100 instead of 1000 for faster test
-    ])
+    results = await asyncio.gather(
+        *[lock.acquire("slot:hotslot", ttl=30) for _ in range(100)]  # Use 100 instead of 1000 for faster test
+    )
     successful = [r for r in results if r is not None]
     assert len(successful) == 1
 

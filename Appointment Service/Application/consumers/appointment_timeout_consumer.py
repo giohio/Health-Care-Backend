@@ -2,14 +2,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select
-
 from Application.use_cases._helpers import utcnow
 from Domain.value_objects.appointment_status import AppointmentStatus
 from healthai_db import OutboxWriter
 from healthai_events import BaseConsumer
 from healthai_events.exceptions import RetryableError
 from infrastructure.database.models import AppointmentModel
+from sqlalchemy import select
 
 
 class AppointmentTimeoutConsumer(BaseConsumer):
@@ -36,9 +35,7 @@ class AppointmentTimeoutConsumer(BaseConsumer):
         async with self._session_factory() as session:
             async with session.begin():
                 result = await session.execute(
-                    select(AppointmentModel)
-                    .where(AppointmentModel.id == appointment_id)
-                    .with_for_update()
+                    select(AppointmentModel).where(AppointmentModel.id == appointment_id).with_for_update()
                 )
                 appt = result.scalar_one_or_none()
 

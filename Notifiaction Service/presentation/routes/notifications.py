@@ -1,16 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException
-
 from Application.dtos import NotificationResponse
 from Application.use_cases.list_notifications import ListNotificationsUseCase
 from Application.use_cases.mark_notification_read import MarkNotificationReadUseCase
-from presentation.dependencies import (
-    get_list_notifications_use_case,
-    get_mark_notification_read_use_case,
-)
-
+from fastapi import APIRouter, Depends, Header, HTTPException
+from presentation.dependencies import get_list_notifications_use_case, get_mark_notification_read_use_case
 
 router = APIRouter(tags=["Notifications"])
 

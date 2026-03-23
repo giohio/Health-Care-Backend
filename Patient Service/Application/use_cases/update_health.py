@@ -1,18 +1,10 @@
-from Domain import (
-    PatientHealthBackground,
-    IPatientHealthRepository,
-    IPatientProfileRepository
-)
-from uuid_extension import UUID7
 from Application.use_cases.profile_helpers import get_or_create_profile
+from Domain import IPatientHealthRepository, IPatientProfileRepository, PatientHealthBackground
+from uuid_extension import UUID7
 
 
 class UpdateHealthBackgroundUseCase:
-    def __init__(
-        self,
-        profile_repo: IPatientProfileRepository,
-        health_repo: IPatientHealthRepository
-    ):
+    def __init__(self, profile_repo: IPatientProfileRepository, health_repo: IPatientHealthRepository):
         self.profile_repo = profile_repo
         self.health_repo = health_repo
 
@@ -26,8 +18,7 @@ class UpdateHealthBackgroundUseCase:
         health_bg.update_background(**fields)
 
         updated_bg = await self.health_repo.update(
-            profile.id,
-            **{k: v for k, v in fields.items() if hasattr(health_bg, k)}
+            profile.id, **{k: v for k, v in fields.items() if hasattr(health_bg, k)}
         )
 
         return updated_bg

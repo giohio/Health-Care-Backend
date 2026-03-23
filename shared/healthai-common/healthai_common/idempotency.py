@@ -1,5 +1,6 @@
 import json
 from functools import wraps
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from healthai_cache import CacheClient
@@ -29,21 +30,19 @@ def idempotent(ttl: int = 86400):
     QUAN TRỌNG: request và cache phải là parameters
     của function. Decorator sẽ inject vào tự động.
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(request: Request, *args, **kwargs):
-            if request.method not in ('POST', 'PUT', 'PATCH'):
+            if request.method not in ("POST", "PUT", "PATCH"):
                 return await func(request, *args, **kwargs)
 
-            idem_key = request.headers.get('Idempotency-Key')
+            idem_key = request.headers.get("Idempotency-Key")
             if not idem_key:
                 return await func(request, *args, **kwargs)
 
             # Lấy cache từ app state hoặc từ kwargs
-            cache: CacheClient = (
-                getattr(request.app.state, 'cache', None)
-                or kwargs.get('cache')
-            )
+            cache: CacheClient = getattr(request.app.state, "cache", None) or kwargs.get("cache")
             if not cache:
                 return await func(request, *args, **kwargs)
 
@@ -51,27 +50,22 @@ def idempotent(ttl: int = 86400):
             cached = await cache.idempotency.get(idem_key)
             if cached:
                 return JSONResponse(
-                    content=cached['body'],
-                    status_code=cached['status_code'],
-                    headers={'X-Idempotent-Replayed': 'true'}
+                    content=cached["body"], status_code=cached["status_code"], headers={"X-Idempotent-Replayed": "true"}
                 )
 
             # Xử lý bình thường
             response = await func(request, *args, **kwargs)
 
             # Store response nếu thành công
-            if hasattr(response, 'status_code'):
+            if hasattr(response, "status_code"):
                 try:
                     body = json.loads(response.body)
                 except Exception:
                     body = {}
-                await cache.idempotency.store(
-                    idem_key,
-                    response.status_code,
-                    body,
-                    ttl=ttl
-                )
+                await cache.idempotency.store(idem_key, response.status_code, body, ttl=ttl)
 
             return response
+
         return wrapper
+
     return decorator

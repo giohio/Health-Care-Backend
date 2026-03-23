@@ -45,10 +45,7 @@ def setup_telemetry(app, service_name: str, db_engine=None) -> None:
     Initialize OpenTelemetry tracing + auto-instrument FastAPI, SQLAlchemy & httpx.
     Set OTEL_EXPORTER_OTLP_ENDPOINT env var (default: http://jaeger:4318/v1/traces).
     """
-    otlp_endpoint = os.getenv(
-        "OTEL_EXPORTER_OTLP_ENDPOINT",
-        "http://jaeger:4318/v1/traces"
-    ).strip()
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4318/v1/traces").strip()
 
     resource = Resource.create({"service.name": service_name})
     provider = TracerProvider(resource=resource)
@@ -84,8 +81,7 @@ def setup_logging(service_name: str) -> None:
     Uses TraceIDFilter to prevent KeyError on otelTraceID/otelSpanID.
     """
     log_format = (
-        f"[{service_name}] %(levelname)s: [trace_id=%(otelTraceID)s "
-        f"span_id=%(otelSpanID)s] %(name)s - %(message)s"
+        f"[{service_name}] %(levelname)s: [trace_id=%(otelTraceID)s " f"span_id=%(otelSpanID)s] %(name)s - %(message)s"
     )
 
     LOGGING_CONFIG = {

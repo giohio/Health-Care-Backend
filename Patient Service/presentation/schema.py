@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from typing import Any
 from uuid import UUID
-from Domain.entities.patient_profile import Gender
+
 from Domain.entities.patient_health_background import BloodType
+from Domain.entities.patient_profile import Gender
+from pydantic import BaseModel, ConfigDict
 
 
 class PatientProfileBase(BaseModel):

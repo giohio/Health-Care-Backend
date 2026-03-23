@@ -1,12 +1,13 @@
-import redis.asyncio as aioredis
+import asyncio
 import json
 import math
 import random
 import time
-import asyncio
-from typing import Any, Callable, TypeVar, Optional
+from typing import Any, Callable, Optional, TypeVar
 
-T = TypeVar('T')
+import redis.asyncio as aioredis
+
+T = TypeVar("T")
 
 
 class StampedeProtectedCache:
@@ -35,6 +36,7 @@ class StampedeProtectedCache:
     beta:  hằng số điều chỉnh aggressiveness.
            beta=1.0 là standard, tăng → recompute sớm hơn.
     """
+
     BETA = 1.0
     FLIGHT_KEY_PREFIX = "flight"
     FLIGHT_RESULT_PREFIX = "flight_result"
@@ -42,14 +44,7 @@ class StampedeProtectedCache:
     def __init__(self, redis: aioredis.Redis):
         self.redis = redis
 
-    async def get_or_compute(
-        self,
-        key: str,
-        fn: Callable[..., T],
-        ttl: int,
-        *args,
-        **kwargs
-    ) -> T:
+    async def get_or_compute(self, key: str, fn: Callable[..., T], ttl: int, *args, **kwargs) -> T:
         """
         Main entry point.
 
@@ -69,14 +64,9 @@ class StampedeProtectedCache:
             # Nếu nên recompute → fall through xuống compute
 
         # Cache miss hoặc PER triggered → single-flight
-        return await self._single_flight(
-            key, fn, ttl, *args, **kwargs
-        )
+        return await self._single_flight(key, fn, ttl, *args, **kwargs)
 
-    async def _get_cached(
-        self,
-        key: str
-    ) -> Optional[tuple[Any, float, float]]:
+    async def _get_cached(self, key: str) -> Optional[tuple[Any, float, float]]:
         """
         Returns (value, delta, expiry) hoặc None.
         Dùng HGETALL để lấy value + metadata cùng lúc.
@@ -85,16 +75,12 @@ class StampedeProtectedCache:
         if not data:
             return None
 
-        value = json.loads(data[b'v'])
-        delta = float(data.get(b'd', 0.001))
-        expiry = float(data.get(b'e', 0))
+        value = json.loads(data[b"v"])
+        delta = float(data.get(b"d", 0.001))
+        expiry = float(data.get(b"e", 0))
         return value, delta, expiry
 
-    def _should_recompute(
-        self,
-        delta: float,
-        expiry: float
-    ) -> bool:
+    def _should_recompute(self, delta: float, expiry: float) -> bool:
         """
         PER formula.
         Return True nếu nên recompute (xác suất tăng khi gần expire).
@@ -109,14 +95,7 @@ class StampedeProtectedCache:
         score = -delta * self.BETA * math.log(random.random())
         return score >= gap
 
-    async def _single_flight(
-        self,
-        key: str,
-        fn: Callable,
-        ttl: int,
-        *args,
-        **kwargs
-    ) -> Any:
+    async def _single_flight(self, key: str, fn: Callable, ttl: int, *args, **kwargs) -> Any:
         """
         Chỉ 1 caller được compute, còn lại chờ kết quả.
         """
@@ -124,9 +103,7 @@ class StampedeProtectedCache:
         result_key = f"{self.FLIGHT_RESULT_PREFIX}:{key}"
 
         # Race để trở thành leader
-        is_leader = await self.redis.set(
-            flight_key, '1', nx=True, ex=30
-        )
+        is_leader = await self.redis.set(flight_key, "1", nx=True, ex=30)
 
         if is_leader:
             try:
@@ -137,35 +114,26 @@ class StampedeProtectedCache:
 
                 # Lưu cache với metadata cho PER
                 pipe = self.redis.pipeline(transaction=True)
-                pipe.hset(key, mapping={
-                    'v': json.dumps(value, default=str),   # value
-                    'd': str(delta),           # compute time
-                    'e': str(expiry)           # expiry timestamp
-                })
+                pipe.hset(
+                    key,
+                    mapping={
+                        "v": json.dumps(value, default=str),  # value
+                        "d": str(delta),  # compute time
+                        "e": str(expiry),  # expiry timestamp
+                    },
+                )
                 pipe.expire(key, ttl)
                 # Broadcast kết quả cho waiters
-                pipe.set(
-                    result_key,
-                    json.dumps(value, default=str),
-                    ex=30
-                )
+                pipe.set(result_key, json.dumps(value, default=str), ex=30)
                 await pipe.execute()
                 return value
             finally:
                 await self.redis.delete(flight_key)
         else:
             # Follower: chờ leader xong
-            return await self._wait_for_result(
-                result_key, fn, ttl, *args, **kwargs
-            )
+            return await self._wait_for_result(result_key, fn, ttl, *args, **kwargs)
 
-    async def _wait_for_result(
-        self,
-        result_key: str,
-        fn: Callable,
-        *args,
-        **kwargs
-    ) -> Any:
+    async def _wait_for_result(self, result_key: str, fn: Callable, *args, **kwargs) -> Any:
         """
         Poll result_key mỗi 50ms, tối đa 3 giây.
         Fallback: tự compute nếu leader quá chậm.
@@ -192,9 +160,7 @@ class StampedeProtectedCache:
         """
         cursor = 0
         while True:
-            cursor, keys = await self.redis.scan(
-                cursor, match=pattern, count=100
-            )
+            cursor, keys = await self.redis.scan(cursor, match=pattern, count=100)
             if keys:
                 await self.redis.delete(*keys)
             if cursor == 0:

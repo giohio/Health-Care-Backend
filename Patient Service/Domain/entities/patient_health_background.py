@@ -1,6 +1,7 @@
-from typing import Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
+
 from uuid_extension import UUID7
 
 
@@ -8,7 +9,7 @@ class BloodType(str, Enum):
     A = "A"
     B = "B"
     AB = "AB"
-    O = "O" # noqa
+    O = "O"  # noqa
 
 
 @dataclass

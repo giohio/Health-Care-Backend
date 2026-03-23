@@ -2,8 +2,6 @@ from datetime import date
 from typing import Annotated, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException
-
 from Application.dtos import (
     AppointmentResponse,
     AvailableSlotsResponse,
@@ -29,6 +27,7 @@ from Domain.exceptions.domain_exceptions import (
     SlotNotAvailableError,
     UnauthorizedActionError,
 )
+from fastapi import APIRouter, Depends, Header, HTTPException
 from healthai_common import SagaFailedError
 from presentation.dependencies import (
     get_available_slots_use_case,
@@ -45,10 +44,11 @@ from presentation.dependencies import (
 
 router = APIRouter(tags=["Appointments"])
 
+
 @router.post("/", response_model=AppointmentResponse, responses={400: {"description": "No doctor available"}})
 async def book_appointment(
     request: CreateAppointmentRequest,
-    use_case: Annotated[BookAppointmentUseCase, Depends(get_book_appointment_use_case)]
+    use_case: Annotated[BookAppointmentUseCase, Depends(get_book_appointment_use_case)],
 ):
     try:
         return await use_case.execute(request)
@@ -57,14 +57,19 @@ async def book_appointment(
     except SagaFailedError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.get("/patient/{patient_id}", response_model=List[AppointmentResponse])
 async def list_patient_appointments(
-    patient_id: UUID,
-    use_case: Annotated[ListPatientAppointmentsUseCase, Depends(get_list_appointments_use_case)]
+    patient_id: UUID, use_case: Annotated[ListPatientAppointmentsUseCase, Depends(get_list_appointments_use_case)]
 ):
     return await use_case.execute(patient_id)
 
-@router.put("/{appointment_id}/cancel", response_model=AppointmentResponse, responses={404: {"description": "Appointment not found"}})
+
+@router.put(
+    "/{appointment_id}/cancel",
+    response_model=AppointmentResponse,
+    responses={404: {"description": "Appointment not found"}},
+)
 async def cancel_appointment(
     appointment_id: UUID,
     request: CancelAppointmentRequest,

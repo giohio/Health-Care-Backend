@@ -1,6 +1,7 @@
-import redis.asyncio as aioredis
 import json
 from typing import Optional
+
+import redis.asyncio as aioredis
 
 
 class IdempotencyStore:
@@ -17,39 +18,25 @@ class IdempotencyStore:
     TTL mặc định 24h: sau 24h client có thể retry
     với cùng key mà không bị duplicate.
     """
+
     PREFIX = "idem"
 
-    def __init__(
-        self,
-        redis: aioredis.Redis,
-        default_ttl: int = 86400
-    ):
+    def __init__(self, redis: aioredis.Redis, default_ttl: int = 86400):
         self.redis = redis
         self.default_ttl = default_ttl
 
     def _key(self, idempotency_key: str) -> str:
         return f"{self.PREFIX}:{idempotency_key}"
 
-    async def get(
-        self,
-        idempotency_key: str
-    ) -> Optional[dict]:
+    async def get(self, idempotency_key: str) -> Optional[dict]:
         """
         Trả về cached response nếu đã xử lý.
         None nếu chưa xử lý.
         """
-        val = await self.redis.get(
-            self._key(idempotency_key)
-        )
+        val = await self.redis.get(self._key(idempotency_key))
         return json.loads(val) if val else None
 
-    async def store(
-        self,
-        idempotency_key: str,
-        status_code: int,
-        body: dict,
-        ttl: Optional[int] = None
-    ):
+    async def store(self, idempotency_key: str, status_code: int, body: dict, ttl: Optional[int] = None):
         """
         Lưu response sau khi xử lý thành công.
         Chỉ lưu 2xx responses.
@@ -58,10 +45,5 @@ class IdempotencyStore:
             return  # Không cache error responses
 
         await self.redis.setex(
-            self._key(idempotency_key),
-            ttl or self.default_ttl,
-            json.dumps({
-                'status_code': status_code,
-                'body': body
-            })
+            self._key(idempotency_key), ttl or self.default_ttl, json.dumps({"status_code": status_code, "body": body})
         )

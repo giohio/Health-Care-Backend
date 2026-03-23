@@ -1,5 +1,6 @@
-import aio_pika
 import json
+
+import aio_pika
 from uuid_extension import uuid7
 
 
@@ -18,18 +19,13 @@ class RabbitMQPublisher:
             payload={'appointment_id': '...'}
         )
     """
-    def __init__(
-        self,
-        connection: aio_pika.RobustConnection
-    ):
+
+    def __init__(self, connection: aio_pika.RobustConnection):
         self._connection = connection
         self._channel: aio_pika.RobustChannel = None
 
     @classmethod
-    async def connect(
-        cls,
-        url: str
-    ) -> 'RabbitMQPublisher':
+    async def connect(cls, url: str) -> "RabbitMQPublisher":
         # RobustConnection tự reconnect khi mất kết nối
         connection = await aio_pika.connect_robust(url)
         publisher = cls(connection)
@@ -41,14 +37,7 @@ class RabbitMQPublisher:
         # Publisher confirms: đảm bảo broker nhận được message
         await self._channel.set_qos(prefetch_count=10)
 
-    async def publish(
-        self,
-        exchange: str,
-        routing_key: str,
-        payload: dict,
-        message_id: str = None,
-        priority: int = 0
-    ):
+    async def publish(self, exchange: str, routing_key: str, payload: dict, message_id: str = None, priority: int = 0):
         """
         Publish 1 message lên exchange.
 
@@ -59,24 +48,17 @@ class RabbitMQPublisher:
                      dùng outbox_event.id để đảm bảo
                      consumer có thể idempotency check
         """
-        exch = await self._channel.declare_exchange(
-            exchange,
-            aio_pika.ExchangeType.TOPIC,
-            durable=True
-        )
+        exch = await self._channel.declare_exchange(exchange, aio_pika.ExchangeType.TOPIC, durable=True)
 
         message = aio_pika.Message(
             body=json.dumps(payload, default=str).encode(),
             message_id=message_id or str(uuid7()),
-            content_type='application/json',
+            content_type="application/json",
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-            priority=priority
+            priority=priority,
         )
 
-        await exch.publish(
-            message,
-            routing_key=routing_key
-        )
+        await exch.publish(message, routing_key=routing_key)
 
     async def close(self):
         await self._connection.close()

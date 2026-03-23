@@ -1,10 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-
 from infrastructure.websocket.manager import NotificationConnectionManager
 from presentation.dependencies import get_ws_manager
-
 
 router = APIRouter(tags=["Notifications"])
 

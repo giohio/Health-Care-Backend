@@ -1,15 +1,17 @@
-import httpx
 import asyncio
-from typing import List, Dict, Any
-from uuid_extension import UUID7
-from datetime import time
 import logging
+from datetime import time
+from typing import Any, Dict, List
+
+import httpx
 from Domain.interfaces.doctor_service_client import IDoctorServiceClient
-from infrastructure.config import settings
 from healthai_cache import CacheClient
 from healthai_common import CircuitBreaker
+from infrastructure.config import settings
+from uuid_extension import UUID7
 
 logger = logging.getLogger(__name__)
+
 
 class DoctorServiceClient(IDoctorServiceClient):
     def __init__(
@@ -26,11 +28,14 @@ class DoctorServiceClient(IDoctorServiceClient):
             recovery_timeout=30,
         )
 
-    async def get_available_doctors(self, specialty_id: UUID7, day_of_week: int, time_slot: time) -> List[Dict[str, Any]]:
+    async def get_available_doctors(
+        self, specialty_id: UUID7, day_of_week: int, time_slot: time
+    ) -> List[Dict[str, Any]]:
         """
         Calls Doctor Service to find doctors.
         We expect an endpoint like /doctors/available?specialty_id=...&day=...&time=...
         """
+
         async def _fetch():
             response = await self._client.get(
                 "/search/available",
@@ -79,9 +84,7 @@ class DoctorServiceClient(IDoctorServiceClient):
 
     async def get_patient_full_context(self, patient_id: str) -> dict | None:
         async def _fetch():
-            response = await self._client.get(
-                f"/patients/internal/patients/{patient_id}/full-context"
-            )
+            response = await self._client.get(f"/patients/internal/patients/{patient_id}/full-context")
             response.raise_for_status()
             return response.json()
 

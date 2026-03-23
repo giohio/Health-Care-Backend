@@ -1,6 +1,6 @@
+from Application.use_cases.create_notification import CreateNotificationUseCase
 from healthai_events import BaseConsumer
 from infrastructure.repositories.notification_repository import NotificationRepository
-from Application.use_cases.create_notification import CreateNotificationUseCase
 
 
 class AppointmentConfirmedConsumer(BaseConsumer):

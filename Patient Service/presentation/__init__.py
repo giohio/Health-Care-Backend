@@ -1,16 +1,11 @@
-from presentation.routes import patient, internal
+from presentation.dependencies import get_current_user_id, get_event_publisher, get_health_repo, get_profile_repo
+from presentation.routes import internal, patient
 from presentation.schema import (
-    PatientProfileResponse,
-    PatientHealthResponse,
+    HealthUpdate,
     PatientFullContextResponse,
+    PatientHealthResponse,
+    PatientProfileResponse,
     ProfileUpdate,
-    HealthUpdate
-)
-from presentation.dependencies import (
-    get_profile_repo,
-    get_health_repo,
-    get_event_publisher,
-    get_current_user_id
 )
 
 __all__ = [
@@ -24,5 +19,5 @@ __all__ = [
     "get_profile_repo",
     "get_health_repo",
     "get_event_publisher",
-    "get_current_user_id"
+    "get_current_user_id",
 ]

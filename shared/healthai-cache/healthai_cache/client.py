@@ -1,7 +1,7 @@
 import redis.asyncio as aioredis
+from healthai_cache.idempotency import IdempotencyStore
 from healthai_cache.lock import DistributedLock
 from healthai_cache.stampede import StampedeProtectedCache
-from healthai_cache.idempotency import IdempotencyStore
 
 
 class CacheClient:
@@ -32,6 +32,7 @@ class CacheClient:
         if cached:
             return cached
     """
+
     def __init__(self, redis: aioredis.Redis):
         self._redis = redis
         self.lock = DistributedLock(redis)
@@ -39,27 +40,20 @@ class CacheClient:
         self.idempotency = IdempotencyStore(redis)
 
     @classmethod
-    def from_url(
-        cls,
-        url: str,
-        decode_responses: bool = False,
-        **kwargs
-    ) -> 'CacheClient':
-        r = aioredis.from_url(
-            url,
-            decode_responses=decode_responses,
-            **kwargs
-        )
+    def from_url(cls, url: str, decode_responses: bool = False, **kwargs) -> "CacheClient":
+        r = aioredis.from_url(url, decode_responses=decode_responses, **kwargs)
         return cls(r)
 
     # Convenience methods
     async def get(self, key: str):
         import json
+
         val = await self._redis.get(key)
         return json.loads(val) if val else None
 
     async def set(self, key: str, value, ttl: int = 300):
         import json
+
         await self._redis.setex(key, ttl, json.dumps(value, default=str))
 
     async def delete(self, *keys: str):

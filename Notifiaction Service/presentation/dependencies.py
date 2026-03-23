@@ -1,17 +1,16 @@
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from Application.use_cases.create_notification import CreateNotificationUseCase
 from Application.use_cases.list_notifications import ListNotificationsUseCase
 from Application.use_cases.mark_notification_read import MarkNotificationReadUseCase
+from fastapi import Depends
 from healthai_cache import CacheClient
 from infrastructure.config import settings
 from infrastructure.database.session import get_db
 from infrastructure.repositories.notification_repository import NotificationRepository
 from infrastructure.websocket.manager import NotificationConnectionManager
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @lru_cache()

@@ -1,5 +1,6 @@
-from uuid_extension import uuid7, UUID7
 from datetime import datetime, timezone
+
+from uuid_extension import UUID7, uuid7
 
 
 def new_id() -> UUID7:
@@ -15,6 +16,4 @@ def extract_timestamp(uid) -> datetime:
     if isinstance(uid, str):
         uid = UUID7(uid)
     ts_ms = uid.int >> 80
-    return datetime.fromtimestamp(
-        ts_ms / 1000, tz=timezone.utc
-    )
+    return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)

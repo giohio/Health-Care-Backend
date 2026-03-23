@@ -1,20 +1,12 @@
 from typing import Tuple
-from Domain import (
-    PatientProfile,
-    PatientHealthBackground,
-    IPatientProfileRepository,
-    IPatientHealthRepository
-)
-from uuid_extension import UUID7
+
 from Application.use_cases.profile_helpers import get_or_create_profile
+from Domain import IPatientHealthRepository, IPatientProfileRepository, PatientHealthBackground, PatientProfile
+from uuid_extension import UUID7
 
 
 class GetProfileUseCase:
-    def __init__(
-        self,
-        profile_repo: IPatientProfileRepository,
-        health_repo: IPatientHealthRepository
-    ):
+    def __init__(self, profile_repo: IPatientProfileRepository, health_repo: IPatientHealthRepository):
         self.profile_repo = profile_repo
         self.health_repo = health_repo
 

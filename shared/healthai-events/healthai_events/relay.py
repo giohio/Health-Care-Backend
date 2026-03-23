@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from sqlalchemy import select
+
 from healthai_db import OutboxEvent
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +34,12 @@ class OutboxRelay:
         relay = OutboxRelay(session_factory, publisher)
         asyncio.create_task(relay.run())  # background task
     """
+
     MAX_RETRIES = 5
     BATCH_SIZE = 50
     POLL_INTERVAL = 0.5  # giây
 
-    def __init__(
-        self,
-        session_factory,
-        publisher
-    ):
+    def __init__(self, session_factory, publisher):
         self._session_factory = session_factory
         self._publisher = publisher
         self._running = False
@@ -71,10 +69,7 @@ class OutboxRelay:
                 # Atomic: acquire row lock + read
                 result = await session.execute(
                     select(OutboxEvent)
-                    .where(
-                        OutboxEvent.status == 'pending',
-                        OutboxEvent.retry_count < self.MAX_RETRIES
-                    )
+                    .where(OutboxEvent.status == "pending", OutboxEvent.retry_count < self.MAX_RETRIES)
                     .order_by(OutboxEvent.id)
                     .limit(self.BATCH_SIZE)
                     .with_for_update(skip_locked=True)
@@ -96,9 +91,9 @@ class OutboxRelay:
                 exchange=event.aggregate_type,
                 routing_key=event.event_type,
                 payload=event.payload,
-                message_id=str(event.id)
+                message_id=str(event.id),
             )
-            event.status = 'published'
+            event.status = "published"
             event.published_at = datetime.now(timezone.utc)
 
         except Exception as e:
@@ -106,13 +101,8 @@ class OutboxRelay:
             event.last_error = str(e)[:500]
 
             if event.retry_count >= self.MAX_RETRIES:
-                event.status = 'failed'
-                logger.error(
-                    f"OutboxEvent {event.id} permanently failed: {e}"
-                )
+                event.status = "failed"
+                logger.error(f"OutboxEvent {event.id} permanently failed: {e}")
                 logger.error("OutboxEvent requires manual alert handling")
             else:
-                logger.warning(
-                    f"OutboxEvent {event.id} retry "
-                    f"{event.retry_count}/{self.MAX_RETRIES}: {e}"
-                )
+                logger.warning(f"OutboxEvent {event.id} retry " f"{event.retry_count}/{self.MAX_RETRIES}: {e}")

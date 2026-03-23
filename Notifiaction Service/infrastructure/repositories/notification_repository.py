@@ -1,13 +1,12 @@
-from datetime import datetime, timezone
 import uuid
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from uuid_extension import UUID7
+from datetime import datetime, timezone
 
 from Domain.entities.notification import Notification
 from Domain.interfaces.notification_repository import INotificationRepository
 from infrastructure.database.models import NotificationModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid_extension import UUID7
 
 
 class NotificationRepository(INotificationRepository):
@@ -47,9 +46,7 @@ class NotificationRepository(INotificationRepository):
 
     async def mark_read(self, notification_id: UUID7) -> Notification | None:
         result = await self.session.execute(
-            select(NotificationModel)
-            .where(NotificationModel.id == uuid.UUID(str(notification_id)))
-            .with_for_update()
+            select(NotificationModel).where(NotificationModel.id == uuid.UUID(str(notification_id))).with_for_update()
         )
         model = result.scalar_one_or_none()
         if not model:

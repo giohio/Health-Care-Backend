@@ -3,22 +3,22 @@ import logging
 import os
 import sys
 from pathlib import Path
+
+from Application.event_handlers.user_registered import UserRegisteredHandler
+from Application.use_cases.register_doctor import RegisterDoctorUseCase
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from infrastructure.config import settings
-from presentation.routes import specialties_router, doctors_router, schedules_router
-from shared_lib.messaging import BaseConsumer
 from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.repositories import DoctorRepository
-from Application.use_cases.register_doctor import RegisterDoctorUseCase
-from Application.event_handlers.user_registered import UserRegisteredHandler
+from presentation.routes import doctors_router, schedules_router, specialties_router
+from shared_lib.messaging import BaseConsumer
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
 if str(TRACING_DIR) not in sys.path:
     sys.path.append(str(TRACING_DIR))
 
-from telemetry import setup_logging, setup_telemetry
+from telemetry import setup_logging, setup_telemetry  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +29,7 @@ app = FastAPI(
     title="Doctor Service",
     description="Service for managing medical specialties, doctors, and schedules",
     version="1.0.0",
-    root_path=os.getenv("APP_ROOT_PATH", "")
+    root_path=os.getenv("APP_ROOT_PATH", ""),
 )
 
 setup_logging("doctor-service")
@@ -50,6 +50,7 @@ app.include_router(schedules_router)
 
 background_tasks = set()
 
+
 @app.on_event("startup")
 async def startup_event():
     # Start RabbitMQ Consumer in a background task
@@ -58,14 +59,14 @@ async def startup_event():
             doctor_repo = DoctorRepository(session)
             register_use_case = RegisterDoctorUseCase(doctor_repo)
             handler = UserRegisteredHandler(register_use_case)
-            
+
             consumer = BaseConsumer(
                 amqp_url=settings.RABBITMQ_URL,
                 queue_name="doctor_service_user_queue",
                 exchange_name="user_events",
-                routing_key="user.registered"
+                routing_key="user.registered",
             )
-            
+
             try:
                 await consumer.start(handler_callback=handler.handle)
             except Exception as e:
@@ -76,7 +77,7 @@ async def startup_event():
     task.add_done_callback(background_tasks.discard)
     logger.info("Doctor Service background consumer started.")
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "doctor-service"}
-

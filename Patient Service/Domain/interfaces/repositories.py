@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+
+from Domain.entities import PatientHealthBackground, PatientProfile
 from uuid_extension import UUID7
-from Domain.entities import PatientProfile, PatientHealthBackground
 
 
 class IPatientProfileRepository(ABC):

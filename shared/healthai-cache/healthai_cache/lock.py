@@ -1,7 +1,8 @@
+from contextlib import asynccontextmanager
+from typing import Optional
+
 import redis.asyncio as aioredis
 from uuid_extension import uuid7
-from typing import Optional
-from contextlib import asynccontextmanager
 
 # Lua script để release lock an toàn
 # Chỉ delete nếu value khớp — tránh delete lock của người khác
@@ -41,22 +42,17 @@ class DistributedLock:
                 raise SlotTakenError()
             ... business logic ...
     """
+
     PREFIX = "lock"
 
     def __init__(self, redis: aioredis.Redis):
         self.redis = redis
-        self._release_script = self.redis.register_script(
-            _RELEASE_SCRIPT
-        )
+        self._release_script = self.redis.register_script(_RELEASE_SCRIPT)
 
     def _key(self, name: str) -> str:
         return f"{self.PREFIX}:{name}"
 
-    async def acquire(
-        self,
-        name: str,
-        ttl: int = 15
-    ) -> Optional[str]:
+    async def acquire(self, name: str, ttl: int = 15) -> Optional[str]:
         """
         Trả về lock_token nếu acquire thành công.
         Trả về None nếu slot đã bị lock.
@@ -65,35 +61,18 @@ class DistributedLock:
              Đảm bảo lock không bị giữ mãi nếu app crash.
         """
         token = str(uuid7())
-        acquired = await self.redis.set(
-            self._key(name),
-            token,
-            nx=True,   # Only set if Not eXists
-            ex=ttl
-        )
+        acquired = await self.redis.set(self._key(name), token, nx=True, ex=ttl)  # Only set if Not eXists
         return token if acquired else None
 
-    async def release(
-        self,
-        name: str,
-        token: str
-    ) -> bool:
+    async def release(self, name: str, token: str) -> bool:
         """
         Chỉ release nếu token khớp (chính chủ).
         Return True nếu release thành công.
         """
-        result = await self._release_script(
-            keys=[self._key(name)],
-            args=[token]
-        )
+        result = await self._release_script(keys=[self._key(name)], args=[token])
         return bool(result)
 
-    async def extend(
-        self,
-        name: str,
-        token: str,
-        additional_ttl: int
-    ) -> bool:
+    async def extend(self, name: str, token: str, additional_ttl: int) -> bool:
         """
         Gia hạn TTL của lock nếu vẫn còn là owner.
         Dùng khi operation mất nhiều hơn TTL ban đầu.
@@ -105,21 +84,11 @@ class DistributedLock:
             return 0
         end
         """
-        result = await self.redis.eval(
-            extend_script,
-            1,
-            self._key(name),
-            token,
-            str(additional_ttl)
-        )
+        result = await self.redis.eval(extend_script, 1, self._key(name), token, str(additional_ttl))
         return bool(result)
 
     @asynccontextmanager
-    async def context(
-        self,
-        name: str,
-        ttl: int = 15
-    ):
+    async def context(self, name: str, ttl: int = 15):
         """
         Context manager — tự động release khi exit.
 

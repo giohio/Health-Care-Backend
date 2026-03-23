@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+
 from uuid_extension import UUID7
 
 

@@ -1,14 +1,13 @@
 from datetime import date, timedelta
 
-from healthai_common import SagaFailedError, SagaOrchestrator
-from healthai_db import OutboxWriter
-from healthai_events.exceptions import NonRetryableError
-
 from Application.dtos import AppointmentResponse, CreateAppointmentRequest
 from Application.use_cases._helpers import add_minutes, utcnow
 from Domain.entities.appointment import Appointment
 from Domain.exceptions.domain_exceptions import SlotNotAvailableError
 from Domain.value_objects.appointment_status import AppointmentStatus
+from healthai_common import SagaOrchestrator
+from healthai_db import OutboxWriter
+from healthai_events.exceptions import NonRetryableError
 from uuid_extension import uuid7
 
 
@@ -184,5 +183,3 @@ class BookAppointmentUseCase:
         results = await saga.run(request.model_dump())
         appt = results.get("create_appointment")
         return AppointmentResponse.model_validate(appt)
-
-       

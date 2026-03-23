@@ -1,5 +1,5 @@
 import re
-from typing import Tuple, List
+from typing import List, Tuple
 
 
 class PasswordValidator:
@@ -11,20 +11,18 @@ class PasswordValidator:
         errors = []
 
         if len(password) < PasswordValidator.MIN_LENGTH:
-            errors.append(
-                f"Password must be at least {PasswordValidator.MIN_LENGTH} characters")
+            errors.append(f"Password must be at least {PasswordValidator.MIN_LENGTH} characters")
 
         if len(password) > PasswordValidator.MAX_LENGTH:
-            errors.append(
-                f"Password must not exceed {PasswordValidator.MAX_LENGTH} characters")
+            errors.append(f"Password must not exceed {PasswordValidator.MAX_LENGTH} characters")
 
-        if not re.search(r'[A-Z]', password):
+        if not re.search(r"[A-Z]", password):
             errors.append("Password must contain at least one uppercase letter")
 
-        if not re.search(r'[a-z]', password):
+        if not re.search(r"[a-z]", password):
             errors.append("Password must contain at least one lowercase letter")
 
-        if not re.search(r'\d', password):
+        if not re.search(r"\d", password):
             errors.append("Password must contain at least one digit")
 
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):

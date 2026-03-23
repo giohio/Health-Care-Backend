@@ -1,7 +1,7 @@
 import logging
+
 from Application.use_cases.initialize_profile import InitializeProfileUseCase
 from uuid_extension import UUID7
-import json
 
 logger = logging.getLogger(__name__)
 

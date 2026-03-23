@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
 
-from uuid_extension import uuid7
-
 from Application.dtos import NotificationResponse
 from Domain.entities.notification import Notification
 from Domain.interfaces.notification_repository import INotificationRepository
 from infrastructure.websocket.manager import NotificationConnectionManager
+from uuid_extension import uuid7
 
 
 class CreateNotificationUseCase:

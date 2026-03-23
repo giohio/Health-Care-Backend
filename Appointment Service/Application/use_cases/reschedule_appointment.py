@@ -1,17 +1,15 @@
-from uuid_extension import UUID7
-
-from healthai_db import OutboxWriter
-
 from Application.dtos import AppointmentResponse
 from Application.use_cases._helpers import add_minutes
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,
-    UnauthorizedActionError,
     InvalidStatusTransitionError,
     SlotNotAvailableError,
+    UnauthorizedActionError,
 )
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
+from healthai_db import OutboxWriter
+from uuid_extension import UUID7
 
 
 class RescheduleAppointmentUseCase:

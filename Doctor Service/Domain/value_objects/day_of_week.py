@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class DayOfWeek(Enum):
     MONDAY = 0
     TUESDAY = 1

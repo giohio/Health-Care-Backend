@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from uuid_extension import uuid7, UUID7
 from enum import StrEnum
+
+from uuid_extension import UUID7, uuid7
 
 
 class UserRole(StrEnum):

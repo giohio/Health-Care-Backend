@@ -4,7 +4,6 @@ class RetryableError(Exception):
     VD: network timeout, DB temporarily unavailable.
     Consumer sẽ retry với backoff.
     """
-    pass
 
 
 class NonRetryableError(Exception):
@@ -13,4 +12,3 @@ class NonRetryableError(Exception):
     VD: invalid payload, entity not found.
     Consumer sẽ reject và gửi vào DLQ.
     """
-    pass

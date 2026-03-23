@@ -1,11 +1,10 @@
 import uuid
 from datetime import datetime
 
+from infrastructure.database.session import Base
 from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
-
-from infrastructure.database.session import Base
 
 
 class NotificationModel(Base):

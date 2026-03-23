@@ -1,18 +1,11 @@
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    AsyncSession,
-    async_sessionmaker
-)
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 
 def create_session_factory(
-    database_url: str,
-    pool_size: int = 10,
-    max_overflow: int = 20,
-    pool_pre_ping: bool = True,
-    echo: bool = False
+    database_url: str, pool_size: int = 10, max_overflow: int = 20, pool_pre_ping: bool = True, echo: bool = False
 ) -> async_sessionmaker[AsyncSession]:
     """
     Tạo session factory cho 1 service.
@@ -22,25 +15,19 @@ def create_session_factory(
     trước khi dùng — tránh stale connections.
     """
     engine = create_async_engine(
-        database_url,
-        pool_size=pool_size,
-        max_overflow=max_overflow,
-        pool_pre_ping=pool_pre_ping,
-        echo=echo
+        database_url, pool_size=pool_size, max_overflow=max_overflow, pool_pre_ping=pool_pre_ping, echo=echo
     )
     return async_sessionmaker(
         engine,
         class_=AsyncSession,
-        expire_on_commit=False
+        expire_on_commit=False,
         # expire_on_commit=False quan trọng với async
         # Tránh lazy load sau commit gây lỗi
     )
 
 
 @asynccontextmanager
-async def get_session(
-    session_factory: async_sessionmaker
-) -> AsyncGenerator[AsyncSession, None]:
+async def get_session(session_factory: async_sessionmaker) -> AsyncGenerator[AsyncSession, None]:
     """
     Context manager với auto-rollback khi có exception.
 

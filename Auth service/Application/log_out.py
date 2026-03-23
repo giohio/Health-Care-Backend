@@ -1,5 +1,5 @@
-from uuid_extension import UUID7
 from Domain import IRefreshTokenRepository
+from uuid_extension import UUID7
 
 
 class LogOutUseCase:
@@ -7,10 +7,7 @@ class LogOutUseCase:
         self.token_repository = token_repository
 
     async def execute(
-        self,
-        refresh_token_value: str | None,
-        user_id: UUID7 | str | None,
-        logout_all_devices: bool = False
+        self, refresh_token_value: str | None, user_id: UUID7 | str | None, logout_all_devices: bool = False
     ):
         if logout_all_devices:
             if not user_id:
@@ -23,8 +20,5 @@ class LogOutUseCase:
             if token and token.is_valid():
                 token.revoke()
                 await self.token_repository.update(
-                    token.id,
-                    is_revoked=token.is_revoked,
-                    revoked_at=token.revoked_at,
-                    last_used_at=token.last_used_at
+                    token.id, is_revoked=token.is_revoked, revoked_at=token.revoked_at, last_used_at=token.last_used_at
                 )

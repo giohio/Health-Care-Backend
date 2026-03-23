@@ -1,10 +1,13 @@
-from sqlalchemy import String, Integer, Time, ForeignKey, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from infrastructure.database.session import Base
-from Domain.value_objects.day_of_week import DayOfWeek
 import uuid
 from datetime import time
+
+from Domain.value_objects.day_of_week import DayOfWeek
+from infrastructure.database.session import Base
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer, String, Time
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 
 class SpecialtyModel(Base):
     __tablename__ = "specialties"
@@ -14,6 +17,7 @@ class SpecialtyModel(Base):
     description: Mapped[str | None] = mapped_column(String(500))
 
     doctors: Mapped[list["DoctorModel"]] = relationship(back_populates="specialty")
+
 
 class DoctorModel(Base):
     __tablename__ = "doctors"
@@ -26,6 +30,7 @@ class DoctorModel(Base):
 
     specialty: Mapped["SpecialtyModel"] = relationship(back_populates="doctors")
     schedules: Mapped[list["DoctorScheduleModel"]] = relationship(back_populates="doctor")
+
 
 class DoctorScheduleModel(Base):
     __tablename__ = "doctor_schedules"

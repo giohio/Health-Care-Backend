@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from uuid_extension import UUID7
 
 from Domain.entities.notification import Notification
+from uuid_extension import UUID7
 
 
 class INotificationRepository(ABC):

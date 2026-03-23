@@ -2,11 +2,11 @@ import logging
 from abc import ABC
 from datetime import datetime
 from typing import Optional
-from sqlalchemy.orm import Mapped, mapped_column
+
+from healthai_db import Base, TimestampMixin, UUIDMixin
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy import String, Text, DateTime
-from healthai_db import Base, UUIDMixin, TimestampMixin
-from uuid_extension import uuid7
+from sqlalchemy.orm import Mapped, mapped_column
 
 logger = logging.getLogger(__name__)
 
@@ -16,33 +16,18 @@ class SagaState(Base, UUIDMixin, TimestampMixin):
     Persist saga state để recovery khi crash.
     Mỗi service có bảng này trong DB của mình.
     """
-    __tablename__ = 'saga_states'
 
-    saga_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String(20), default='running', nullable=False
-    )
+    __tablename__ = "saga_states"
+
+    saga_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="running", nullable=False)
     # running | completed | compensating | failed
-    current_step: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True
-    )
-    payload: Mapped[dict] = mapped_column(
-        JSONB, nullable=False
-    )
-    completed_steps: Mapped[list] = mapped_column(
-        JSONB, default=list
-    )
-    compensated_steps: Mapped[list] = mapped_column(
-        JSONB, default=list
-    )
-    error: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
-    )
-    failed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    current_step: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    completed_steps: Mapped[list] = mapped_column(JSONB, default=list)
+    compensated_steps: Mapped[list] = mapped_column(JSONB, default=list)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class SagaFailedError(Exception):
@@ -86,6 +71,7 @@ class SagaOrchestrator(ABC):
             async def compensate_release_lock(self, ctx):
                 await self.cache.lock.release(...)
     """
+
     SAGA_TYPE: str
     STEPS: list = []
     COMPENSATIONS: dict = {}
@@ -95,50 +81,34 @@ class SagaOrchestrator(ABC):
         self.cache = cache
 
     async def run(self, payload: dict) -> dict:
-        saga = SagaState(
-            saga_type=self.SAGA_TYPE,
-            payload=payload,
-            status='running'
-        )
+        saga = SagaState(saga_type=self.SAGA_TYPE, payload=payload, status="running")
         self.session.add(saga)
         await self.session.flush()
 
-        ctx = {**payload, '_results': {}}
+        ctx = {**payload, "_results": {}}
 
         try:
             for step in self.STEPS:
                 saga.current_step = step
                 await self.session.flush()
 
-                result = await getattr(
-                    self, f'execute_{step}'
-                )(ctx)
+                result = await getattr(self, f"execute_{step}")(ctx)
 
                 if result is not None:
-                    ctx['_results'][step] = result
-                saga.completed_steps = list(
-                    ctx['_results'].keys()
-                )
+                    ctx["_results"][step] = result
+                saga.completed_steps = list(ctx["_results"].keys())
 
-            saga.status = 'completed'
+            saga.status = "completed"
             await self.session.flush()
-            return ctx['_results']
+            return ctx["_results"]
 
         except Exception as e:
-            logger.error(
-                f"Saga {saga.id} failed at "
-                f"{saga.current_step}: {e}"
-            )
+            logger.error(f"Saga {saga.id} failed at " f"{saga.current_step}: {e}")
             await self._compensate(saga, ctx, str(e))
-            raise SagaFailedError(
-                f"Saga failed: {e}",
-                saga_id=str(saga.id)
-            ) from e
+            raise SagaFailedError(f"Saga failed: {e}", saga_id=str(saga.id)) from e
 
-    async def _compensate(
-        self, saga, ctx, error: str
-    ):
-        saga.status = 'compensating'
+    async def _compensate(self, saga, ctx, error: str):
+        saga.status = "compensating"
         saga.error = error
 
         done = list(reversed(saga.completed_steps or []))
@@ -148,18 +118,12 @@ class SagaOrchestrator(ABC):
             if not comp:
                 continue
             try:
-                await getattr(
-                    self, f'compensate_{comp}'
-                )(ctx)
-                saga.compensated_steps = [
-                    *saga.compensated_steps, step
-                ]
+                await getattr(self, f"compensate_{comp}")(ctx)
+                saga.compensated_steps = [*saga.compensated_steps, step]
                 await self.session.flush()
             except Exception as comp_err:
-                logger.error(
-                    f"Compensation {comp} failed: {comp_err}"
-                )
+                logger.error(f"Compensation {comp} failed: {comp_err}")
 
-        saga.status = 'failed'
+        saga.status = "failed"
         saga.failed_at = datetime.now()
         await self.session.flush()

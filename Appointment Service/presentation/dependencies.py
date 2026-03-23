@@ -1,9 +1,6 @@
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from Application.use_cases.book_appointment import BookAppointmentUseCase
 from Application.use_cases.cancel_appointment import CancelAppointmentUseCase
 from Application.use_cases.complete_appointment import CompleteAppointmentUseCase
@@ -14,12 +11,14 @@ from Application.use_cases.get_doctor_queue import GetDoctorQueueUseCase
 from Application.use_cases.list_patient_appointments import ListPatientAppointmentsUseCase
 from Application.use_cases.mark_no_show import MarkNoShowUseCase
 from Application.use_cases.reschedule_appointment import RescheduleAppointmentUseCase
+from fastapi import Depends
 from healthai_cache import CacheClient
 from infrastructure.cache.redis_lock_manager import RedisLockManager
 from infrastructure.clients.doctor_service_client import DoctorServiceClient
 from infrastructure.config import settings
 from infrastructure.database.session import get_db
 from infrastructure.repositories import AppointmentRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def get_db_session(session: Annotated[AsyncSession, Depends(get_db)]) -> AsyncSession:

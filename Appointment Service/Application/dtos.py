@@ -1,18 +1,21 @@
-from pydantic import BaseModel, BeforeValidator
-from uuid import UUID
 from datetime import date, time
 from typing import Annotated, Any
+from uuid import UUID
+
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
+from pydantic import BaseModel, BeforeValidator
+
 
 # Convert UUID7 to string
 def coerce_to_uuid_str(v: Any) -> Any:
-    from uuid_extension import UUID7
-    if hasattr(v, '__class__') and v.__class__.__name__ == 'UUID7':
+    if hasattr(v, "__class__") and v.__class__.__name__ == "UUID7":
         return str(v)
     return v
 
+
 SafeUUID = Annotated[UUID, BeforeValidator(coerce_to_uuid_str)]
+
 
 class CreateAppointmentRequest(BaseModel):
     patient_id: SafeUUID
@@ -23,6 +26,7 @@ class CreateAppointmentRequest(BaseModel):
     appointment_type: str = "general"
     chief_complaint: str | None = None
     note_for_doctor: str | None = None
+
 
 class AppointmentResponse(BaseModel):
     id: SafeUUID

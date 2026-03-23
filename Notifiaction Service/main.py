@@ -3,20 +3,18 @@ import logging
 import os
 
 import aio_pika
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from Application.consumers.appointment_events_consumers import (
     AppointmentCancelledConsumer,
     AppointmentConfirmedConsumer,
     AppointmentReminderConsumer,
 )
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from infrastructure.config import settings
-from infrastructure.database.session import Base, AsyncSessionLocal, engine
+from infrastructure.database.session import AsyncSessionLocal, Base, engine
 from presentation.dependencies import get_ws_manager
 from presentation.routes import notifications_router, websocket_router
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from uuid_extension import UUID7
-from datetime import date, time, datetime
-from Domain.value_objects.appointment_status import (
-    AppointmentStatus,
-    can_transition,
-)
+from datetime import date, datetime, time
+
+from Domain.value_objects.appointment_status import AppointmentStatus, can_transition
 from Domain.value_objects.payment_status import PaymentStatus
+from uuid_extension import UUID7
 
 
 @dataclass
@@ -41,18 +39,15 @@ class Appointment:
 
         if self.start_time >= self.end_time:
             raise ValueError("Start time must be before end time")
-        
+
         if self.appointment_date < date.today():
-            # In a real app, we'd allow historic data migration, 
+            # In a real app, we'd allow historic data migration,
             # but for new bookings this is a good invariant.
             pass
 
     def can_be_confirmed_by(self, doctor_id: UUID7) -> bool:
         """Only the assigned doctor can confirm a pending appointment."""
-        return (
-            self.doctor_id == doctor_id
-            and self.status == AppointmentStatus.PENDING
-        )
+        return self.doctor_id == doctor_id and self.status == AppointmentStatus.PENDING
 
     def can_be_cancelled_by(self, user_id: UUID7, user_role: str) -> bool:
         """Check whether the given caller is allowed to cancel this appointment."""
@@ -66,12 +61,9 @@ class Appointment:
 
     def can_be_rescheduled_by(self, patient_id: UUID7) -> bool:
         """Only the owner patient can reschedule pending/confirmed appointments."""
-        return (
-            self.patient_id == patient_id
-            and self.status in (
-                AppointmentStatus.PENDING,
-                AppointmentStatus.CONFIRMED,
-            )
+        return self.patient_id == patient_id and self.status in (
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
         )
 
     def can_transition_to(self, target: AppointmentStatus) -> bool:

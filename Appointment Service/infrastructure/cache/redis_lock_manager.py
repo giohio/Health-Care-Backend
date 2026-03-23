@@ -1,6 +1,7 @@
 from Domain.interfaces.lock_manager import ILockManager
 from healthai_cache import CacheClient
 
+
 class RedisLockManager(ILockManager):
     """Slot lock adapter backed by healthai_cache.DistributedLock."""
 

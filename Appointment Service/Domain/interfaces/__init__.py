@@ -1,4 +1,0 @@
-from Domain.interfaces.appointment_repository import IAppointmentRepository
-from Domain.interfaces.doctor_service_client import IDoctorServiceClient
-from Domain.interfaces.lock_manager import ILockManager
-from Domain.interfaces.event_publisher import IEventPublisher

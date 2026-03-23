@@ -1,11 +1,12 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Any
-from sqlalchemy import String, DateTime, Date, Enum, ForeignKey, Integer, Float, Text, JSON
+
+from Domain.entities.patient_health_background import BloodType
+from Domain.entities.patient_profile import Gender
+from sqlalchemy import JSON, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from uuid_extension import UUID7
-from Domain.entities.patient_profile import Gender
-from Domain.entities.patient_health_background import BloodType
 
 
 class Base(DeclarativeBase):

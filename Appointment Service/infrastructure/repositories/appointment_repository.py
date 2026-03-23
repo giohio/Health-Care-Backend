@@ -1,13 +1,15 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+import uuid
+from datetime import date, time
 from typing import List, Optional
+
 from Domain.entities.appointment import Appointment
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
 from infrastructure.database.models import AppointmentModel
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
-import uuid
-from datetime import date, time
+
 
 class AppointmentRepository(IAppointmentRepository):
     def __init__(self, session: AsyncSession):
@@ -32,9 +34,7 @@ class AppointmentRepository(IAppointmentRepository):
             cancelled_at=appointment.cancelled_at,
             cancelled_by=appointment.cancelled_by,
             cancelled_by_user_id=(
-                uuid.UUID(str(appointment.cancelled_by_user_id))
-                if appointment.cancelled_by_user_id
-                else None
+                uuid.UUID(str(appointment.cancelled_by_user_id)) if appointment.cancelled_by_user_id else None
             ),
             cancel_reason=appointment.cancel_reason,
             queue_number=appointment.queue_number,
@@ -68,7 +68,7 @@ class AppointmentRepository(IAppointmentRepository):
                     AppointmentModel.doctor_id == uuid.UUID(str(doctor_id)),
                     AppointmentModel.appointment_date == appointment_date,
                     AppointmentModel.start_time == start_time,
-                    AppointmentModel.status.in_([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED])
+                    AppointmentModel.status.in_([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]),
                 )
             )
         )
@@ -77,9 +77,7 @@ class AppointmentRepository(IAppointmentRepository):
 
     async def get_by_id_with_lock(self, appointment_id: UUID7) -> Optional[Appointment]:
         result = await self.session.execute(
-            select(AppointmentModel)
-            .where(AppointmentModel.id == uuid.UUID(str(appointment_id)))
-            .with_for_update()
+            select(AppointmentModel).where(AppointmentModel.id == uuid.UUID(str(appointment_id))).with_for_update()
         )
         model = result.scalar_one_or_none()
         if not model:
@@ -98,10 +96,12 @@ class AppointmentRepository(IAppointmentRepository):
             and_(
                 AppointmentModel.doctor_id == uuid.UUID(str(doctor_id)),
                 AppointmentModel.appointment_date == appointment_date,
-                AppointmentModel.status.in_([
-                    AppointmentStatus.PENDING,
-                    AppointmentStatus.CONFIRMED,
-                ]),
+                AppointmentModel.status.in_(
+                    [
+                        AppointmentStatus.PENDING,
+                        AppointmentStatus.CONFIRMED,
+                    ]
+                ),
                 AppointmentModel.start_time < end_time,
                 AppointmentModel.end_time > start_time,
             )
@@ -134,12 +134,14 @@ class AppointmentRepository(IAppointmentRepository):
                 and_(
                     AppointmentModel.doctor_id == uuid.UUID(str(doctor_id)),
                     AppointmentModel.appointment_date == appointment_date,
-                    AppointmentModel.status.in_([
-                        AppointmentStatus.PENDING,
-                        AppointmentStatus.CONFIRMED,
-                        AppointmentStatus.COMPLETED,
-                        AppointmentStatus.NO_SHOW,
-                    ]),
+                    AppointmentModel.status.in_(
+                        [
+                            AppointmentStatus.PENDING,
+                            AppointmentStatus.CONFIRMED,
+                            AppointmentStatus.COMPLETED,
+                            AppointmentStatus.NO_SHOW,
+                        ]
+                    ),
                 )
             )
             .order_by(
@@ -155,15 +157,16 @@ class AppointmentRepository(IAppointmentRepository):
         appointment_date: date,
     ) -> list[tuple[time, time]]:
         result = await self.session.execute(
-            select(AppointmentModel.start_time, AppointmentModel.end_time)
-            .where(
+            select(AppointmentModel.start_time, AppointmentModel.end_time).where(
                 and_(
                     AppointmentModel.doctor_id == uuid.UUID(str(doctor_id)),
                     AppointmentModel.appointment_date == appointment_date,
-                    AppointmentModel.status.in_([
-                        AppointmentStatus.PENDING,
-                        AppointmentStatus.CONFIRMED,
-                    ]),
+                    AppointmentModel.status.in_(
+                        [
+                            AppointmentStatus.PENDING,
+                            AppointmentStatus.CONFIRMED,
+                        ]
+                    ),
                 )
             )
         )
@@ -187,11 +190,7 @@ class AppointmentRepository(IAppointmentRepository):
             completed_at=model.completed_at,
             cancelled_at=model.cancelled_at,
             cancelled_by=model.cancelled_by,
-            cancelled_by_user_id=(
-                UUID7(str(model.cancelled_by_user_id))
-                if model.cancelled_by_user_id
-                else None
-            ),
+            cancelled_by_user_id=(UUID7(str(model.cancelled_by_user_id)) if model.cancelled_by_user_id else None),
             cancel_reason=model.cancel_reason,
             queue_number=model.queue_number,
             reminder_24h_sent=model.reminder_24h_sent,

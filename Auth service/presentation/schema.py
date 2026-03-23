@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from uuid import UUID
+
 from Domain.entities.user import UserRole
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserBase(BaseModel):

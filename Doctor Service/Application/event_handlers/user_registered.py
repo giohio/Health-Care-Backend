@@ -1,9 +1,10 @@
-import json
 import logging
+
 from Application.use_cases.register_doctor import RegisterDoctorUseCase
 from uuid_extension import UUID7
 
 logger = logging.getLogger(__name__)
+
 
 class UserRegisteredHandler:
     def __init__(self, register_doctor_use_case: RegisterDoctorUseCase):
@@ -21,7 +22,7 @@ class UserRegisteredHandler:
 
         user_id_str = data.get("user_id")
         full_name = data.get("full_name") or "New Doctor"
-        
+
         if not user_id_str:
             logger.error("Missing user_id in event payload")
             return
@@ -32,4 +33,4 @@ class UserRegisteredHandler:
             logger.info(f"Handled registration for doctor {full_name}")
         except Exception as e:
             logger.error(f"Failed to handle doctor registration: {str(e)}")
-            raise # Let consumer handle retry/reject
+            raise  # Let consumer handle retry/reject

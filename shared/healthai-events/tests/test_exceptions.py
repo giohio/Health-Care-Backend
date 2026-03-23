@@ -1,5 +1,5 @@
 import pytest
-from healthai_events import RetryableError, NonRetryableError
+from healthai_events import NonRetryableError, RetryableError
 
 
 def test_retryable_error_is_exception():

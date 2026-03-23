@@ -1,10 +1,12 @@
-from sqlalchemy import String, DateTime, Boolean, Enum as SAEnum, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from uuid_extension import uuid7, UUID7
 
 from Domain.entities.user import UserRole
+from sqlalchemy import Boolean, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from uuid_extension import UUID7, uuid7
 
 
 class Base(DeclarativeBase):
@@ -14,11 +16,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[UUID7] = mapped_column(
-        PGUUID(as_uuid=True),
-        primary_key=True,
-        default=uuid7
-    )
+    id: Mapped[UUID7] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
 
     email: Mapped[str] = mapped_column(String(255), nullable=True, unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -26,7 +24,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         SAEnum(UserRole, name="userrole", values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
-        default=UserRole.PATIENT
+        default=UserRole.PATIENT,
     )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -42,19 +40,12 @@ class User(Base):
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
-    id: Mapped[UUID7] = mapped_column(
-        PGUUID(as_uuid=True),
-        primary_key=True,
-        default=uuid7
-    )
+    id: Mapped[UUID7] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
 
     token_value: Mapped[str] = mapped_column(String(512), nullable=False, unique=True, index=True)
 
     user_id: Mapped[UUID7] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
