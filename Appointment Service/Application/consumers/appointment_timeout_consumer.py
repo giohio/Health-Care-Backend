@@ -1,15 +1,14 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 from Application.use_cases._helpers import utcnow
+from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
 from healthai_events import BaseConsumer
 from healthai_events.exceptions import RetryableError
-from infrastructure.database.models import AppointmentModel
-from sqlalchemy import select
 
 
 class AppointmentTimeoutConsumer(BaseConsumer):
@@ -19,9 +18,16 @@ class AppointmentTimeoutConsumer(BaseConsumer):
     EXCHANGE = "appointment_events"
     ROUTING_KEY = "appointment.check_timeout"
 
-    def __init__(self, connection, cache, session_factory):
+    def __init__(
+        self,
+        connection,
+        cache,
+        session_factory,
+        appointment_repo_factory: Callable[[Any], IAppointmentRepository],
+    ):
         super().__init__(connection, cache)
         self._session_factory = session_factory
+        self._appointment_repo_factory = appointment_repo_factory
 
     async def handle(self, payload: dict[str, Any]) -> None:
         appointment_id_raw = payload.get("appointment_id")
@@ -35,10 +41,8 @@ class AppointmentTimeoutConsumer(BaseConsumer):
 
         async with self._session_factory() as session:
             async with session.begin():
-                result = await session.execute(
-                    select(AppointmentModel).where(AppointmentModel.id == appointment_id).with_for_update()
-                )
-                appt = result.scalar_one_or_none()
+                repo = self._appointment_repo_factory(session)
+                appt = await repo.get_by_id_with_lock(appointment_id)
 
                 if not appt:
                     return
@@ -57,6 +61,9 @@ class AppointmentTimeoutConsumer(BaseConsumer):
                 paid_before_timeout = appt.payment_status == PaymentStatus.PAID
                 if paid_before_timeout:
                     appt.payment_status = PaymentStatus.REFUNDED
+
+                await repo.save(appt)
+
                 await OutboxWriter.write(
                     session,
                     aggregate_id=appt.id,

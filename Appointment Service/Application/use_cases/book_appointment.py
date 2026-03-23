@@ -27,6 +27,7 @@ class BookAppointmentSaga(SagaOrchestrator):
         "create_appointment": "cancel_appointment",
         "acquire_slot_lock": "release_slot_lock",
     }
+
     def __init__(
         self,
         session,

@@ -1,16 +1,14 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Callable
 import uuid
 
 from Application.use_cases._helpers import utcnow
+from Domain.interfaces.appointment_repository import IAppointmentRepository
+from Domain.interfaces.doctor_service_client import IDoctorServiceClient
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
 from healthai_events import BaseConsumer
-from infrastructure.clients.doctor_service_client import DoctorServiceClient
-from infrastructure.database.models import AppointmentModel
-from infrastructure.repositories.appointment_repository import AppointmentRepository
-from sqlalchemy import func, select
 
 
 class PaymentPaidConsumer(BaseConsumer):
@@ -20,10 +18,18 @@ class PaymentPaidConsumer(BaseConsumer):
     EXCHANGE = "payment_events"
     ROUTING_KEY = "payment.paid"
 
-    def __init__(self, connection, cache, session_factory):
+    def __init__(
+        self,
+        connection,
+        cache,
+        session_factory,
+        appointment_repo_factory: Callable[[Any], IAppointmentRepository],
+        doctor_client: IDoctorServiceClient,
+    ):
         super().__init__(connection, cache)
         self._session_factory = session_factory
-        self._doctor_client = DoctorServiceClient(cache=cache)
+        self._appointment_repo_factory = appointment_repo_factory
+        self._doctor_client = doctor_client
 
     async def handle(self, payload: dict[str, Any]) -> None:
         appointment_id_raw = payload.get("appointment_id")
@@ -34,10 +40,8 @@ class PaymentPaidConsumer(BaseConsumer):
 
         async with self._session_factory() as session:
             async with session.begin():
-                result = await session.execute(
-                    select(AppointmentModel).where(AppointmentModel.id == appointment_id).with_for_update()
-                )
-                appt = result.scalar_one_or_none()
+                repo = self._appointment_repo_factory(session)
+                appt = await repo.get_by_id_with_lock(appointment_id)
                 if not appt:
                     return
 
@@ -51,14 +55,10 @@ class PaymentPaidConsumer(BaseConsumer):
                 timeout_minutes = 15 if doctor_cfg is None else doctor_cfg.get("confirmation_timeout_minutes", 15)
 
                 if auto_confirm:
-                    queue_result = await session.execute(
-                        select(func.count()).where(
-                            AppointmentModel.doctor_id == appt.doctor_id,
-                            AppointmentModel.appointment_date == appt.appointment_date,
-                            AppointmentModel.status == AppointmentStatus.CONFIRMED,
-                        )
+                    appt.queue_number = await repo.get_next_queue_number(
+                        appt.doctor_id,
+                        appt.appointment_date,
                     )
-                    appt.queue_number = (queue_result.scalar() or 0) + 1
                     appt.status = AppointmentStatus.CONFIRMED
                     appt.confirmed_at = utcnow()
 
@@ -132,6 +132,8 @@ class PaymentPaidConsumer(BaseConsumer):
                         },
                     )
 
+                await repo.save(appt)
+
                 await OutboxWriter.write(
                     session,
                     aggregate_id=appt.id,
@@ -151,12 +153,18 @@ class PaymentFailedConsumer(BaseConsumer):
     EXCHANGE = "payment_events"
     ROUTING_KEY = "payment.failed"
 
-    def __init__(self, connection, cache, session_factory):
+    def __init__(self, connection, cache, session_factory, appointment_repo_factory):
         super().__init__(connection, cache)
         self._session_factory = session_factory
+        self._appointment_repo_factory = appointment_repo_factory
 
     async def handle(self, payload: dict[str, Any]) -> None:
-        await _cancel_for_payment(self._session_factory, payload, "payment_failed")
+        await _cancel_for_payment(
+            self._session_factory,
+            self._appointment_repo_factory,
+            payload,
+            "payment_failed",
+        )
 
 
 class PaymentExpiredConsumer(BaseConsumer):
@@ -164,12 +172,18 @@ class PaymentExpiredConsumer(BaseConsumer):
     EXCHANGE = "payment_events"
     ROUTING_KEY = "payment.expired"
 
-    def __init__(self, connection, cache, session_factory):
+    def __init__(self, connection, cache, session_factory, appointment_repo_factory):
         super().__init__(connection, cache)
         self._session_factory = session_factory
+        self._appointment_repo_factory = appointment_repo_factory
 
     async def handle(self, payload: dict[str, Any]) -> None:
-        await _cancel_for_payment(self._session_factory, payload, "payment_expired")
+        await _cancel_for_payment(
+            self._session_factory,
+            self._appointment_repo_factory,
+            payload,
+            "payment_expired",
+        )
 
 
 class PaymentTimeoutConsumer(BaseConsumer):
@@ -177,15 +191,26 @@ class PaymentTimeoutConsumer(BaseConsumer):
     EXCHANGE = "payment_events"
     ROUTING_KEY = "payment.timeout"
 
-    def __init__(self, connection, cache, session_factory):
+    def __init__(self, connection, cache, session_factory, appointment_repo_factory):
         super().__init__(connection, cache)
         self._session_factory = session_factory
+        self._appointment_repo_factory = appointment_repo_factory
 
     async def handle(self, payload: dict[str, Any]) -> None:
-        await _cancel_for_payment(self._session_factory, payload, "payment_timeout")
+        await _cancel_for_payment(
+            self._session_factory,
+            self._appointment_repo_factory,
+            payload,
+            "payment_timeout",
+        )
 
 
-async def _cancel_for_payment(session_factory, payload: dict[str, Any], reason: str) -> None:
+async def _cancel_for_payment(
+    session_factory,
+    appointment_repo_factory: Callable[[Any], IAppointmentRepository],
+    payload: dict[str, Any],
+    reason: str,
+) -> None:
     appointment_id_raw = payload.get("appointment_id")
     if not appointment_id_raw:
         raise ValueError("Missing appointment_id in payment failure payload")
@@ -194,7 +219,7 @@ async def _cancel_for_payment(session_factory, payload: dict[str, Any], reason: 
 
     async with session_factory() as session:
         async with session.begin():
-            repo = AppointmentRepository(session)
+            repo = appointment_repo_factory(session)
             appointment = await repo.get_by_id_with_lock(appointment_id)
             if not appointment:
                 return

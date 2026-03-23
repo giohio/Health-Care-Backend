@@ -1,23 +1,29 @@
 from Application.use_cases.create_notification import CreateNotificationUseCase
 from healthai_events import BaseConsumer
-from infrastructure.repositories.notification_repository import NotificationRepository
 
 
 class _NotificationConsumer(BaseConsumer):
-    def __init__(self, connection, cache, session_factory, ws_manager):
+    def __init__(self, connection, cache, session_factory, create_notification_use_case_factory):
         super().__init__(connection, cache)
         self._session_factory = session_factory
-        self._ws_manager = ws_manager
+        self._create_notification_use_case_factory = create_notification_use_case_factory
 
-    async def _create_notification(self, user_id: str, title: str, body: str, event_type: str):
+    async def _create_notification(
+        self,
+        user_id: str,
+        title: str,
+        body: str,
+        event_type: str,
+        recipient_email: str | None = None,
+    ):
         async with self._session_factory() as session:
-            repo = NotificationRepository(session)
-            use_case = CreateNotificationUseCase(repo, self._ws_manager)
+            use_case: CreateNotificationUseCase = self._create_notification_use_case_factory(session)
             await use_case.execute(
                 user_id=user_id,
                 title=title,
                 body=body,
                 event_type=event_type,
+                recipient_email=recipient_email,
             )
             await session.commit()
 
@@ -39,6 +45,7 @@ class AppointmentConfirmedConsumer(_NotificationConsumer):
             title="Appointment Confirmed",
             body=body,
             event_type="appointment.confirmed",
+            recipient_email=payload.get("patient_email"),
         )
 
 
@@ -55,6 +62,7 @@ class AppointmentAutoConfirmedConsumer(_NotificationConsumer):
             title="Appointment Confirmed",
             body=f"Your appointment was auto-confirmed.{queue_part}",
             event_type="appointment.auto_confirmed",
+            recipient_email=payload.get("patient_email"),
         )
 
 
@@ -76,6 +84,7 @@ class AppointmentCreatedConsumer(_NotificationConsumer):
             title=title,
             body=body,
             event_type="appointment.created",
+            recipient_email=payload.get("doctor_email"),
         )
 
 
@@ -90,6 +99,7 @@ class AppointmentCancelledConsumer(_NotificationConsumer):
             title="Appointment Cancelled",
             body="Your appointment was cancelled. Please book another slot.",
             event_type="appointment.cancelled",
+            recipient_email=payload.get("patient_email"),
         )
 
 
@@ -104,4 +114,5 @@ class AppointmentReminderConsumer(_NotificationConsumer):
             title="Appointment Reminder",
             body="Reminder: your appointment is coming up soon.",
             event_type="appointment.reminder",
+            recipient_email=payload.get("patient_email"),
         )

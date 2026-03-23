@@ -15,8 +15,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from infrastructure.config import settings
 from infrastructure.database.session import AsyncSessionLocal, Base, engine
+from infrastructure.email.email_sender import EmailSender
+from infrastructure.repositories.notification_repository import NotificationRepository
 from presentation.dependencies import get_ws_manager
 from presentation.routes import notifications_router, websocket_router
+from Application.use_cases.create_notification import CreateNotificationUseCase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,13 +55,18 @@ async def startup_event():
     connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
     app.state.rabbit_connection = connection
     ws_manager = get_ws_manager()
+    email_sender = EmailSender()
+
+    def use_case_factory(session):
+        repo = NotificationRepository(session)
+        return CreateNotificationUseCase(repo, ws_manager, email_sender)
 
     consumers = [
-        AppointmentConfirmedConsumer(connection, cache, AsyncSessionLocal, ws_manager),
-        AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, ws_manager),
-        AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, ws_manager),
-        AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, ws_manager),
-        AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, ws_manager),
+        AppointmentConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
     ]
 
     for consumer in consumers:

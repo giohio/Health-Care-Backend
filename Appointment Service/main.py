@@ -16,8 +16,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from healthai_events import OutboxRelay, RabbitMQPublisher
+from infrastructure.clients.doctor_service_client import DoctorServiceClient
 from infrastructure.config import settings
 from infrastructure.database.session import AsyncSessionLocal, engine
+from infrastructure.repositories.appointment_repository import AppointmentRepository
 from presentation.routes import appointments_router
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
@@ -73,30 +75,41 @@ async def startup_event():
     relay = OutboxRelay(session_factory=AsyncSessionLocal, publisher=publisher)
     app.state.relay = relay
 
+    def appointment_repo_factory(session):
+        return AppointmentRepository(session)
+
+    doctor_client = DoctorServiceClient(cache=cache)
+
     timeout_consumer = AppointmentTimeoutConsumer(
         connection=connection,
         cache=cache,
         session_factory=AsyncSessionLocal,
+        appointment_repo_factory=appointment_repo_factory,
     )
     payment_paid_consumer = PaymentPaidConsumer(
         connection=connection,
         cache=cache,
         session_factory=AsyncSessionLocal,
+        appointment_repo_factory=appointment_repo_factory,
+        doctor_client=doctor_client,
     )
     payment_failed_consumer = PaymentFailedConsumer(
         connection=connection,
         cache=cache,
         session_factory=AsyncSessionLocal,
+        appointment_repo_factory=appointment_repo_factory,
     )
     payment_expired_consumer = PaymentExpiredConsumer(
         connection=connection,
         cache=cache,
         session_factory=AsyncSessionLocal,
+        appointment_repo_factory=appointment_repo_factory,
     )
     payment_timeout_consumer = PaymentTimeoutConsumer(
         connection=connection,
         cache=cache,
         session_factory=AsyncSessionLocal,
+        appointment_repo_factory=appointment_repo_factory,
     )
 
     task = asyncio.create_task(timeout_consumer.start())

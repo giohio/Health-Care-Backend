@@ -2,17 +2,31 @@ from datetime import datetime, timezone
 
 from Application.dtos import NotificationResponse
 from Domain.entities.notification import Notification
+from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.notification_repository import INotificationRepository
-from infrastructure.websocket.manager import NotificationConnectionManager
+from Domain.interfaces.realtime_notifier import IRealtimeNotifier
 from uuid_extension import uuid7
 
 
 class CreateNotificationUseCase:
-    def __init__(self, repo: INotificationRepository, ws_manager: NotificationConnectionManager):
+    def __init__(
+        self,
+        repo: INotificationRepository,
+        ws_manager: IRealtimeNotifier,
+        email_sender: IEmailSender | None = None,
+    ):
         self.repo = repo
         self.ws_manager = ws_manager
+        self.email_sender = email_sender
 
-    async def execute(self, user_id, title: str, body: str, event_type: str) -> NotificationResponse:
+    async def execute(
+        self,
+        user_id,
+        title: str,
+        body: str,
+        event_type: str,
+        recipient_email: str | None = None,
+    ) -> NotificationResponse:
         notification = Notification(
             id=uuid7(),
             user_id=user_id,
@@ -24,4 +38,10 @@ class CreateNotificationUseCase:
         await self.repo.save(notification)
         response = NotificationResponse.model_validate(notification)
         await self.ws_manager.send_to_user(str(user_id), response.model_dump(mode="json"))
+        if self.email_sender and recipient_email:
+            await self.email_sender.send_email(
+                to=recipient_email,
+                subject=title,
+                body=body,
+            )
         return response

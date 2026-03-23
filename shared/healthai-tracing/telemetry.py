@@ -80,7 +80,8 @@ def setup_logging(service_name: str) -> None:
     Overhauls logging using dictConfig to ensure consistency across services.
     Uses TraceIDFilter to prevent KeyError on otelTraceID/otelSpanID.
     """
-    log_format = f"[{service_name}] %(levelname)s: [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] %(name)s - %(message)s"
+    log_format = f"""[{service_name}] %(levelname)s: [trace_id=%(otelTraceID)s
+        span_id=%(otelSpanID)s] %(name)s - %(message)s"""
 
     LOGGING_CONFIG = {
         "version": 1,

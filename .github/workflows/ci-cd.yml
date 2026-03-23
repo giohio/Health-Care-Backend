@@ -1,0 +1,212 @@
+name: Microservices CI/CD
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      deploy_to_production:
+        description: "Run deploy job"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  PIP_CACHE_DIR: .cache/pip
+
+jobs:
+  lint_flake8:
+    name: Lint - Flake8
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8
+        run: flake8 .
+
+  lint_bandit:
+    name: Lint - Bandit SAST
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit
+        run: |
+          bandit -r \
+            "Auth service" "Appointment Service" "Doctor Service" \
+            "Patient Service" "Notifiaction Service" shared \
+            --exclude "**/alembic/**,**/tests/**,**/seed.py" \
+            -ll -q
+
+  lint_gitleaks:
+    name: Lint - Gitleaks
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint_deps:
+    name: Lint - Dependency Audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        run: |
+          pip-audit -r "Auth service/requirements.txt" || true
+          pip-audit -r "Appointment Service/requirements.txt" || true
+          pip-audit -r "Doctor Service/requirements.txt" || true
+          pip-audit -r "Patient Service/requirements.txt" || true
+          pip-audit -r "Notifiaction Service/requirements.txt" || true
+
+  build_and_push:
+    name: Build & Push - ${{ matrix.service.image }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [lint_flake8, lint_bandit, lint_gitleaks, lint_deps]
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - path: "Auth service"
+            image: "auth-service"
+          - path: "Appointment Service"
+            image: "appointment-service"
+          - path: "Doctor Service"
+            image: "doctor-service"
+          - path: "Patient Service"
+            image: "patient-service"
+          - path: "Notifiaction Service"
+            image: "notification-service"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and (optionally) push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.service.path }}/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service.image }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service.image }}:latest
+
+  trivy_scan:
+    name: Scan - Trivy (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.event_name == 'push'
+    needs: [build_and_push]
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - auth-service
+          - appointment-service
+          - doctor-service
+          - patient-service
+          - notification-service
+    steps:
+      - name: Scan image with Trivy (report)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+          format: json
+          output: trivy-${{ matrix.image }}.json
+          vuln-type: os
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 0
+
+      - name: Scan image with Trivy (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+          format: table
+          vuln-type: os
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ matrix.image }}
+          path: trivy-${{ matrix.image }}.json
+
+  deploy:
+    name: Deploy (Manual)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [trivy_scan]
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_production == 'true'
+    environment:
+      name: production
+    steps:
+      - name: Deployment placeholder
+        run: echo "Deployment script would run here"
+
+# NOTE:
+# - Tests and SonarQube jobs are intentionally omitted for now.
+# - Add them later once test suites and quality-gate requirements are ready.

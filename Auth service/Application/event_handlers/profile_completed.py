@@ -1,13 +1,19 @@
 import logging
+from collections.abc import Awaitable, Callable
 
-from infrastructure import UserRepository
+from Domain.interfaces import IUserRepository
 
 logger = logging.getLogger(__name__)
 
 
 class ProfileCompletedHandler:
-    def __init__(self, user_repository: UserRepository):
+    def __init__(
+        self,
+        user_repository: IUserRepository,
+        commit: Callable[[], Awaitable[None]] | None = None,
+    ):
         self.user_repository = user_repository
+        self._commit = commit
 
     async def handle(self, data: dict):
         try:
@@ -21,7 +27,8 @@ class ProfileCompletedHandler:
 
             # Update the user's profile completion status in Auth DB
             await self.user_repository.update(user_id=user_id, is_profile_completed=True)
-            await self.user_repository.session.commit()
+            if self._commit is not None:
+                await self._commit()
             logger.info(f"Updated is_profile_completed status for user: {user_id}")
 
         except Exception as e:

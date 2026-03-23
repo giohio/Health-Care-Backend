@@ -50,7 +50,7 @@ async def startup_event():
     async def run_consumer():
         async with AsyncSessionLocal() as session:
             user_repo = UserRepository(session)
-            handler = ProfileCompletedHandler(user_repo)
+            handler = ProfileCompletedHandler(user_repo, commit=session.commit)
 
             consumer = BaseConsumer(
                 amqp_url=settings.RABBITMQ_URL,

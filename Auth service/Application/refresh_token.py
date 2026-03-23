@@ -1,11 +1,10 @@
 from typing import Tuple
 
 from Domain import IRefreshTokenRepository, IUserRepository, RefreshToken
-from infrastructure.security.jwt_handler import JWTHandler
 
 
 class RefreshTokenUseCase:
-    def __init__(self, user_repo: IUserRepository, token_repo: IRefreshTokenRepository, jwt_handler: JWTHandler):
+    def __init__(self, user_repo: IUserRepository, token_repo: IRefreshTokenRepository, jwt_handler):
         self.user_repo = user_repo
         self.token_repo = token_repo
         self.jwt_handler = jwt_handler
