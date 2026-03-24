@@ -1,13 +1,15 @@
-from datetime import date
+from datetime import date, time
+from uuid import UUID
 
 from Application.dtos import AppointmentResponse, CreateAppointmentRequest
 from Application.use_cases._helpers import add_minutes, utcnow
 from Domain.entities.appointment import Appointment
 from Domain.exceptions.domain_exceptions import SlotNotAvailableError
+from Domain.interfaces.appointment_pricing import IAppointmentPricingPolicy
+from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
 from healthai_common import SagaOrchestrator
-from healthai_db import OutboxWriter
 from healthai_events.exceptions import NonRetryableError
 from uuid_extension import uuid7
 
@@ -22,6 +24,7 @@ class BookAppointmentSaga(SagaOrchestrator):
         "check_slot",
         "create_appointment",
         "write_outbox",
+        "release_slot_lock",
     ]
     COMPENSATIONS = {
         "create_appointment": "cancel_appointment",
@@ -35,14 +38,31 @@ class BookAppointmentSaga(SagaOrchestrator):
         lock_manager,
         appointment_repo,
         doctor_client,
+        event_publisher: IEventPublisher,
+        pricing_policy: IAppointmentPricingPolicy,
     ):
         super().__init__(session, cache)
         self.lock_manager = lock_manager
         self.appointment_repo = appointment_repo
         self.doctor_client = doctor_client
+        self.event_publisher = event_publisher
+        self.pricing_policy = pricing_policy
+
+    @staticmethod
+    def _as_uuid(value):
+        return value if isinstance(value, UUID) else UUID(str(value))
+
+    @staticmethod
+    def _as_date(value):
+        return value if isinstance(value, date) else date.fromisoformat(str(value))
+
+    @staticmethod
+    def _as_time(value):
+        return value if isinstance(value, time) else time.fromisoformat(str(value))
 
     async def execute_validate_input(self, ctx):
-        if ctx["appointment_date"] < date.today():
+        appointment_date = self._as_date(ctx["appointment_date"])
+        if appointment_date < date.today():
             raise NonRetryableError("Cannot book an appointment in the past")
 
         config = await self.doctor_client.get_type_config(
@@ -64,45 +84,66 @@ class BookAppointmentSaga(SagaOrchestrator):
         ctx["lock_token"] = token
 
     async def execute_check_slot(self, ctx):
-        end_time = add_minutes(ctx["start_time"], ctx["type_config"]["duration_minutes"])
-        ctx["end_time"] = end_time
+        doctor_id = self._as_uuid(ctx["doctor_id"])
+        appointment_date = self._as_date(ctx["appointment_date"])
+        start_time = self._as_time(ctx["start_time"])
+        end_time = add_minutes(start_time, ctx["type_config"]["duration_minutes"])
+        ctx["end_time"] = end_time.isoformat()
         taken = await self.appointment_repo.is_slot_taken(
-            doctor_id=ctx["doctor_id"],
-            appointment_date=ctx["appointment_date"],
-            start_time=ctx["start_time"],
+            doctor_id=doctor_id,
+            appointment_date=appointment_date,
+            start_time=start_time,
             end_time=end_time,
         )
         if taken:
             raise SlotNotAvailableError("Slot is no longer available")
 
     async def execute_create_appointment(self, ctx):
+        patient_id = self._as_uuid(ctx["patient_id"])
+        doctor_id = self._as_uuid(ctx["doctor_id"])
+        specialty_id = self._as_uuid(ctx["specialty_id"])
+        appointment_date = self._as_date(ctx["appointment_date"])
+        start_time = self._as_time(ctx["start_time"])
+        end_time = self._as_time(ctx["end_time"])
+
         appt = Appointment(
             id=uuid7(),
-            patient_id=ctx["patient_id"],
-            doctor_id=ctx["doctor_id"],
-            specialty_id=ctx["specialty_id"],
-            appointment_date=ctx["appointment_date"],
-            start_time=ctx["start_time"],
-            end_time=ctx["end_time"],
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            specialty_id=specialty_id,
+            appointment_date=appointment_date,
+            start_time=start_time,
+            end_time=end_time,
             appointment_type=ctx["appointment_type"],
             chief_complaint=ctx.get("chief_complaint"),
             note_for_doctor=ctx.get("note_for_doctor"),
             status=AppointmentStatus.PENDING_PAYMENT,
             payment_status=PaymentStatus.PROCESSING,
         )
-        self.session.add(appt)
-        await self.session.flush()
-        ctx["appointment"] = appt
+        await self.appointment_repo.save(appt)
+        ctx["appointment_id"] = str(appt.id)
         return appt
 
     async def execute_write_outbox(self, ctx):
-        appt = ctx["appointment"]
+        appointment_id = self._as_uuid(ctx["appointment_id"])
+        appt = await self.appointment_repo.get_by_id(appointment_id)
+        if not appt:
+            raise NonRetryableError("Appointment not found while writing outbox")
 
-        await OutboxWriter.write(
-            self.session,
+        cfg = ctx.get("type_config") or {}
+        raw_amount = cfg.get("amount", cfg.get("price", self.pricing_policy.default_amount_vnd()))
+        try:
+            amount = int(raw_amount)
+        except (TypeError, ValueError):
+            amount = self.pricing_policy.default_amount_vnd()
+        if amount <= 0:
+            amount = self.pricing_policy.default_amount_vnd()
+
+        await self.event_publisher.publish(
+            session=self.session,
             aggregate_id=appt.id,
-            aggregate_type="payment_events",
-            event_type="payment.required",
+            aggregate_type="appointment_events",
+            event_type="appointment.payment_required",
             payload={
                 "appointment_id": str(appt.id),
                 "patient_id": str(appt.patient_id),
@@ -112,10 +153,11 @@ class BookAppointmentSaga(SagaOrchestrator):
                 "end_time": str(appt.end_time),
                 "appointment_type": appt.appointment_type,
                 "chief_complaint": appt.chief_complaint,
+                "amount": amount,
             },
         )
-        await OutboxWriter.write(
-            self.session,
+        await self.event_publisher.publish(
+            session=self.session,
             aggregate_id=appt.id,
             aggregate_type="cache_events",
             event_type="cache.invalidate",
@@ -127,8 +169,23 @@ class BookAppointmentSaga(SagaOrchestrator):
             },
         )
 
+    async def execute_release_slot_lock(self, ctx):
+        token = ctx.get("lock_token")
+        if not token:
+            return
+        await self.lock_manager.release_slot(
+            str(ctx["doctor_id"]),
+            str(ctx["appointment_date"]),
+            str(ctx["start_time"]),
+            token,
+        )
+        ctx["lock_token"] = None
+
     async def compensate_cancel_appointment(self, ctx):
-        appt = ctx.get("appointment")
+        appointment_id = ctx.get("appointment_id")
+        if not appointment_id:
+            return
+        appt = await self.appointment_repo.get_by_id(self._as_uuid(appointment_id))
         if not appt:
             return
         appt.status = AppointmentStatus.CANCELLED
@@ -157,12 +214,16 @@ class BookAppointmentUseCase:
         lock_manager,
         appointment_repo,
         doctor_client,
+        event_publisher: IEventPublisher,
+        pricing_policy: IAppointmentPricingPolicy,
     ):
         self.session = session
         self.cache = cache
         self.lock_manager = lock_manager
         self.appointment_repo = appointment_repo
         self.doctor_client = doctor_client
+        self.event_publisher = event_publisher
+        self.pricing_policy = pricing_policy
 
     async def execute(self, request: CreateAppointmentRequest) -> AppointmentResponse:
         saga = BookAppointmentSaga(
@@ -171,7 +232,9 @@ class BookAppointmentUseCase:
             lock_manager=self.lock_manager,
             appointment_repo=self.appointment_repo,
             doctor_client=self.doctor_client,
+            event_publisher=self.event_publisher,
+            pricing_policy=self.pricing_policy,
         )
-        results = await saga.run(request.model_dump())
+        results = await saga.run(request.model_dump(mode="json"))
         appt = results.get("create_appointment")
         return AppointmentResponse.model_validate(appt)

@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from uuid_extension import UUID7, uuid7
+from uuid_extension import uuid7
 
 
 class Base(DeclarativeBase):
@@ -18,10 +19,10 @@ class UUIDMixin:
     Thứ tự insert = thứ tự thời gian.
     """
 
-    id: Mapped[UUID7] = mapped_column(
+    id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
         primary_key=True,
-        default=uuid7,
+        default=lambda: UUID(str(uuid7())),
     )
 
 

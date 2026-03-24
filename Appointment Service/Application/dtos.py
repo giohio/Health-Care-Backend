@@ -4,7 +4,7 @@ from uuid import UUID
 
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, field_serializer
 
 
 # Convert UUID7 to string
@@ -18,7 +18,7 @@ SafeUUID = Annotated[UUID, BeforeValidator(coerce_to_uuid_str)]
 
 
 class CreateAppointmentRequest(BaseModel):
-    patient_id: SafeUUID
+    patient_id: SafeUUID | None = None
     doctor_id: SafeUUID
     specialty_id: SafeUUID
     appointment_date: date
@@ -45,6 +45,10 @@ class AppointmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_serializer("start_time", "end_time")
+    def serialize_time(self, v: time, _info):
+        return v.strftime("%H:%M")
 
 
 class DeclineAppointmentRequest(BaseModel):

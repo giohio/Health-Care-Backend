@@ -4,20 +4,20 @@ from Application.use_cases.list_specialties import ListSpecialtiesUseCase
 from Application.use_cases.register_doctor import RegisterDoctorUseCase
 from Application.use_cases.save_specialty import SaveSpecialtyUseCase
 from Application.use_cases.search_available_doctors import SearchAvailableDoctorsUseCase
+from Application.use_cases.set_auto_confirm_settings import SetAutoConfirmSettingsUseCase
 from Application.use_cases.update_doctor_profile import UpdateDoctorProfileUseCase
 from Application.use_cases.update_schedule import UpdateScheduleUseCase
 from Domain.interfaces.event_publisher import IEventPublisher
 from fastapi import Depends
-from infrastructure.config import settings
 from infrastructure.database.session import get_db
+from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 from infrastructure.repositories import DoctorRepository, ScheduleRepository, SpecialtyRepository
-from shared_lib.messaging import BasePublisher as RabbitMQPublisher
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 # Publishers
-def get_event_publisher() -> IEventPublisher:
-    return RabbitMQPublisher(settings.RABBITMQ_URL)
+def get_event_publisher(session: Annotated[AsyncSession, Depends(get_db)]) -> IEventPublisher:
+    return OutboxEventPublisher(session)
 
 
 # Repositories
@@ -62,3 +62,7 @@ def get_update_schedule_use_case(
 
 def get_search_available_doctors_use_case(repo: Annotated[DoctorRepository, Depends(get_doctor_repo)]):
     return SearchAvailableDoctorsUseCase(repo)
+
+
+def get_set_auto_confirm_settings_use_case(repo: Annotated[DoctorRepository, Depends(get_doctor_repo)]):
+    return SetAutoConfirmSettingsUseCase(repo)

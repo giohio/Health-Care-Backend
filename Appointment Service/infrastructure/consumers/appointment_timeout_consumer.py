@@ -7,7 +7,7 @@ from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
-from healthai_events import BaseConsumer
+from healthai_events.consumer import BaseConsumer
 from healthai_events.exceptions import RetryableError
 
 
@@ -46,7 +46,6 @@ class AppointmentTimeoutConsumer(BaseConsumer):
 
                 if not appt:
                     return
-
                 if appt.status != AppointmentStatus.PENDING:
                     return
 

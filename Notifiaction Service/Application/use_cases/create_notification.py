@@ -6,6 +6,7 @@ from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.notification_repository import INotificationRepository
 from Domain.interfaces.realtime_notifier import IRealtimeNotifier
 from uuid_extension import uuid7
+from uuid import UUID
 
 
 class CreateNotificationUseCase:
@@ -37,7 +38,21 @@ class CreateNotificationUseCase:
         )
         await self.repo.save(notification)
         response = NotificationResponse.model_validate(notification)
-        await self.ws_manager.send_to_user(str(user_id), response.model_dump(mode="json"))
+        ws_payload = response.model_dump(mode="json")
+        message = {
+            "event": "notification.new",
+            "data": ws_payload,
+        }
+
+        raw_user_id = str(user_id)
+        await self.ws_manager.send_to_user(raw_user_id, message)
+
+        try:
+            canonical_user_id = str(UUID(raw_user_id))
+            if canonical_user_id != raw_user_id:
+                await self.ws_manager.send_to_user(canonical_user_id, message)
+        except Exception:
+            pass
         if self.email_sender and recipient_email:
             await self.email_sender.send_email(
                 to=recipient_email,

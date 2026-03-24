@@ -67,20 +67,19 @@ class DoctorServiceClient(IDoctorServiceClient):
         return await self._cb.call(_fetch, fallback=_fallback)
 
     async def get_type_config(self, specialty_id: str, appointment_type: str) -> dict | None:
-        # Placeholder path; can be wired to dedicated endpoint when available.
-        async def _fetch():
+        # This endpoint is optional in current topology; don't poison the shared circuit breaker
+        # when it returns 404/missing route.
+        try:
             response = await self._client.get(
                 "/appointments/type-configs",
                 params={"specialty_id": specialty_id, "type": appointment_type},
             )
+            if response.status_code == 404:
+                return None
             response.raise_for_status()
             return response.json()
-
-        async def _fallback(*_args, **_kwargs):
-            await asyncio.sleep(0)
+        except Exception:
             return None
-
-        return await self._cb.call(_fetch, fallback=_fallback)
 
     async def get_patient_full_context(self, patient_id: str) -> dict | None:
         async def _fetch():

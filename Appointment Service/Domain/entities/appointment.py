@@ -62,6 +62,7 @@ class Appointment:
     def can_be_rescheduled_by(self, patient_id: UUID7) -> bool:
         """Only the owner patient can reschedule pending/confirmed appointments."""
         return self.patient_id == patient_id and self.status in (
+            AppointmentStatus.PENDING_PAYMENT,
             AppointmentStatus.PENDING,
             AppointmentStatus.CONFIRMED,
         )

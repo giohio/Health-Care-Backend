@@ -1,7 +1,7 @@
 import logging
+from uuid import UUID
 
 from Application.use_cases.register_doctor import RegisterDoctorUseCase
-from uuid_extension import UUID7
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class UserRegisteredHandler:
             return
 
         try:
-            user_id = UUID7(user_id_str)
+            user_id = UUID(user_id_str)
             await self.register_doctor_use_case.execute(user_id, full_name)
             logger.info(f"Handled registration for doctor {full_name}")
         except Exception as e:

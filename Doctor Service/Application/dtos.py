@@ -2,7 +2,7 @@ from datetime import time
 from uuid import UUID
 
 from Domain.value_objects.day_of_week import DayOfWeek
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SpecialtyDTO(BaseModel):
@@ -32,5 +32,18 @@ class ScheduleDTO(BaseModel):
     start_time: time
     end_time: time
     slot_duration_minutes: int = 30
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DoctorAutoConfirmSettingsRequest(BaseModel):
+    auto_confirm: bool
+    confirmation_timeout_minutes: int = Field(default=15, gt=0)
+
+
+class DoctorAutoConfirmSettingsResponse(BaseModel):
+    user_id: UUID
+    auto_confirm: bool
+    confirmation_timeout_minutes: int
 
     model_config = ConfigDict(from_attributes=True)

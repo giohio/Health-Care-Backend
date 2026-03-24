@@ -1,5 +1,5 @@
 from Application.use_cases.create_notification import CreateNotificationUseCase
-from healthai_events import BaseConsumer
+from healthai_events.consumer import BaseConsumer
 
 
 class _NotificationConsumer(BaseConsumer):
@@ -94,11 +94,99 @@ class AppointmentCancelledConsumer(_NotificationConsumer):
     ROUTING_KEY = "appointment.cancelled"
 
     async def handle(self, payload: dict):
+        cancelled_by = (payload.get("cancelled_by") or "").lower()
+        is_patient_cancel = cancelled_by == "patient"
+
+        target_user_id = payload.get("doctor_id") if is_patient_cancel else payload.get("patient_id")
+        if not target_user_id:
+            return
+
+        body = (
+            "A patient cancelled an appointment in your schedule."
+            if is_patient_cancel
+            else "Your appointment was cancelled. Please book another slot."
+        )
+
+        await self._create_notification(
+            user_id=target_user_id,
+            title="Appointment Cancelled",
+            body=body,
+            event_type="appointment.cancelled",
+            recipient_email=payload.get("doctor_email") if is_patient_cancel else payload.get("patient_email"),
+        )
+
+
+class AppointmentDeclinedConsumer(_NotificationConsumer):
+    QUEUE = "notification.appointment.declined"
+    EXCHANGE = "appointment_events"
+    ROUTING_KEY = "appointment.declined"
+
+    async def handle(self, payload: dict):
         await self._create_notification(
             user_id=payload["patient_id"],
-            title="Appointment Cancelled",
-            body="Your appointment was cancelled. Please book another slot.",
-            event_type="appointment.cancelled",
+            title="Appointment Declined",
+            body="Your appointment request was declined by the doctor.",
+            event_type="appointment.declined",
+            recipient_email=payload.get("patient_email"),
+        )
+
+
+class AppointmentRescheduledConsumer(_NotificationConsumer):
+    QUEUE = "notification.appointment.rescheduled"
+    EXCHANGE = "appointment_events"
+    ROUTING_KEY = "appointment.rescheduled"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["doctor_id"],
+            title="Appointment Rescheduled",
+            body="A patient has Rescheduled an appointment. Please review and reconfirm.",
+            event_type="appointment.rescheduled",
+            recipient_email=payload.get("doctor_email"),
+        )
+
+
+class AppointmentNoShowConsumer(_NotificationConsumer):
+    QUEUE = "notification.appointment.no_show"
+    EXCHANGE = "appointment_events"
+    ROUTING_KEY = "appointment.no_show"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Appointment no-show",
+            body="You were marked as no-show for this appointment.",
+            event_type="appointment.no_show",
+            recipient_email=payload.get("patient_email"),
+        )
+
+
+class AppointmentCompletedConsumer(_NotificationConsumer):
+    QUEUE = "notification.appointment.completed"
+    EXCHANGE = "appointment_events"
+    ROUTING_KEY = "appointment.completed"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Appointment Completed",
+            body="Your appointment has been Completed successfully.",
+            event_type="appointment.completed",
+            recipient_email=payload.get("patient_email"),
+        )
+
+
+class PaymentFailedConsumer(_NotificationConsumer):
+    QUEUE = "notification.payment.failed"
+    EXCHANGE = "payment_events"
+    ROUTING_KEY = "payment.failed"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Payment Failed",
+            body="Your payment failed. Please retry booking/payment.",
+            event_type="payment.failed",
             recipient_email=payload.get("patient_email"),
         )
 

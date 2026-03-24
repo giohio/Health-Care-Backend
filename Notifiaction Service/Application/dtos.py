@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, computed_field
 from typing_extensions import Annotated
 
 
@@ -25,5 +25,17 @@ class NotificationResponse(BaseModel):
     created_at: datetime | None = None
     read_at: datetime | None = None
 
+    @computed_field
+    def type(self) -> str:
+        # Keep backward-compatible high-level type used by E2E filters.
+        if "." in self.event_type:
+            return self.event_type.split(".", 1)[0]
+        return self.event_type
+
     class Config:
         from_attributes = True
+
+
+class NotificationListResponse(BaseModel):
+    notifications: list[NotificationResponse]
+    unread_count: int

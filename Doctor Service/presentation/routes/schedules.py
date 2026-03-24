@@ -6,7 +6,8 @@ from Application.use_cases.update_schedule import UpdateScheduleUseCase
 from Domain.exceptions.domain_exceptions import DoctorNotFoundException
 from Domain.interfaces.schedule_repository import IScheduleRepository
 from fastapi import APIRouter, Depends, HTTPException
-from presentation.dependencies import get_schedule_repo, get_update_schedule_use_case
+from presentation.dependencies import get_schedule_repo, get_update_schedule_use_case, get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/{doctor_id}/schedule", tags=["Schedules"])
 
@@ -22,8 +23,11 @@ async def update_schedule(
     doctor_id: UUID,
     dtos: List[ScheduleDTO],
     use_case: Annotated[UpdateScheduleUseCase, Depends(get_update_schedule_use_case)],
+    db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await use_case.execute(doctor_id, dtos)
+        ret = await use_case.execute(doctor_id, dtos)
+        await db.commit()
+        return ret
     except DoctorNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))

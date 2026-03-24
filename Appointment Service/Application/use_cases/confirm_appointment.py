@@ -6,15 +6,16 @@ from Domain.exceptions.domain_exceptions import (
     UnauthorizedActionError,
 )
 from Domain.interfaces.appointment_repository import IAppointmentRepository
+from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
-from healthai_db import OutboxWriter
 from uuid_extension import UUID7
 
 
 class ConfirmAppointmentUseCase:
-    def __init__(self, session, appointment_repo: IAppointmentRepository):
+    def __init__(self, session, appointment_repo: IAppointmentRepository, event_publisher: IEventPublisher):
         self.session = session
         self.appointment_repo = appointment_repo
+        self.event_publisher = event_publisher
 
     async def execute(self, appointment_id: UUID7, doctor_id: UUID7) -> AppointmentResponse:
         appointment = await self.appointment_repo.get_by_id_with_lock(appointment_id)
@@ -35,8 +36,8 @@ class ConfirmAppointmentUseCase:
         )
         await self.appointment_repo.save(appointment)
 
-        await OutboxWriter.write(
-            self.session,
+        await self.event_publisher.publish(
+            session=self.session,
             aggregate_id=appointment.id,
             aggregate_type="appointment_events",
             event_type="appointment.confirmed",
@@ -47,8 +48,8 @@ class ConfirmAppointmentUseCase:
                 "queue_number": appointment.queue_number,
             },
         )
-        await OutboxWriter.write(
-            self.session,
+        await self.event_publisher.publish(
+            session=self.session,
             aggregate_id=appointment.id,
             aggregate_type="cache_events",
             event_type="cache.invalidate",
@@ -58,4 +59,5 @@ class ConfirmAppointmentUseCase:
                 ]
             },
         )
+        await self.session.commit()
         return AppointmentResponse.model_validate(appointment)

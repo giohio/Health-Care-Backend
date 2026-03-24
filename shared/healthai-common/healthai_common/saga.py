@@ -2,11 +2,14 @@ import logging
 from abc import ABC
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from healthai_db import Base, TimestampMixin, UUIDMixin
 from sqlalchemy import DateTime, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
+from uuid_extension import uuid7
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,9 @@ class SagaState(Base, UUIDMixin, TimestampMixin):
     """
 
     __tablename__ = "saga_states"
+
+    # Use stdlib UUID for DB binding compatibility with asyncpg.
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=lambda: UUID(str(uuid7())))
 
     saga_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="running", nullable=False)

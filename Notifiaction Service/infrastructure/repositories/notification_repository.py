@@ -54,13 +54,15 @@ class NotificationRepository(INotificationRepository):
 
         model.is_read = True
         model.read_at = datetime.now(timezone.utc)
+        await self.session.flush()
+        await self.session.commit()
         return self._to_entity(model)
 
     @staticmethod
     def _to_entity(model: NotificationModel) -> Notification:
         return Notification(
-            id=UUID7(str(model.id)),
-            user_id=UUID7(str(model.user_id)),
+            id=uuid.UUID(str(model.id)),
+            user_id=uuid.UUID(str(model.user_id)),
             title=model.title,
             body=model.body,
             event_type=model.event_type,

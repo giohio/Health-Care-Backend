@@ -2,6 +2,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from infrastructure.config import settings
+from infrastructure.database import models as _db_models  # noqa: F401
 from infrastructure.database.session import Base
 
 # this is the Alembic Config object, which provides

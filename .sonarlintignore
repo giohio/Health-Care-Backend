@@ -1,0 +1,7 @@
+# Exclude tests folder từ SonarQube analysis
+tests/
+**/*.test.py
+**/*_test.py
+**/*_test_*.py
+
+seed_*.py

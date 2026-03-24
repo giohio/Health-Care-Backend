@@ -3,10 +3,12 @@ import uuid
 
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
+from healthai_db.base import TimestampMixin, UUIDMixin
 from infrastructure.database.session import Base
 from sqlalchemy import Boolean, Date, DateTime
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Index, Integer, String, Text, Time, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -50,7 +52,7 @@ class AppointmentModel(Base):
             "doctor_id",
             "appointment_date",
             "start_time",
-            postgresql_where=("status IN ('pending_payment','pending','confirmed')"),
+            postgresql_where=("status IN ('PENDING_PAYMENT','PENDING','CONFIRMED')"),
         ),
         Index("idx_doctor_queue", "doctor_id", "appointment_date", "status"),
         Index("idx_patient_history", "patient_id", "appointment_date"),
@@ -67,3 +69,34 @@ class AppointmentTypeConfigModel(Base):
     buffer_minutes: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
 
     __table_args__ = (UniqueConstraint("specialty_id", "type_name", name="uq_specialty_type"),)
+
+
+class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "outbox_events"
+
+    __table_args__ = (
+        Index("idx_outbox_pending", "status", "created_at", postgresql_where="status = 'pending'"),
+        Index("idx_outbox_retry", "status", "retry_count", postgresql_where="status = 'failed'"),
+    )
+
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    published_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class SagaStateModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "saga_states"
+
+    saga_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="running", nullable=False)
+    current_step: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    completed_steps: Mapped[list] = mapped_column(JSONB, default=list)
+    compensated_steps: Mapped[list] = mapped_column(JSONB, default=list)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    failed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

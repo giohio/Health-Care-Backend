@@ -1,10 +1,12 @@
 import uuid
-from datetime import time
+from datetime import datetime, time
 
 from Domain.value_objects.day_of_week import DayOfWeek
+from healthai_db.base import TimestampMixin, UUIDMixin
 from infrastructure.database.session import Base
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Integer, String, Time
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, Time
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,3 +47,21 @@ class DoctorScheduleModel(Base):
     slot_duration_minutes: Mapped[int] = mapped_column(Integer, default=30)
 
     doctor: Mapped["DoctorModel"] = relationship(back_populates="schedules")
+
+
+class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "outbox_events"
+
+    __table_args__ = (
+        Index("idx_outbox_pending", "status", "created_at", postgresql_where="status = 'pending'"),
+        Index("idx_outbox_retry", "status", "retry_count", postgresql_where="status = 'failed'"),
+    )
+
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

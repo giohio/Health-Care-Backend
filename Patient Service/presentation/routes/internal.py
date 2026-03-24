@@ -25,9 +25,7 @@ async def get_patient_full_context_internal(
     """
     use_case = GetProfileUseCase(profile_repo, health_repo)
     try:
-        from uuid_extension import UUID7
-
-        profile, health = await use_case.execute(UUID7(str(user_id)))
+        profile, health = await use_case.execute(user_id)
         return {"profile": profile, "health_background": health}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=f"Patient not found: {str(e)}")

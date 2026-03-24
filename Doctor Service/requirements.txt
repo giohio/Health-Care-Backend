@@ -10,6 +10,7 @@ uuid-extension
 pika
 aio-pika
 python-dotenv
+httpx
 PyJWT[crypto]
 opentelemetry-api
 opentelemetry-sdk

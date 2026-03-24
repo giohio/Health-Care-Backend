@@ -12,7 +12,7 @@ from infrastructure.config import settings
 from infrastructure.database.session import get_db
 from infrastructure.email.email_sender import EmailSender
 from infrastructure.repositories.notification_repository import NotificationRepository
-from infrastructure.websocket.manager import NotificationConnectionManager
+from infrastructure.websocket.manager import NotificationConnectionManager, notification_ws_manager
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -21,9 +21,8 @@ def get_cache_client() -> CacheClient:
     return CacheClient.from_url(settings.REDIS_URL)
 
 
-@lru_cache()
 def get_ws_manager() -> NotificationConnectionManager:
-    return NotificationConnectionManager()
+    return notification_ws_manager
 
 
 @lru_cache()

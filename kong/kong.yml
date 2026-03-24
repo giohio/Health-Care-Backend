@@ -66,6 +66,38 @@ services:
                 - exp
               anonymous: anonymous-user
 
+  - name: payment-service
+    url: http://payment_service:8000
+    routes:
+      - name: payment-routes
+        paths:
+          - /payments
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: notification-service
+    url: http://notification_service:8000
+    routes:
+      - name: notification-routes
+        paths:
+          - /notifications
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
   - name: docs-hub
     url: http://static_docs:80
     routes:

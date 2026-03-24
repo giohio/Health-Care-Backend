@@ -2,16 +2,16 @@ from functools import lru_cache
 from typing import AsyncGenerator
 
 from Application import LoginUseCase, LogOutUseCase, RefreshTokenUseCase, RegisterService
+from Domain.interfaces import IEventPublisher
 from fastapi import Depends
 from infrastructure import (
     AsyncSessionLocal,
     JWTHandler,
     PasswordHasher,
     RefreshTokenRepository,
-    UserRepository,
-    settings,
+    UserRepository
 )
-from shared_lib.messaging import BasePublisher
+from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -35,9 +35,8 @@ def get_jwt_handler() -> JWTHandler:
     return JWTHandler()
 
 
-@lru_cache()
-def get_event_publisher() -> BasePublisher:
-    return BasePublisher(settings.RABBITMQ_URL)
+def get_event_publisher(session: AsyncSession = Depends(get_db)) -> IEventPublisher:
+    return OutboxEventPublisher(session)
 
 
 def get_user_repository(session: AsyncSession = Depends(get_db)) -> UserRepository:
@@ -51,7 +50,7 @@ def get_refresh_token_repository(session: AsyncSession = Depends(get_db)) -> Ref
 def get_register_service(
     user_repo: UserRepository = Depends(get_user_repository),
     password_hasher: PasswordHasher = Depends(get_password_hasher),
-    event_publisher: BasePublisher = Depends(get_event_publisher),
+    event_publisher: IEventPublisher = Depends(get_event_publisher),
 ) -> RegisterService:
     return RegisterService(user_repo, password_hasher, event_publisher)
 

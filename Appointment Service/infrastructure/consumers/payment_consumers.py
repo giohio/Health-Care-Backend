@@ -1,6 +1,8 @@
+import asyncio
+import logging
+import uuid
 from datetime import timedelta
 from typing import Any, Callable
-import uuid
 
 from Application.use_cases._helpers import utcnow
 from Domain.interfaces.appointment_repository import IAppointmentRepository
@@ -8,7 +10,10 @@ from Domain.interfaces.doctor_service_client import IDoctorServiceClient
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
-from healthai_events import BaseConsumer
+from healthai_events.consumer import BaseConsumer
+
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentPaidConsumer(BaseConsumer):
@@ -50,7 +55,27 @@ class PaymentPaidConsumer(BaseConsumer):
 
                 appt.payment_status = PaymentStatus.PAID
 
-                doctor_cfg = await self._doctor_client.get_doctor(str(appt.doctor_id))
+                doctor_cfg = None
+                for attempt in range(1, 4):
+                    try:
+                        doctor_cfg = await self._doctor_client.get_doctor(str(appt.doctor_id))
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to fetch doctor config for %s (attempt %s/3): %s",
+                            appt.doctor_id,
+                            attempt,
+                            exc,
+                        )
+                    if doctor_cfg:
+                        break
+                    await asyncio.sleep(0.2)
+
+                if doctor_cfg is None:
+                    logger.warning(
+                        "Doctor config unavailable for %s, defaulting auto_confirm=True",
+                        appt.doctor_id,
+                    )
+
                 auto_confirm = True if doctor_cfg is None else doctor_cfg.get("auto_confirm", True)
                 timeout_minutes = 15 if doctor_cfg is None else doctor_cfg.get("confirmation_timeout_minutes", 15)
 
@@ -66,40 +91,14 @@ class PaymentPaidConsumer(BaseConsumer):
                         session,
                         aggregate_id=appt.id,
                         aggregate_type="appointment_events",
-                        event_type="appointment.auto_confirmed",
-                        payload={
-                            "appointment_id": str(appt.id),
-                            "patient_id": str(appt.patient_id),
-                            "doctor_id": str(appt.doctor_id),
-                            "appointment_date": str(appt.appointment_date),
-                            "start_time": str(appt.start_time),
-                            "queue_number": appt.queue_number,
-                            "auto_confirmed": True,
-                        },
-                    )
-                    await OutboxWriter.write(
-                        session,
-                        aggregate_id=appt.id,
-                        aggregate_type="appointment_events",
                         event_type="appointment.confirmed",
                         payload={
                             "appointment_id": str(appt.id),
                             "patient_id": str(appt.patient_id),
                             "doctor_id": str(appt.doctor_id),
-                            "queue_number": appt.queue_number,
-                            "auto_confirmed": True,
-                        },
-                    )
-                    await OutboxWriter.write(
-                        session,
-                        aggregate_id=appt.id,
-                        aggregate_type="appointment_events",
-                        event_type="appointment.created",
-                        payload={
-                            "appointment_id": str(appt.id),
-                            "doctor_id": str(appt.doctor_id),
                             "appointment_date": str(appt.appointment_date),
                             "start_time": str(appt.start_time),
+                            "queue_number": appt.queue_number,
                             "auto_confirmed": True,
                         },
                     )

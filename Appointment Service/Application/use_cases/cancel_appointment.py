@@ -6,16 +6,17 @@ from Domain.exceptions.domain_exceptions import (
     UnauthorizedActionError,
 )
 from Domain.interfaces.appointment_repository import IAppointmentRepository
+from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
-from healthai_db import OutboxWriter
 from uuid_extension import UUID7
 
 
 class CancelAppointmentUseCase:
-    def __init__(self, session, appointment_repo: IAppointmentRepository):
+    def __init__(self, session, appointment_repo: IAppointmentRepository, event_publisher: IEventPublisher):
         self.session = session
         self.appointment_repo = appointment_repo
+        self.event_publisher = event_publisher
 
     async def execute(
         self,
@@ -43,8 +44,8 @@ class CancelAppointmentUseCase:
             appointment.payment_status = PaymentStatus.REFUNDED
         await self.appointment_repo.save(appointment)
 
-        await OutboxWriter.write(
-            self.session,
+        await self.event_publisher.publish(
+            session=self.session,
             aggregate_id=appointment.id,
             aggregate_type="appointment_events",
             event_type="appointment.cancelled",
@@ -57,8 +58,8 @@ class CancelAppointmentUseCase:
                 "reason": reason,
             },
         )
-        await OutboxWriter.write(
-            self.session,
+        await self.event_publisher.publish(
+            session=self.session,
             aggregate_id=appointment.id,
             aggregate_type="cache_events",
             event_type="cache.invalidate",
@@ -70,8 +71,8 @@ class CancelAppointmentUseCase:
             },
         )
         if appointment.payment_status == PaymentStatus.REFUNDED:
-            await OutboxWriter.write(
-                self.session,
+            await self.event_publisher.publish(
+                session=self.session,
                 aggregate_id=appointment.id,
                 aggregate_type="payment_events",
                 event_type="payment.refund_requested",
@@ -81,4 +82,5 @@ class CancelAppointmentUseCase:
                     "reason": reason or "appointment_cancelled",
                 },
             )
+        await self.session.commit()
         return AppointmentResponse.model_validate(appointment)

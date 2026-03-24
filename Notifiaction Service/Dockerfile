@@ -32,7 +32,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY ["Notifiaction Service/", "."]
 COPY shared/healthai-tracing /shared/healthai-tracing
-RUN chown -R appuser:appuser /app
+RUN chmod +x /app/scripts/entrypoint.sh && chown -R appuser:appuser /app
 
 USER appuser
 
@@ -41,4 +41,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
     CMD curl -f http://localhost:8000/health || exit 1
 
+ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

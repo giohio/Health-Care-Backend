@@ -24,6 +24,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - healthcare_net
 
@@ -63,6 +69,7 @@ services:
       - patient_service
       - doctor_service
       - appointment_service
+      - payment_service
       - notification_service
       - jaeger
 
@@ -79,8 +86,10 @@ services:
     networks:
       - healthcare_net
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   patient_service:
     build:
@@ -96,9 +105,12 @@ services:
     networks:
       - healthcare_net
     depends_on:
-      - postgres
-      - rabbitmq
-      - redis
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   doctor_service:
     build:
@@ -114,9 +126,12 @@ services:
     networks:
       - healthcare_net
     depends_on:
-      - postgres
-      - rabbitmq
-      - redis
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   appointment_service:
     build:
@@ -133,10 +148,38 @@ services:
     networks:
       - healthcare_net
     depends_on:
-      - postgres
-      - rabbitmq
-      - doctor_service
-      - redis
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      doctor_service:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  payment_service:
+    build:
+      context: .
+      dockerfile: ./Payment Service/Dockerfile
+    container_name: payment_service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/payment_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+      APP_ROOT_PATH: /payments
+      REDIS_URL: redis://redis:6379/0
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-TV1BKXSO}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-9W8MLHMKMYTSO7DN1JGI1H9XEQOYXPWH}
+      VNPAY_URL: https://sandbox.vnpayment.vn/paygate
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    networks:
+      - healthcare_net
+    depends_on:
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   notification_service:
     build:
@@ -157,9 +200,12 @@ services:
     networks:
       - healthcare_net
     depends_on:
-      - postgres
-      - rabbitmq
-      - redis
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   redis:
     image: redis:7-alpine

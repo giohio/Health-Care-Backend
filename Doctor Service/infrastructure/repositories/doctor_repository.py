@@ -5,6 +5,7 @@ from Domain.entities.doctor import Doctor
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from Domain.value_objects.day_of_week import DayOfWeek
 from infrastructure.database.models import DoctorModel, DoctorScheduleModel
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
@@ -15,7 +16,7 @@ class DoctorRepository(IDoctorRepository):
         self.session = session
 
     async def save(self, doctor: Doctor) -> Doctor:
-        model = DoctorModel(
+        stmt = pg_insert(DoctorModel).values(
             user_id=doctor.user_id,
             specialty_id=doctor.specialty_id,
             full_name=doctor.full_name,
@@ -24,7 +25,20 @@ class DoctorRepository(IDoctorRepository):
             auto_confirm=doctor.auto_confirm,
             confirmation_timeout_minutes=doctor.confirmation_timeout_minutes,
         )
-        await self.session.merge(model)
+
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[DoctorModel.user_id],
+            set_={
+                "specialty_id": stmt.excluded.specialty_id,
+                "full_name": stmt.excluded.full_name,
+                "title": stmt.excluded.title,
+                "experience_years": stmt.excluded.experience_years,
+                "auto_confirm": stmt.excluded.auto_confirm,
+                "confirmation_timeout_minutes": stmt.excluded.confirmation_timeout_minutes,
+            },
+        )
+
+        await self.session.execute(stmt)
         return doctor
 
     async def get_by_id(self, user_id: UUID7) -> Optional[Doctor]:

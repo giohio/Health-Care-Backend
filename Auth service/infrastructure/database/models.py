@@ -1,9 +1,12 @@
 from datetime import datetime
+import uuid
 
 from Domain.entities.user import UserRole
+from healthai_db.base import TimestampMixin, UUIDMixin
 from sqlalchemy import Boolean, DateTime
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from uuid_extension import UUID7, uuid7
@@ -57,3 +60,21 @@ class RefreshToken(Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped["User"] = relationship("User", backref="refresh_tokens")
+
+
+class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "outbox_events"
+
+    __table_args__ = (
+        Index("idx_outbox_pending", "status", "created_at", postgresql_where="status = 'pending'"),
+        Index("idx_outbox_retry", "status", "retry_count", postgresql_where="status = 'failed'"),
+    )
+
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

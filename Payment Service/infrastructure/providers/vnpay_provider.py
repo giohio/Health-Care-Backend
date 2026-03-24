@@ -1,7 +1,6 @@
 from Domain.interfaces import IPaymentProvider, PaymentRequest, PaymentResult
 from infrastructure.config import settings
-from infrastructure.providers.vnpay_helper import (generate_payment_url,
-                                                   verify_signature)
+from infrastructure.providers.vnpay_helper import generate_payment_url, verify_signature
 
 
 class VnpayProvider(IPaymentProvider):

@@ -182,10 +182,10 @@ class AppointmentRepository(IAppointmentRepository):
 
     def _to_entity(self, model: AppointmentModel) -> Appointment:
         return Appointment(
-            id=UUID7(str(model.id)),
-            patient_id=UUID7(str(model.patient_id)),
-            doctor_id=UUID7(str(model.doctor_id)),
-            specialty_id=UUID7(str(model.specialty_id)),
+            id=uuid.UUID(str(model.id)),
+            patient_id=uuid.UUID(str(model.patient_id)),
+            doctor_id=uuid.UUID(str(model.doctor_id)),
+            specialty_id=uuid.UUID(str(model.specialty_id)),
             appointment_date=model.appointment_date,
             start_time=model.start_time,
             end_time=model.end_time,
@@ -198,7 +198,7 @@ class AppointmentRepository(IAppointmentRepository):
             completed_at=model.completed_at,
             cancelled_at=model.cancelled_at,
             cancelled_by=model.cancelled_by,
-            cancelled_by_user_id=(UUID7(str(model.cancelled_by_user_id)) if model.cancelled_by_user_id else None),
+            cancelled_by_user_id=(uuid.UUID(str(model.cancelled_by_user_id)) if model.cancelled_by_user_id else None),
             cancel_reason=model.cancel_reason,
             queue_number=model.queue_number,
             reminder_24h_sent=model.reminder_24h_sent,

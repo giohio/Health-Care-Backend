@@ -7,17 +7,25 @@ from Domain.exceptions.domain_exceptions import (
     UnauthorizedActionError,
 )
 from Domain.interfaces.appointment_repository import IAppointmentRepository
+from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
-from healthai_db import OutboxWriter
 from uuid_extension import UUID7
 
 
 class RescheduleAppointmentUseCase:
-    def __init__(self, session, lock_manager, appointment_repo: IAppointmentRepository, doctor_client):
+    def __init__(
+        self,
+        session,
+        lock_manager,
+        appointment_repo: IAppointmentRepository,
+        doctor_client,
+        event_publisher: IEventPublisher,
+    ):
         self.session = session
         self.lock_manager = lock_manager
         self.appointment_repo = appointment_repo
         self.doctor_client = doctor_client
+        self.event_publisher = event_publisher
 
     async def execute(self, appointment_id: UUID7, patient_id: UUID7, new_date, new_time) -> AppointmentResponse:
         appointment = await self.appointment_repo.get_by_id_with_lock(appointment_id)
@@ -27,7 +35,11 @@ class RescheduleAppointmentUseCase:
         if not appointment.can_be_rescheduled_by(patient_id):
             raise UnauthorizedActionError("Only owning patient can reschedule this appointment")
 
-        if appointment.status not in (AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED):
+        if appointment.status not in (
+            AppointmentStatus.PENDING_PAYMENT,
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+        ):
             raise InvalidStatusTransitionError("Appointment cannot be rescheduled from current status")
 
         lock_token = await self.lock_manager.acquire_slot(
@@ -69,8 +81,8 @@ class RescheduleAppointmentUseCase:
                 appointment.confirmed_at = None
             await self.appointment_repo.save(appointment)
 
-            await OutboxWriter.write(
-                self.session,
+            await self.event_publisher.publish(
+                session=self.session,
                 aggregate_id=appointment.id,
                 aggregate_type="appointment_events",
                 event_type="appointment.rescheduled",
@@ -86,8 +98,8 @@ class RescheduleAppointmentUseCase:
                     "new_end_time": str(new_end_time),
                 },
             )
-            await OutboxWriter.write(
-                self.session,
+            await self.event_publisher.publish(
+                session=self.session,
                 aggregate_id=appointment.id,
                 aggregate_type="cache_events",
                 event_type="cache.invalidate",
@@ -100,6 +112,7 @@ class RescheduleAppointmentUseCase:
                     ]
                 },
             )
+            await self.session.commit()
             return AppointmentResponse.model_validate(appointment)
         finally:
             await self.lock_manager.release_slot(

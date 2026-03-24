@@ -1,25 +1,31 @@
 import asyncio
 import logging
 import os
+from urllib.parse import urlparse
 
 import aio_pika
-from Application.consumers.appointment_events_consumers import (
-    AppointmentAutoConfirmedConsumer,
-    AppointmentCancelledConsumer,
-    AppointmentConfirmedConsumer,
-    AppointmentCreatedConsumer,
-    AppointmentReminderConsumer,
-)
+from Application.use_cases.create_notification import CreateNotificationUseCase
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from infrastructure.config import settings
-from infrastructure.database.session import AsyncSessionLocal, Base, engine
+from infrastructure.consumers import (
+    AppointmentAutoConfirmedConsumer,
+    AppointmentCancelledConsumer,
+    AppointmentCompletedConsumer,
+    AppointmentConfirmedConsumer,
+    AppointmentCreatedConsumer,
+    AppointmentDeclinedConsumer,
+    AppointmentNoShowConsumer,
+    AppointmentReminderConsumer,
+    AppointmentRescheduledConsumer,
+    PaymentFailedConsumer,
+)
+from infrastructure.database.session import AsyncSessionLocal
 from infrastructure.email.email_sender import EmailSender
 from infrastructure.repositories.notification_repository import NotificationRepository
 from presentation.dependencies import get_ws_manager
 from presentation.routes import notifications_router, websocket_router
-from Application.use_cases.create_notification import CreateNotificationUseCase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,11 +52,28 @@ background_tasks = set()
 
 @app.on_event("startup")
 async def startup_event():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    async def wait_for_rabbitmq(max_attempts: int = 60, delay_seconds: int = 2) -> None:
+        parsed = urlparse(settings.RABBITMQ_URL)
+        host = parsed.hostname or "rabbitmq"
+        port = parsed.port or 5672
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                _, writer = await asyncio.open_connection(host, port)
+                writer.close()
+                await writer.wait_closed()
+                logger.info("RabbitMQ is reachable at %s:%s", host, port)
+                return
+            except Exception:
+                logger.info("Waiting for RabbitMQ (%s/%s) at %s:%s...", attempt, max_attempts, host, port)
+                await asyncio.sleep(delay_seconds)
+
+        raise RuntimeError(f"RabbitMQ is not reachable at {host}:{port} after {max_attempts} attempts")
 
     cache = CacheClient.from_url(settings.REDIS_URL)
     app.state.cache = cache
+
+    await wait_for_rabbitmq()
 
     connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
     app.state.rabbit_connection = connection
@@ -66,6 +89,11 @@ async def startup_event():
         AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentDeclinedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentRescheduledConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentNoShowConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentCompletedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        PaymentFailedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
     ]
 

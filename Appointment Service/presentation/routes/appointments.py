@@ -27,8 +27,9 @@ from Domain.exceptions.domain_exceptions import (
     SlotNotAvailableError,
     UnauthorizedActionError,
 )
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from healthai_common import SagaFailedError
+from infrastructure.repositories.appointment_repository import AppointmentRepository
 from presentation.dependencies import (
     get_available_slots_use_case,
     get_book_appointment_use_case,
@@ -39,6 +40,7 @@ from presentation.dependencies import (
     get_doctor_queue_use_case,
     get_list_appointments_use_case,
     get_mark_no_show_use_case,
+    get_appointment_repo,
     get_reschedule_appointment_use_case,
 )
 
@@ -49,12 +51,24 @@ router = APIRouter(tags=["Appointments"])
 async def book_appointment(
     request: CreateAppointmentRequest,
     use_case: Annotated[BookAppointmentUseCase, Depends(get_book_appointment_use_case)],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
 ):
     try:
-        return await use_case.execute(request)
+        if request.patient_id and request.patient_id != x_user_id:
+            raise HTTPException(status_code=403, detail="Cannot create appointment for another patient")
+
+        effective_request = request
+        if request.patient_id is None:
+            effective_request = request.model_copy(update={"patient_id": x_user_id})
+
+        return await use_case.execute(effective_request)
     except SlotNotAvailableError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except SagaFailedError as e:
+        estr = str(e)
+        cause_str = str(e.__cause__) if hasattr(e, "__cause__") else ""
+        if "Slot is being booked" in estr or "Slot is no longer available" in estr or "Slot" in cause_str:
+            raise HTTPException(status_code=409, detail="Slot no longer available")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -63,6 +77,23 @@ async def list_patient_appointments(
     patient_id: UUID, use_case: Annotated[ListPatientAppointmentsUseCase, Depends(get_list_appointments_use_case)]
 ):
     return await use_case.execute(patient_id)
+
+
+@router.get("/{appointment_id}", response_model=AppointmentResponse)
+async def get_appointment_by_id(
+    appointment_id: UUID,
+    repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_role: str = Header(..., alias="X-User-Role"),
+):
+    appointment = await repo.get_by_id(appointment_id)
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if x_user_role not in ("admin", "doctor") and appointment.patient_id != x_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    return AppointmentResponse.model_validate(appointment)
 
 
 @router.put(
@@ -74,8 +105,8 @@ async def cancel_appointment(
     appointment_id: UUID,
     request: CancelAppointmentRequest,
     use_case: Annotated[CancelAppointmentUseCase, Depends(get_cancel_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
-    x_user_role: Annotated[str, Header(alias="X-User-Role")],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_role: str = Header(..., alias="X-User-Role"),
 ):
     try:
         return await use_case.execute(
@@ -96,7 +127,7 @@ async def cancel_appointment(
 async def confirm_appointment(
     appointment_id: UUID,
     use_case: Annotated[ConfirmAppointmentUseCase, Depends(get_confirm_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -113,7 +144,7 @@ async def decline_appointment(
     appointment_id: UUID,
     request: DeclineAppointmentRequest,
     use_case: Annotated[DeclineAppointmentUseCase, Depends(get_decline_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id, request.reason)
@@ -130,7 +161,7 @@ async def reschedule_appointment(
     appointment_id: UUID,
     request: RescheduleAppointmentRequest,
     use_case: Annotated[RescheduleAppointmentUseCase, Depends(get_reschedule_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(
@@ -153,7 +184,7 @@ async def reschedule_appointment(
 async def complete_appointment(
     appointment_id: UUID,
     use_case: Annotated[CompleteAppointmentUseCase, Depends(get_complete_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -169,7 +200,7 @@ async def complete_appointment(
 async def mark_no_show(
     appointment_id: UUID,
     use_case: Annotated[MarkNoShowUseCase, Depends(get_mark_no_show_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(..., alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -200,7 +231,11 @@ async def get_available_slots(
 @router.get("/doctor/{doctor_id}/queue", response_model=List[DoctorQueueItemResponse])
 async def get_doctor_queue(
     doctor_id: UUID,
-    appointment_date: date,
     use_case: Annotated[GetDoctorQueueUseCase, Depends(get_doctor_queue_use_case)],
+    appointment_date: date | None = Query(None),
+    date_param: date | None = Query(None, alias="date"),
 ):
-    return await use_case.execute(doctor_id, appointment_date)
+    effective_date = appointment_date or date_param
+    if effective_date is None:
+        raise HTTPException(status_code=422, detail="appointment_date or date is required")
+    return await use_case.execute(doctor_id, effective_date)

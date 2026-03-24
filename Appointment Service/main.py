@@ -3,22 +3,25 @@ import logging
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 import aio_pika
-from Application.consumers.payment_consumers import (
-    PaymentExpiredConsumer,
-    PaymentFailedConsumer,
-    PaymentPaidConsumer,
-    PaymentTimeoutConsumer,
-)
-from Application.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from healthai_events import OutboxRelay, RabbitMQPublisher
 from infrastructure.clients.doctor_service_client import DoctorServiceClient
 from infrastructure.config import settings
-from infrastructure.database.session import AsyncSessionLocal, engine
+from infrastructure.consumers import (
+    AppointmentTimeoutConsumer,
+    PaymentExpiredConsumer,
+    PaymentFailedConsumer,
+    PaymentPaidConsumer,
+    PaymentTimeoutConsumer,
+)
+from infrastructure.database import models as _db_models  # noqa: F401
+from infrastructure.database.session import AsyncSessionLocal
+from infrastructure.database.session import engine
 from infrastructure.repositories.appointment_repository import AppointmentRepository
 from presentation.routes import appointments_router
 
@@ -51,6 +54,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "appointment-service"}
+
 # Routes
 app.include_router(appointments_router)
 
@@ -59,10 +67,31 @@ app.state.cache = None
 app.state.rabbit_connection = None
 app.state.publisher = None
 app.state.relay = None
+app.state.consumers = []
 
 
 @app.on_event("startup")
 async def startup_event():
+    async def wait_for_rabbitmq(max_attempts: int = 60, delay_seconds: int = 2) -> None:
+        parsed = urlparse(settings.RABBITMQ_URL)
+        host = parsed.hostname or "rabbitmq"
+        port = parsed.port or 5672
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                _, writer = await asyncio.open_connection(host, port)
+                writer.close()
+                await writer.wait_closed()
+                logger.info("RabbitMQ is reachable at %s:%s", host, port)
+                return
+            except Exception:
+                logger.info("Waiting for RabbitMQ (%s/%s) at %s:%s...", attempt, max_attempts, host, port)
+                await asyncio.sleep(delay_seconds)
+
+        raise RuntimeError(f"RabbitMQ is not reachable at {host}:{port} after {max_attempts} attempts")
+
+    await wait_for_rabbitmq()
+
     cache = CacheClient.from_url(settings.REDIS_URL)
     app.state.cache = cache
 
@@ -112,23 +141,30 @@ async def startup_event():
         appointment_repo_factory=appointment_repo_factory,
     )
 
-    task = asyncio.create_task(timeout_consumer.start())
-    payment_paid_task = asyncio.create_task(payment_paid_consumer.start())
-    payment_failed_task = asyncio.create_task(payment_failed_consumer.start())
-    payment_expired_task = asyncio.create_task(payment_expired_consumer.start())
-    payment_timeout_task = asyncio.create_task(payment_timeout_consumer.start())
+    # Keep strong references to consumers so robust subscriptions survive after startup and broker restarts.
+    app.state.consumers = [
+        timeout_consumer,
+        payment_paid_consumer,
+        payment_failed_consumer,
+        payment_expired_consumer,
+        payment_timeout_consumer,
+    ]
+
+    async def run_consumers():
+        try:
+            await asyncio.gather(*(consumer.start() for consumer in app.state.consumers))
+            while True:
+                await asyncio.sleep(3600)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("Appointment consumers failed: %s", exc)
+
+    task = asyncio.create_task(run_consumers())
     relay_task = asyncio.create_task(relay.run())
     background_tasks.add(task)
-    background_tasks.add(payment_paid_task)
-    background_tasks.add(payment_failed_task)
-    background_tasks.add(payment_expired_task)
-    background_tasks.add(payment_timeout_task)
     background_tasks.add(relay_task)
     task.add_done_callback(background_tasks.discard)
-    payment_paid_task.add_done_callback(background_tasks.discard)
-    payment_failed_task.add_done_callback(background_tasks.discard)
-    payment_expired_task.add_done_callback(background_tasks.discard)
-    payment_timeout_task.add_done_callback(background_tasks.discard)
     relay_task.add_done_callback(background_tasks.discard)
     logger.info("Appointment timeout consumer started")
     logger.info("Appointment payment consumers started")
@@ -155,8 +191,3 @@ async def shutdown_event():
     cache = app.state.cache
     if cache:
         await cache.close()
-
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "appointment-service"}
