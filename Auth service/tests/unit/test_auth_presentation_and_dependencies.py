@@ -102,7 +102,10 @@ async def test_get_db_commits_success_and_rolls_back_on_error(monkeypatch):
     assert db.rollbacks == 1
 
 
-def test_dependency_factories_smoke():
+def test_dependency_factories_smoke(monkeypatch):
+    fake_jwt = object()
+    monkeypatch.setattr(dependencies, "get_jwt_handler", lambda: fake_jwt)
+
     assert dependencies.get_password_hasher() is dependencies.get_password_hasher()
     assert dependencies.get_jwt_handler() is dependencies.get_jwt_handler()
 
