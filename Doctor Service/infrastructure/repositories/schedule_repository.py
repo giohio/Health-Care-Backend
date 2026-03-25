@@ -1,11 +1,13 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from typing import List, Optional
+from typing import List
+
 from Domain.entities.doctor_schedule import DoctorSchedule
 from Domain.interfaces.schedule_repository import IScheduleRepository
-from infrastructure.database.models import DoctorScheduleModel
 from Domain.value_objects.day_of_week import DayOfWeek
+from infrastructure.database.models import DoctorScheduleModel
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
+
 
 class ScheduleRepository(IScheduleRepository):
     def __init__(self, session: AsyncSession):
@@ -18,15 +20,13 @@ class ScheduleRepository(IScheduleRepository):
             day_of_week=schedule.day_of_week,
             start_time=schedule.start_time,
             end_time=schedule.end_time,
-            slot_duration_minutes=schedule.slot_duration_minutes
+            slot_duration_minutes=schedule.slot_duration_minutes,
         )
         await self.session.merge(model)
         return schedule
 
     async def delete(self, schedule_id: UUID7) -> None:
-        await self.session.execute(
-            delete(DoctorScheduleModel).where(DoctorScheduleModel.id == schedule_id)
-        )
+        await self.session.execute(delete(DoctorScheduleModel).where(DoctorScheduleModel.id == schedule_id))
 
     async def get_by_doctor_and_day(self, doctor_id: UUID7, day: DayOfWeek) -> List[DoctorSchedule]:
         result = await self.session.execute(
@@ -42,8 +42,9 @@ class ScheduleRepository(IScheduleRepository):
                 day_of_week=m.day_of_week,
                 start_time=m.start_time,
                 end_time=m.end_time,
-                slot_duration_minutes=m.slot_duration_minutes
-            ) for m in models
+                slot_duration_minutes=m.slot_duration_minutes,
+            )
+            for m in models
         ]
 
     async def list_by_doctor(self, doctor_id: UUID7) -> List[DoctorSchedule]:
@@ -58,6 +59,7 @@ class ScheduleRepository(IScheduleRepository):
                 day_of_week=m.day_of_week,
                 start_time=m.start_time,
                 end_time=m.end_time,
-                slot_duration_minutes=m.slot_duration_minutes
-            ) for m in models
+                slot_duration_minutes=m.slot_duration_minutes,
+            )
+            for m in models
         ]

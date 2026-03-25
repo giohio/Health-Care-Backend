@@ -1,9 +1,44 @@
 from enum import Enum
 
+
 class AppointmentStatus(str, Enum):
-    PENDING = "PENDING"           # Vừa đặt xong, đang giữ slot (chờ thanh toán nếu có)
-    CONFIRMED = "CONFIRMED"       # Đã chốt (thanh toán xong hoặc chọn trả sau)
-    IN_PROGRESS = "IN_PROGRESS"   # Đang khám thực tế tại phòng khám
-    COMPLETED = "COMPLETED"       # Khám xong
-    CANCELLED = "CANCELLED"       # Bị hủy (do timeout 15p hoặc user tự hủy)
-    NO_SHOW = "NO_SHOW"           # Khách bùng lịch không đến
+    PENDING_PAYMENT = "pending_payment"
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    DECLINED = "declined"
+    CANCELLED = "cancelled"
+    COMPLETED = "completed"
+    NO_SHOW = "no_show"
+
+
+class CancelledBy(str, Enum):
+    PATIENT = "patient"
+    DOCTOR = "doctor"
+    SYSTEM = "system"
+    ADMIN = "admin"
+
+
+VALID_TRANSITIONS = {
+    AppointmentStatus.PENDING_PAYMENT: [
+        AppointmentStatus.PENDING,
+        AppointmentStatus.CANCELLED,
+    ],
+    AppointmentStatus.PENDING: [
+        AppointmentStatus.CONFIRMED,
+        AppointmentStatus.DECLINED,
+        AppointmentStatus.CANCELLED,
+    ],
+    AppointmentStatus.CONFIRMED: [
+        AppointmentStatus.COMPLETED,
+        AppointmentStatus.CANCELLED,
+        AppointmentStatus.NO_SHOW,
+    ],
+}
+
+
+def can_transition(
+    current: AppointmentStatus,
+    target: AppointmentStatus,
+) -> bool:
+    """Return whether the requested transition is allowed by domain rules."""
+    return target in VALID_TRANSITIONS.get(current, [])

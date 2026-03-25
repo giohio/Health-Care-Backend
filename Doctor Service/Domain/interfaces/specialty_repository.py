@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
+
 from Domain.entities.specialty import Specialty
 from uuid_extension import UUID7
+
 
 class ISpecialtyRepository(ABC):
     @abstractmethod

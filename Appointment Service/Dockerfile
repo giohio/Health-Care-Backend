@@ -11,9 +11,12 @@ RUN pip install --no-cache-dir uv
 COPY ["Appointment Service/requirements.txt", "."]
 RUN uv pip install --system --no-cache -r requirements.txt
 
-# Copy shared_lib and install it
-COPY shared_lib /app/shared_lib
-RUN uv pip install --system --no-cache /app/shared_lib
+# Install shared packages used across services
+COPY shared /tmp/shared
+RUN uv pip install --system --no-cache /tmp/shared/healthai-cache \
+    && uv pip install --system --no-cache /tmp/shared/healthai-common \
+    && uv pip install --system --no-cache /tmp/shared/healthai-db \
+    && uv pip install --system --no-cache /tmp/shared/healthai-events
 
 # ==========================================
 # STAGE 2: Runtime
@@ -33,6 +36,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy only this service's code
 COPY ["Appointment Service/", "."]
+COPY shared/healthai-tracing /shared/healthai-tracing
 RUN chmod +x scripts/entrypoint.sh && chown -R appuser:appuser /app
 
 USER appuser

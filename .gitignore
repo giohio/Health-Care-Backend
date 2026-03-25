@@ -22,6 +22,7 @@ venv/
 .venv/
 ENV/
 env/
+.env.test
 
 # Testing & Coverage
 .pytest_cache/

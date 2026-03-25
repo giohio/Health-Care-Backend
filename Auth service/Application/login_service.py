@@ -1,15 +1,10 @@
 from typing import Tuple
-from Domain import RefreshToken, IUserRepository, IRefreshTokenRepository
+
+from Domain import IRefreshTokenRepository, IUserRepository, RefreshToken
 
 
 class LoginUseCase:
-    def __init__(
-        self,
-        user_repo: IUserRepository,
-        token_repo: IRefreshTokenRepository,
-        password_hasher,
-        jwt_handler
-    ):
+    def __init__(self, user_repo: IUserRepository, token_repo: IRefreshTokenRepository, password_hasher, jwt_handler):
         self.user_repo = user_repo
         self.token_repo = token_repo
         self.password_hasher = password_hasher

@@ -1,9 +1,11 @@
 from typing import List
-from sqlalchemy import select, delete, update
-from uuid_extension import UUID7
 
-from Domain import User as UserEntity, IUserRepository
-from infrastructure.database import User as UserModel, AsyncSessionLocal
+from Domain import IUserRepository
+from Domain import User as UserEntity
+from infrastructure.database import AsyncSessionLocal
+from infrastructure.database import User as UserModel
+from sqlalchemy import delete, select, update
+from uuid_extension import UUID7
 
 
 class UserRepository(IUserRepository):
@@ -21,16 +23,14 @@ class UserRepository(IUserRepository):
             is_email_verified=user.is_email_verified,
             is_profile_completed=user.is_profile_completed,
             created_at=user.created_at,
-            updated_at=user.updated_at
+            updated_at=user.updated_at,
         )
         self.session.add(user_model)
         await self.session.flush()
         return self._to_entity(user_model)
 
     async def get_by_id(self, user_id: UUID7) -> UserEntity | None:
-        result = await self.session.execute(
-            select(UserModel).where(UserModel.id == user_id)
-        )
+        result = await self.session.execute(select(UserModel).where(UserModel.id == user_id))
         user_model = result.scalar_one_or_none()
         return self._to_entity(user_model) if user_model else None
 
@@ -39,26 +39,19 @@ class UserRepository(IUserRepository):
         return await self.get_by_email(username)
 
     async def get_by_email(self, email: str) -> UserEntity | None:
-        result = await self.session.execute(
-            select(UserModel).where(UserModel.email == email)
-        )
+        result = await self.session.execute(select(UserModel).where(UserModel.email == email))
         user_model = result.scalar_one_or_none()
         return self._to_entity(user_model) if user_model else None
 
     async def update(self, user_id: UUID7, **fields) -> UserEntity:
         result = await self.session.execute(
-            update(UserModel)
-            .where(UserModel.id == user_id)
-            .values(**fields)
-            .returning(UserModel)
+            update(UserModel).where(UserModel.id == user_id).values(**fields).returning(UserModel)
         )
         user_model = result.scalar_one()
         return self._to_entity(user_model)
 
     async def delete(self, user_id: UUID7) -> bool:
-        result = await self.session.execute(
-            delete(UserModel).where(UserModel.id == user_id)
-        )
+        result = await self.session.execute(delete(UserModel).where(UserModel.id == user_id))
         return result.rowcount > 0
 
     async def list(self) -> List[UserEntity]:
@@ -78,5 +71,5 @@ class UserRepository(IUserRepository):
             is_profile_completed=user_model.is_profile_completed,
             created_at=user_model.created_at,
             updated_at=user_model.updated_at,
-            deleted_at=user_model.deleted_at
+            deleted_at=user_model.deleted_at,
         )

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
+
 from uuid_extension import UUID7, uuid7
 
 

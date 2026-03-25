@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
+
 from Domain.entities.doctor_schedule import DoctorSchedule
-from uuid_extension import UUID7
 from Domain.value_objects.day_of_week import DayOfWeek
+from uuid_extension import UUID7
+
 
 class IScheduleRepository(ABC):
     @abstractmethod

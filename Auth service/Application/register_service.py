@@ -1,6 +1,4 @@
-from Domain import (
-    User, IUserRepository, EmailValidator, PasswordValidator, IEventPublisher
-)
+from Domain import EmailValidator, IEventPublisher, IUserRepository, PasswordValidator, User
 from Domain.entities.user import UserRole
 
 
@@ -13,7 +11,7 @@ class RegisterService:
         self.email_validator = EmailValidator()
         self.password_validator = PasswordValidator()
 
-    async def execute(self, email: str, password: str) -> User:
+    async def execute(self, email: str, password: str, role: UserRole = UserRole.PATIENT) -> User:
         is_valid = self.email_validator.is_valid(email)
         if not is_valid:
             raise ValueError("Invalid email format")
@@ -27,11 +25,7 @@ class RegisterService:
 
         hashed_password = self.password_hasher.hash(password)
 
-        user = User(
-            email=email,
-            hashed_password=hashed_password,
-            role=UserRole.PATIENT
-        )
+        user = User(email=email, hashed_password=hashed_password, role=role)
 
         created_user = await self.user_repository.create(user)
 
@@ -40,11 +34,7 @@ class RegisterService:
             await self.event_publisher.publish(
                 exchange="user_events",
                 routing_key="user.registered",
-                message={
-                    "user_id": str(created_user.id),
-                    "email": created_user.email,
-                    "role": created_user.role.value
-                }
+                message={"user_id": str(created_user.id), "email": created_user.email, "role": created_user.role.value},
             )
         except Exception:
             # We log and swallow the exception here in a real app or use transactional outbox

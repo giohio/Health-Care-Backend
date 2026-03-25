@@ -1,7 +1,9 @@
 from typing import List
-from uuid_extension import UUID7
-from Domain.interfaces.appointment_repository import IAppointmentRepository
+
 from Application.dtos import AppointmentResponse
+from Domain.interfaces.appointment_repository import IAppointmentRepository
+from uuid_extension import UUID7
+
 
 class ListPatientAppointmentsUseCase:
     def __init__(self, appointment_repo: IAppointmentRepository):

@@ -1,11 +1,15 @@
-from datetime import datetime, date
+from datetime import date, datetime
+import uuid
 from typing import Any
-from sqlalchemy import String, DateTime, Date, Enum, ForeignKey, Integer, Float, Text, JSON
+
+from Domain.entities.patient_health_background import BloodType
+from Domain.entities.patient_profile import Gender
+from healthai_db.base import TimestampMixin, UUIDMixin
+from sqlalchemy import JSON, Date, DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from uuid_extension import UUID7
-from Domain.entities.patient_profile import Gender
-from Domain.entities.patient_health_background import BloodType
 
 
 class Base(DeclarativeBase):
@@ -46,3 +50,21 @@ class PatientHealthBackgroundModel(Base):
     chronic_conditions: Mapped[Any | None] = mapped_column(JSON)
 
     profile: Mapped["PatientProfileModel"] = relationship(back_populates="health_background")
+
+
+class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "outbox_events"
+
+    __table_args__ = (
+        Index("idx_outbox_pending", "status", "created_at", postgresql_where="status = 'pending'"),
+        Index("idx_outbox_retry", "status", "retry_count", postgresql_where="status = 'failed'"),
+    )
+
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

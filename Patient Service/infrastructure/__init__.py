@@ -1,6 +1,6 @@
-from infrastructure.repositories.repositories import PatientProfileRepository, PatientHealthRepository
-from shared_lib.messaging import BasePublisher as RabbitMQPublisher
-from shared_lib.messaging import BaseConsumer as RabbitMQConsumer
+from healthai_events import BaseConsumer as RabbitMQConsumer
+from healthai_events import BasePublisher as RabbitMQPublisher
+from infrastructure.repositories.repositories import PatientHealthRepository, PatientProfileRepository
 
 __all__ = [
     "PatientProfileRepository",

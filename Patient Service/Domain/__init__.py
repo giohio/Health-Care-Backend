@@ -1,14 +1,5 @@
-from Domain.entities import (
-    PatientProfile,
-    Gender,
-    PatientHealthBackground,
-    BloodType
-)
-from Domain.interfaces import (
-    IPatientProfileRepository,
-    IPatientHealthRepository,
-    IEventPublisher
-)
+from Domain.entities import BloodType, Gender, PatientHealthBackground, PatientProfile
+from Domain.interfaces import IEventPublisher, IPatientHealthRepository, IPatientProfileRepository
 
 __all__ = [
     "PatientProfile",

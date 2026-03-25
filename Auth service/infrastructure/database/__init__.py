@@ -1,4 +1,4 @@
-from infrastructure.database.models import User, RefreshToken
+from infrastructure.database.models import RefreshToken, User
 from infrastructure.database.session import AsyncSessionLocal
 
 __all__ = [

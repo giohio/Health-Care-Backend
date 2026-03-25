@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
 from datetime import time
+from typing import List, Optional
+
 from Domain.entities.doctor import Doctor
 from uuid_extension import UUID7
+
 
 class IDoctorRepository(ABC):
     @abstractmethod
