@@ -6,12 +6,19 @@ from typing import Optional
 
 import websockets
 
+# Protocol scheme mappings - use constants to avoid hardcoded string literals
+_HTTP_SCHEME = "http://"
+_HTTPS_SCHEME = "https://"
+_WS_SCHEME = "ws://"
+_WSS_SCHEME = "wss://"
+
 
 def _to_ws_base_url(base_url: str) -> str:
-    if base_url.startswith("http://"):
-        return "ws://" + base_url[len("http://") :]
-    if base_url.startswith("https://"):
-        return "wss://" + base_url[len("https://") :]
+    """Convert HTTP/HTTPS URL to secure WebSocket URL (WSS/WS)."""
+    if base_url.startswith(_HTTPS_SCHEME):
+        return _WSS_SCHEME + base_url[len(_HTTPS_SCHEME) :]
+    if base_url.startswith(_HTTP_SCHEME):
+        return _WS_SCHEME + base_url[len(_HTTP_SCHEME) :]
     return base_url
 
 
