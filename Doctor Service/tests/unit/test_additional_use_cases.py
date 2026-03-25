@@ -283,15 +283,10 @@ async def test_set_auto_confirm_settings_negative_timeout_raises_error():
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
-    # Check if the use case validates timeout > 0
-    try:
-        result = await use_case.execute(
+    with pytest.raises(ValueError, match="confirmation_timeout_minutes must be greater than 0"):
+        await use_case.execute(
             doctor_id, auto_confirm=True, confirmation_timeout_minutes=-5
         )
-        # If no error, the validation should still pass or fail gracefully
-        assert True  # Placeholder for actual validation
-    except (ValueError, AssertionError):
-        assert True  # Expected behavior
 
 
 @pytest.mark.asyncio
@@ -302,13 +297,10 @@ async def test_set_auto_confirm_settings_zero_timeout_raises_error():
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
-    try:
-        result = await use_case.execute(
+    with pytest.raises(ValueError, match="confirmation_timeout_minutes must be greater than 0"):
+        await use_case.execute(
             doctor_id, auto_confirm=True, confirmation_timeout_minutes=0
         )
-        assert True  # Placeholder for actual validation
-    except (ValueError, AssertionError):
-        assert True  # Expected behavior
 
 
 @pytest.mark.asyncio

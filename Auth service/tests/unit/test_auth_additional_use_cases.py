@@ -25,7 +25,9 @@ class FakeUserRepo:
 
     async def get_by_id(self, _user_id):
         await _yield_control()
-        return self.user
+        if self.user and self.user.id == _user_id:
+            return self.user
+        return None
 
     async def update(self, user_id, **fields):
         await _yield_control()

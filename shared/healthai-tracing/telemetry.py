@@ -43,9 +43,9 @@ class SafeFormatter(logging.Formatter):
 def setup_telemetry(app, service_name: str, db_engine=None) -> None:
     """
     Initialize OpenTelemetry tracing + auto-instrument FastAPI, SQLAlchemy & httpx.
-    Set OTEL_EXPORTER_OTLP_ENDPOINT env var (default: http://jaeger:4318/v1/traces).
+    Set OTEL_EXPORTER_OTLP_ENDPOINT env var (default: https://jaeger:4318/v1/traces).
     """
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4318/v1/traces").strip()
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://jaeger:4318/v1/traces").strip()
 
     resource = Resource.create({"service.name": service_name})
     provider = TracerProvider(resource=resource)

@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HealthAI | Developer Hub</title>
-  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <!-- Use only local assets to avoid third-party CDN integrity risks. -->
   <style>
     :root {
       --primary: #0f766e;
@@ -25,7 +22,7 @@
       padding: 0;
       background-color: var(--bg-dark);
       color: var(--text-main);
-      font-family: "Outfit", sans-serif;
+      font-family: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
       overflow: hidden;
     }
 
@@ -118,19 +115,13 @@
         radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1), transparent 40%);
     }
 
-    .swagger-ui {
-      filter: invert(88%) hue-rotate(180deg) brightness(1.1);
-      padding: 24px;
-    }
-
-    .swagger-ui .topbar { display: none; }
-    .swagger-ui .info { margin: 24px 0; }
-    .swagger-ui .info .title { color: #f8fafc !important; }
-    .swagger-ui .scheme-container {
-      background: transparent !important;
-      box-shadow: none !important;
+    .docs-frame {
+      width: calc(100% - 48px);
+      height: calc(100vh - 190px);
+      margin: 0 24px 24px 24px;
       border: 1px solid var(--glass-border);
       border-radius: 12px;
+      background: #ffffff;
     }
 
     .auth-notice {
@@ -143,7 +134,7 @@
     }
 
     .auth-notice code {
-      font-family: "JetBrains Mono", monospace;
+      font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
       background: rgba(0, 0, 0, 0.3);
       padding: 2px 6px;
       border-radius: 4px;
@@ -188,14 +179,11 @@
       <section class="auth-notice" aria-labelledby="auth-guide-title">
         <p id="auth-guide-title">Authentication Guide: API calls use <code>HttpOnly</code> cookies. Login first at <b>POST /auth/login</b>.</p>
       </section>
-      <div id="swagger-ui" aria-label="API Documentation Viewer"></div>
+      <iframe id="docs-frame" class="docs-frame" title="API Documentation Viewer" src="/auth/docs"></iframe>
     </main>
   </div>
 
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script>
-    let currentUI = null;
-
     function loadSpec(url, element) {
       document.querySelectorAll('.nav-item').forEach((el) => {
         el.classList.remove('active');
@@ -204,16 +192,10 @@
       element.classList.add('active');
       element.setAttribute('aria-pressed', 'true');
 
-      currentUI = SwaggerUIBundle({
-        url: url,
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [SwaggerUIBundle.presets.apis],
-        requestInterceptor: (req) => {
-          req.credentials = 'include';
-          return req;
-        }
-      });
+      const docsFrame = document.getElementById('docs-frame');
+      if (docsFrame) {
+        docsFrame.src = url.replace('/openapi.json', '/docs');
+      }
     }
 
     window.onload = () => {
