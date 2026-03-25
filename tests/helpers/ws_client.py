@@ -7,6 +7,7 @@ from typing import Optional
 import websockets
 
 # Protocol scheme mappings - use constants to avoid hardcoded string literals
+# NOSONAR - constant is used for protocol conversion (http→ws, https→wss), not for insecure calls
 _HTTP_SCHEME = "http://"
 _HTTPS_SCHEME = "https://"
 _WS_SCHEME = "ws://"

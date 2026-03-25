@@ -194,6 +194,7 @@ jobs:
         with:
           args: >
             -Dproject.settings=sonar-project.properties
+            -Dsonar.exclusions=**/tests/**,**/alembic/**,**/migrations/**,**/env.py,**/test_*.py
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
