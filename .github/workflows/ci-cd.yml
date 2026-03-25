@@ -145,8 +145,10 @@ jobs:
           for service in "${services[@]}"; do
             echo "\n=== ${service} (coverage >= 85%) ==="
             pushd "${service}" > /dev/null
-            export PYTHONPATH="${GITHUB_WORKSPACE}/${service}:${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common:${PYTHONPATH:-}"
-            pytest tests/unit --cov=Application --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=85 -q
+            # Isolate import paths per service to avoid cross-service package shadowing.
+            unset PYTHONPATH
+            PYTHONPATH="${GITHUB_WORKSPACE}/${service}:${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common" \
+              python -m pytest tests/unit --cov=Application --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=85 -q
             popd > /dev/null
           done
 
@@ -259,26 +261,35 @@ jobs:
           - patient-service
           - notification-service
     steps:
+      - name: Install Trivy CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg >/dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
       - name: Scan image with Trivy (report)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
-          format: json
-          output: trivy-${{ matrix.image }}.json
-          vuln-type: os
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: 0
+        run: |
+          trivy image \
+            --format json \
+            --output trivy-${{ matrix.image }}.json \
+            --vuln-type os \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 0 \
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
 
       - name: Scan image with Trivy (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
-          format: table
-          vuln-type: os
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: 1
+        run: |
+          trivy image \
+            --format table \
+            --vuln-type os \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
 
       - name: Upload Trivy report
         uses: actions/upload-artifact@v4

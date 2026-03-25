@@ -40,6 +40,7 @@ class StampedeProtectedCache:
     BETA = 1.0
     FLIGHT_KEY_PREFIX = "flight"
     FLIGHT_RESULT_PREFIX = "flight_result"
+    RNG = random.SystemRandom()
 
     def __init__(self, redis: aioredis.Redis):
         self.redis = redis
@@ -92,7 +93,7 @@ class StampedeProtectedCache:
         gap = expiry - now
         if gap <= 0:
             return True  # Đã expired
-        score = -delta * self.BETA * math.log(random.random())
+        score = -delta * self.BETA * math.log(self.RNG.random())
         return score >= gap
 
     async def _single_flight(self, key: str, fn: Callable, ttl: int, *args, **kwargs) -> Any:

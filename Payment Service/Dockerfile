@@ -23,7 +23,12 @@ COPY ["Payment Service", "/app/"]
 
 # Create entrypoint script
 COPY ["Payment Service/scripts/entrypoint.sh", "/app/scripts/entrypoint.sh"]
-RUN chmod +x /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh \
+    && useradd --create-home --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+
+# Drop root privileges for runtime
+USER appuser
 
 EXPOSE 8000
 
