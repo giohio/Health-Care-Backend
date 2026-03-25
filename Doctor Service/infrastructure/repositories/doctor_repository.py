@@ -1,32 +1,48 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from datetime import time
 from typing import List, Optional
+
 from Domain.entities.doctor import Doctor
 from Domain.interfaces.doctor_repository import IDoctorRepository
-from infrastructure.database.models import DoctorModel, DoctorScheduleModel
 from Domain.value_objects.day_of_week import DayOfWeek
-from datetime import time
+from infrastructure.database.models import DoctorModel, DoctorScheduleModel
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
+
 
 class DoctorRepository(IDoctorRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def save(self, doctor: Doctor) -> Doctor:
-        model = DoctorModel(
+        stmt = pg_insert(DoctorModel).values(
             user_id=doctor.user_id,
             specialty_id=doctor.specialty_id,
             full_name=doctor.full_name,
             title=doctor.title,
-            experience_years=doctor.experience_years
+            experience_years=doctor.experience_years,
+            auto_confirm=doctor.auto_confirm,
+            confirmation_timeout_minutes=doctor.confirmation_timeout_minutes,
         )
-        await self.session.merge(model)
+
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[DoctorModel.user_id],
+            set_={
+                "specialty_id": stmt.excluded.specialty_id,
+                "full_name": stmt.excluded.full_name,
+                "title": stmt.excluded.title,
+                "experience_years": stmt.excluded.experience_years,
+                "auto_confirm": stmt.excluded.auto_confirm,
+                "confirmation_timeout_minutes": stmt.excluded.confirmation_timeout_minutes,
+            },
+        )
+
+        await self.session.execute(stmt)
         return doctor
 
     async def get_by_id(self, user_id: UUID7) -> Optional[Doctor]:
-        result = await self.session.execute(
-            select(DoctorModel).where(DoctorModel.user_id == user_id)
-        )
+        result = await self.session.execute(select(DoctorModel).where(DoctorModel.user_id == user_id))
         model = result.scalar_one_or_none()
         if not model:
             return None
@@ -35,13 +51,13 @@ class DoctorRepository(IDoctorRepository):
             specialty_id=model.specialty_id,
             full_name=model.full_name,
             title=model.title,
-            experience_years=model.experience_years
+            experience_years=model.experience_years,
+            auto_confirm=model.auto_confirm,
+            confirmation_timeout_minutes=model.confirmation_timeout_minutes,
         )
 
     async def list_by_specialty(self, specialty_id: UUID7) -> List[Doctor]:
-        result = await self.session.execute(
-            select(DoctorModel).where(DoctorModel.specialty_id == specialty_id)
-        )
+        result = await self.session.execute(select(DoctorModel).where(DoctorModel.specialty_id == specialty_id))
         models = result.scalars().all()
         return [
             Doctor(
@@ -49,14 +65,17 @@ class DoctorRepository(IDoctorRepository):
                 specialty_id=m.specialty_id,
                 full_name=m.full_name,
                 title=m.title,
-                experience_years=m.experience_years
-            ) for m in models
+                experience_years=m.experience_years,
+                auto_confirm=m.auto_confirm,
+                confirmation_timeout_minutes=m.confirmation_timeout_minutes,
+            )
+            for m in models
         ]
 
     async def search_available(self, specialty_id: UUID7, day_of_week: int, time_slot: time) -> List[Doctor]:
         # Convert int to DayOfWeek enum
         day_enum = DayOfWeek(day_of_week)
-        
+
         query = (
             select(DoctorModel)
             .join(DoctorScheduleModel)
@@ -65,11 +84,11 @@ class DoctorRepository(IDoctorRepository):
                     DoctorModel.specialty_id == specialty_id,
                     DoctorScheduleModel.day_of_week == day_enum,
                     DoctorScheduleModel.start_time <= time_slot,
-                    DoctorScheduleModel.end_time > time_slot
+                    DoctorScheduleModel.end_time > time_slot,
                 )
             )
         )
-        
+
         result = await self.session.execute(query)
         models = result.scalars().all()
         return [
@@ -78,6 +97,9 @@ class DoctorRepository(IDoctorRepository):
                 specialty_id=m.specialty_id,
                 full_name=m.full_name,
                 title=m.title,
-                experience_years=m.experience_years
-            ) for m in models
+                experience_years=m.experience_years,
+                auto_confirm=m.auto_confirm,
+                confirmation_timeout_minutes=m.confirmation_timeout_minutes,
+            )
+            for m in models
         ]

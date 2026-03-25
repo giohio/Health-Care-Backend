@@ -1,0 +1,2 @@
+Single-database Alembic setup for Notification Service.
+Migration scripts are stored in alembic/versions.

@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
-from sqlalchemy import select, delete, update
-from uuid_extension import UUID7
 
-from Domain import RefreshToken, IRefreshTokenRepository
-from infrastructure.database import RefreshToken as RefreshTokenModel, AsyncSessionLocal
+from Domain import IRefreshTokenRepository, RefreshToken
+from infrastructure.database import AsyncSessionLocal
+from infrastructure.database import RefreshToken as RefreshTokenModel
+from sqlalchemy import delete, select, update
+from uuid_extension import UUID7
 
 
 class RefreshTokenRepository(IRefreshTokenRepository):
@@ -21,23 +22,19 @@ class RefreshTokenRepository(IRefreshTokenRepository):
             revoked_at=refresh_token.revoked_at,
             replaced_by_token_id=refresh_token.replaced_by_token_id,
             created_at=refresh_token.created_at,
-            last_used_at=refresh_token.last_used_at
+            last_used_at=refresh_token.last_used_at,
         )
         self.session.add(model)
         await self.session.flush()
         return self._to_entity(model)
 
     async def get_by_token(self, token: str) -> RefreshToken | None:
-        result = await self.session.execute(
-            select(RefreshTokenModel).where(RefreshTokenModel.token_value == token)
-        )
+        result = await self.session.execute(select(RefreshTokenModel).where(RefreshTokenModel.token_value == token))
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
     async def get_by_user_id(self, user_id: UUID7) -> List[RefreshToken]:
-        result = await self.session.execute(
-            select(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id)
-        )
+        result = await self.session.execute(select(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id))
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
@@ -52,30 +49,20 @@ class RefreshTokenRepository(IRefreshTokenRepository):
         return self._to_entity(model)
 
     async def delete(self, token: str) -> bool:
-        result = await self.session.execute(
-            delete(RefreshTokenModel).where(RefreshTokenModel.token_value == token)
-        )
+        result = await self.session.execute(delete(RefreshTokenModel).where(RefreshTokenModel.token_value == token))
         return result.rowcount > 0
 
     async def delete_by_user_id(self, user_id: UUID7) -> bool:
-        result = await self.session.execute(
-            delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id)
-        )
+        result = await self.session.execute(delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id))
         return result.rowcount > 0
 
-    async def revoke_all_for_user(self, user_id: UUID7) -> bool:
+    async def revoke_all_for_user(self, user_id: UUID7) -> int:
         result = await self.session.execute(
-            select(RefreshTokenModel).where(
-                RefreshTokenModel.user_id == user_id,
-                RefreshTokenModel.is_revoked.is_(False)
-            )
+            update(RefreshTokenModel)
+            .where(RefreshTokenModel.user_id == user_id, RefreshTokenModel.is_revoked.is_(False))
+            .values(is_revoked=True, revoked_at=datetime.now(timezone.utc))
         )
-        models = result.scalars().all()
-        for model in models:
-            model.is_revoked = True
-            model.revoked_at = datetime.now()
-
-        return True
+        return result.rowcount or 0
 
     def _to_entity(self, model: RefreshTokenModel) -> RefreshToken:
         return RefreshToken(
@@ -87,5 +74,5 @@ class RefreshTokenRepository(IRefreshTokenRepository):
             revoked_at=model.revoked_at,
             replaced_by_token_id=model.replaced_by_token_id,
             created_at=model.created_at,
-            last_used_at=model.last_used_at
+            last_used_at=model.last_used_at,
         )

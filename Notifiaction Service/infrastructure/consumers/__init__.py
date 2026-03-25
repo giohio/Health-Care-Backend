@@ -1,0 +1,33 @@
+from .appointment_events_consumers import (
+    AppointmentAutoConfirmedConsumer,
+    AppointmentCancelledConsumer,
+    AppointmentCompletedConsumer,
+    AppointmentConfirmedConsumer,
+    AppointmentCreatedConsumer,
+    AppointmentDeclinedConsumer,
+    AppointmentNoShowConsumer,
+    AppointmentReminderConsumer,
+    AppointmentRescheduledConsumer,
+    PaymentCreatedConsumer,
+    PaymentExpiredConsumer,
+    PaymentPaidConsumer,
+    PaymentFailedConsumer,
+    PaymentRefundedConsumer,
+)
+
+__all__ = [
+    "AppointmentConfirmedConsumer",
+    "AppointmentAutoConfirmedConsumer",
+    "AppointmentCreatedConsumer",
+    "AppointmentCancelledConsumer",
+    "AppointmentDeclinedConsumer",
+    "AppointmentRescheduledConsumer",
+    "AppointmentNoShowConsumer",
+    "AppointmentCompletedConsumer",
+    "PaymentCreatedConsumer",
+    "PaymentPaidConsumer",
+    "PaymentFailedConsumer",
+    "PaymentExpiredConsumer",
+    "PaymentRefundedConsumer",
+    "AppointmentReminderConsumer",
+]

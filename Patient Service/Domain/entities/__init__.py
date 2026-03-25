@@ -1,5 +1,5 @@
-from Domain.entities.patient_profile import PatientProfile, Gender
-from Domain.entities.patient_health_background import PatientHealthBackground, BloodType
+from Domain.entities.patient_health_background import BloodType, PatientHealthBackground
+from Domain.entities.patient_profile import Gender, PatientProfile
 
 __all__ = [
     "PatientProfile",

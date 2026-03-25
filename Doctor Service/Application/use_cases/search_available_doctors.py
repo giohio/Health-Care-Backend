@@ -1,8 +1,10 @@
-from typing import List
 from datetime import time
-from Domain.interfaces.doctor_repository import IDoctorRepository
+from typing import List
+
 from Application.dtos import DoctorDTO
+from Domain.interfaces.doctor_repository import IDoctorRepository
 from uuid_extension import UUID7
+
 
 class SearchAvailableDoctorsUseCase:
     def __init__(self, doctor_repo: IDoctorRepository):

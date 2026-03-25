@@ -1,14 +1,8 @@
-from sqlalchemy import select, delete, update
-from uuid_extension import UUID7
-
-from Domain import (
-    PatientProfile,
-    PatientHealthBackground,
-    IPatientProfileRepository,
-    IPatientHealthRepository
-)
-from infrastructure.database.models import PatientProfileModel, PatientHealthBackgroundModel
+from Domain import IPatientHealthRepository, IPatientProfileRepository, PatientHealthBackground, PatientProfile
+from infrastructure.database.models import PatientHealthBackgroundModel, PatientProfileModel
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid_extension import UUID7
 
 
 class PatientProfileRepository(IPatientProfileRepository):
@@ -26,23 +20,19 @@ class PatientProfileRepository(IPatientProfileRepository):
             address=profile.address,
             avatar_url=profile.avatar_url,
             created_at=profile.created_at,
-            updated_at=profile.updated_at
+            updated_at=profile.updated_at,
         )
         self.session.add(model)
         await self.session.flush()
         return self._to_entity(model)
 
     async def get_by_id(self, profile_id: UUID7) -> PatientProfile | None:
-        result = await self.session.execute(
-            select(PatientProfileModel).where(PatientProfileModel.id == profile_id)
-        )
+        result = await self.session.execute(select(PatientProfileModel).where(PatientProfileModel.id == profile_id))
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
     async def get_by_user_id(self, user_id: UUID7) -> PatientProfile | None:
-        result = await self.session.execute(
-            select(PatientProfileModel).where(PatientProfileModel.user_id == user_id)
-        )
+        result = await self.session.execute(select(PatientProfileModel).where(PatientProfileModel.user_id == user_id))
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
@@ -57,9 +47,7 @@ class PatientProfileRepository(IPatientProfileRepository):
         return self._to_entity(model)
 
     async def delete(self, profile_id: UUID7) -> bool:
-        result = await self.session.execute(
-            delete(PatientProfileModel).where(PatientProfileModel.id == profile_id)
-        )
+        result = await self.session.execute(delete(PatientProfileModel).where(PatientProfileModel.id == profile_id))
         return result.rowcount > 0
 
     def _to_entity(self, model: PatientProfileModel) -> PatientProfile:
@@ -73,7 +61,7 @@ class PatientProfileRepository(IPatientProfileRepository):
             address=model.address,
             avatar_url=model.avatar_url,
             created_at=model.created_at,
-            updated_at=model.updated_at
+            updated_at=model.updated_at,
         )
 
 
@@ -88,7 +76,7 @@ class PatientHealthRepository(IPatientHealthRepository):
             height_cm=background.height_cm,
             weight_kg=background.weight_kg,
             allergies=background.allergies,
-            chronic_conditions=background.chronic_conditions
+            chronic_conditions=background.chronic_conditions,
         )
         self.session.add(model)
         await self.session.flush()
@@ -118,5 +106,5 @@ class PatientHealthRepository(IPatientHealthRepository):
             height_cm=model.height_cm,
             weight_kg=model.weight_kg,
             allergies=model.allergies,
-            chronic_conditions=model.chronic_conditions
+            chronic_conditions=model.chronic_conditions,
         )

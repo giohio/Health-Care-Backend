@@ -1,5 +1,5 @@
-from Domain.entities import User, UserRole, RefreshToken
-from Domain.interfaces import IUserRepository, IRefreshTokenRepository, IEventPublisher
+from Domain.entities import RefreshToken, User, UserRole
+from Domain.interfaces import IEventPublisher, IRefreshTokenRepository, IUserRepository
 from Domain.value_objects import EmailValidator, PasswordValidator
 
 __all__ = [

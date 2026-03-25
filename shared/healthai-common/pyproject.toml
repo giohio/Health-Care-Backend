@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "healthai-common"
+version = "0.1.0"
+description = "Common utilities for HealthAI services - idempotency, circuit breaker, saga"
+authors = ["HealthAI Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.104"
+uuid-extension = "*"
+healthai-db = {path = "../healthai-db"}
+healthai-cache = {path = "../healthai-cache"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

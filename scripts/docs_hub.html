@@ -1,68 +1,209 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Healthcare API Documentation Hub</title>
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-    <style>
-      html { box-sizing: border-box; overflow-y: scroll; }
-      *, *:before, *:after { box-sizing: inherit; }
-      body { margin: 0; background: #fafafa; }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthAI | Developer Hub</title>
+  <!-- Use only local assets to avoid third-party CDN integrity risks. -->
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-hover: #0b5f59;
+      --bg-dark: #0b1220;
+      --sidebar-bg: rgba(15, 23, 42, 0.75);
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --glass-border: rgba(255, 255, 255, 0.12);
+    }
 
-      .topbar {
-        background-color: #1b1b1b;
-        padding: 12px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .layout {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      z-index: 100;
+    }
+
+    .logo-area {
+      padding: 0 24px 32px 24px;
+      border-bottom: 1px solid var(--glass-border);
+      margin-bottom: 24px;
+    }
+
+    .logo-area h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+      background: linear-gradient(135deg, #2dd4bf 0%, #22c55e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-links {
+      flex: 1;
+      padding: 0 12px;
+    }
+
+    .nav-group-title {
+      padding: 12px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border: none;
+      background: none;
+      text-align: left;
+      font-family: inherit;
+      padding: 12px 16px;
+      margin-bottom: 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-dim);
+      font-size: 0.95rem;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.35);
+    }
+
+    .nav-item .icon {
+      margin-right: 12px;
+      font-size: 1.1rem;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+      background:
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.1), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1), transparent 40%);
+    }
+
+    .docs-frame {
+      width: calc(100% - 48px);
+      height: calc(100vh - 190px);
+      margin: 0 24px 24px 24px;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      background: #ffffff;
+    }
+
+    .auth-notice {
+      margin: 24px;
+      padding: 16px;
+      background: rgba(15, 118, 110, 0.18);
+      border-left: 4px solid var(--primary);
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .auth-notice code {
+      font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #2dd4bf;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <header class="logo-area">
+        <h1>HealthAI.hub</h1>
+      </header>
+      <nav class="nav-links" id="service-list" aria-label="Microservice selection">
+        <div class="nav-group-title">Microservices</div>
+        <button class="nav-item active" onclick="loadSpec('/auth/openapi.json', this)" aria-pressed="true">
+          <span class="icon" aria-hidden="true">🔐</span> Authentication
+        </button>
+        <button class="nav-item" onclick="loadSpec('/patients/openapi.json', this)" aria-pressed="false">
+          <span class="icon" aria-hidden="true">🧑</span> Patient
+        </button>
+        <button class="nav-item" onclick="loadSpec('/doctors/openapi.json', this)" aria-pressed="false">
+          <span class="icon" aria-hidden="true">🩺</span> Doctor
+        </button>
+        <button class="nav-item" onclick="loadSpec('/appointments/openapi.json', this)" aria-pressed="false">
+          <span class="icon" aria-hidden="true">📅</span> Appointment
+        </button>
+      </nav>
+
+      <footer style="padding: 24px; font-size: 0.8rem; color: var(--text-dim); border-top: 1px solid var(--glass-border);">
+        v1.0.0-stable<br>
+        HealthAI API Gateway
+      </footer>
+    </aside>
+
+    <main class="content">
+      <section class="auth-notice" aria-labelledby="auth-guide-title">
+        <p id="auth-guide-title">Authentication Guide: API calls use <code>HttpOnly</code> cookies. Login first at <b>POST /auth/login</b>.</p>
+      </section>
+      <iframe id="docs-frame" class="docs-frame" title="API Documentation Viewer" src="/auth/docs"></iframe>
+    </main>
+  </div>
+
+  <script>
+    function loadSpec(url, element) {
+      document.querySelectorAll('.nav-item').forEach((el) => {
+        el.classList.remove('active');
+        el.setAttribute('aria-pressed', 'false');
+      });
+      element.classList.add('active');
+      element.setAttribute('aria-pressed', 'true');
+
+      const docsFrame = document.getElementById('docs-frame');
+      if (docsFrame) {
+        docsFrame.src = url.replace('/openapi.json', '/docs');
       }
-      .topbar h2 { color: white; font-family: sans-serif; margin: 0; font-size: 1rem; }
-      
-      .instructions {
-        color: #aaa;
-        font-family: sans-serif;
-        font-size: 0.85rem;
+    }
+
+    window.onload = () => {
+      const firstItem = document.querySelector('.nav-item.active');
+      if (firstItem) {
+        loadSpec('/auth/openapi.json', firstItem);
       }
-      .instructions code { background: #333; padding: 2px 6px; border-radius: 4px; color: #4CAF50;}
-    </style>
-  </head>
-  <body>
-    <div class="topbar">
-      <h2>Healthcare Microservices — API Gateway Hub</h2>
-      <div class="instructions">
-        Auto-Authenticated via HttpOnly Cookies. Call <code>POST /auth/login</code> first.
-      </div>
-    </div>
-
-    <div id="swagger-ui"></div>
-
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
-    <script>
-      window.onload = function () {
-        const ui = SwaggerUIBundle({
-          urls: [
-            { url: "/auth/openapi.json",         name: "Auth Service" },
-            { url: "/patients/openapi.json",      name: "Patient Service" },
-            { url: "/doctors/openapi.json",       name: "Doctor Service" },
-            { url: "/appointments/openapi.json",  name: "Appointment Service" },
-          ],
-          dom_id: "#swagger-ui",
-          deepLinking: true,
-          persistAuthorization: true,
-          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-          plugins: [SwaggerUIBundle.plugins.DownloadUrl],
-          layout: "StandaloneLayout",
-          requestInterceptor: (request) => {
-            // Ensure cookies are sent with every request
-            request.credentials = "include";
-            return request;
-          },
-        });
-        globalThis.ui = ui;
-      };
-    </script>
-  </body>
+    };
+  </script>
+</body>
 </html>

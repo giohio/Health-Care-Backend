@@ -10,12 +10,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["*"]
     DEBUG: bool = True
 
-    model_config = SettingsConfigDict(
-        env_file=env_path,
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=env_path, env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
 
 settings = Settings()

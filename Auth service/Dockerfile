@@ -18,10 +18,12 @@ RUN pip install --no-cache-dir uv
 COPY ["Auth service/requirements.txt", "."]
 RUN uv pip install --system --no-cache -r requirements.txt
 
-# Copy shared_lib and install it
-# Now using the proper package structure
-COPY shared_lib /app/shared_lib
-RUN uv pip install --system --no-cache /app/shared_lib
+# Install shared packages used across services
+COPY shared /tmp/shared
+RUN uv pip install --system --no-cache /tmp/shared/healthai-cache \
+    && uv pip install --system --no-cache /tmp/shared/healthai-common \
+    && uv pip install --system --no-cache /tmp/shared/healthai-db \
+    && uv pip install --system --no-cache /tmp/shared/healthai-events
 
 # ==========================================
 # STAGE 2: Runtime — minimal production image
@@ -43,6 +45,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy source code and setup permissions
 COPY ["Auth service/", "."]
+COPY shared/healthai-tracing /shared/healthai-tracing
 RUN chmod +x scripts/entrypoint.sh && chown -R appuser:appuser /app
 
 # Switch to non-root user

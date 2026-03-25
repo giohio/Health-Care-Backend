@@ -1,18 +1,9 @@
-from Domain import (
-    PatientProfile,
-    PatientHealthBackground,
-    IPatientProfileRepository,
-    IPatientHealthRepository
-)
+from Domain import IPatientHealthRepository, IPatientProfileRepository, PatientHealthBackground, PatientProfile
 from uuid_extension import UUID7
 
 
 class InitializeProfileUseCase:
-    def __init__(
-        self,
-        profile_repo: IPatientProfileRepository,
-        health_repo: IPatientHealthRepository
-    ):
+    def __init__(self, profile_repo: IPatientProfileRepository, health_repo: IPatientHealthRepository):
         self.profile_repo = profile_repo
         self.health_repo = health_repo
 

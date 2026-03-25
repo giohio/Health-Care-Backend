@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
-from uuid_extension import UUID7
+
 from Domain.entities import RefreshToken, User
+from uuid_extension import UUID7
 
 
 class IUserRepository(ABC):
@@ -56,5 +57,5 @@ class IRefreshTokenRepository(ABC):
         pass
 
     @abstractmethod
-    async def revoke_all_for_user(self, user_id: UUID7) -> bool:
+    async def revoke_all_for_user(self, user_id: UUID7) -> int:
         pass

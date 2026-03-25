@@ -1,10 +1,15 @@
-from sqlalchemy import String, DateTime, Boolean, Enum as SAEnum, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from uuid_extension import uuid7, UUID7
+import uuid
 
 from Domain.entities.user import UserRole
+from healthai_db.base import TimestampMixin, UUIDMixin
+from sqlalchemy import Boolean, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from uuid_extension import UUID7, uuid7
 
 
 class Base(DeclarativeBase):
@@ -14,11 +19,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[UUID7] = mapped_column(
-        PGUUID(as_uuid=True),
-        primary_key=True,
-        default=uuid7
-    )
+    id: Mapped[UUID7] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
 
     email: Mapped[str] = mapped_column(String(255), nullable=True, unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -26,7 +27,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         SAEnum(UserRole, name="userrole", values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
-        default=UserRole.PATIENT
+        default=UserRole.PATIENT,
     )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -42,19 +43,12 @@ class User(Base):
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
-    id: Mapped[UUID7] = mapped_column(
-        PGUUID(as_uuid=True),
-        primary_key=True,
-        default=uuid7
-    )
+    id: Mapped[UUID7] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
 
     token_value: Mapped[str] = mapped_column(String(512), nullable=False, unique=True, index=True)
 
     user_id: Mapped[UUID7] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -66,3 +60,21 @@ class RefreshToken(Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped["User"] = relationship("User", backref="refresh_tokens")
+
+
+class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "outbox_events"
+
+    __table_args__ = (
+        Index("idx_outbox_pending", "status", "created_at", postgresql_where="status = 'pending'"),
+        Index("idx_outbox_retry", "status", "retry_count", postgresql_where="status = 'failed'"),
+    )
+
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

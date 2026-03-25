@@ -1,8 +1,9 @@
+import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid_extension import uuid7, UUID7
-import secrets
+
+from uuid_extension import UUID7, uuid7
 
 
 @dataclass
@@ -21,10 +22,7 @@ class RefreshToken:
 
     def is_valid(self) -> bool:
         """Check if the refresh token is valid."""
-        return (
-            not self.is_revoked
-            and self.expires_at > datetime.now()
-        )
+        return not self.is_revoked and self.expires_at > datetime.now()
 
     def revoke(self, replaced_by_token_id: UUID7 | None = None):
         self.is_revoked = True
@@ -33,7 +31,7 @@ class RefreshToken:
         self.last_used_at = datetime.now()
 
     @staticmethod
-    def generate_token(user_id: UUID7, expires_in: int = 30) -> 'RefreshToken':
+    def generate_token(user_id: UUID7, expires_in: int = 30) -> "RefreshToken":
         return RefreshToken(
             user_id=user_id,
             token_value=secrets.token_urlsafe(64),

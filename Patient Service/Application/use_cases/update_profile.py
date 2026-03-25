@@ -1,20 +1,13 @@
 import logging
-from Domain import (
-    PatientProfile,
-    IPatientProfileRepository,
-    IEventPublisher
-)
+
+from Domain import IEventPublisher, IPatientProfileRepository, PatientProfile
 from uuid_extension import UUID7
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateProfileUseCase:
-    def __init__(
-        self,
-        profile_repo: IPatientProfileRepository,
-        event_publisher: IEventPublisher | None = None
-    ):
+    def __init__(self, profile_repo: IPatientProfileRepository, event_publisher: IEventPublisher | None = None):
         self.profile_repo = profile_repo
         self.event_publisher = event_publisher
 
@@ -28,8 +21,7 @@ class UpdateProfileUseCase:
         profile.update_profile(**fields)
 
         updated_profile = await self.profile_repo.update(
-            profile.id,
-            **{k: v for k, v in fields.items() if hasattr(profile, k)}
+            profile.id, **{k: v for k, v in fields.items() if hasattr(profile, k)}
         )
 
         # Check for profile completion
@@ -39,11 +31,7 @@ class UpdateProfileUseCase:
         return updated_profile
 
     def _is_completed(self, profile: PatientProfile) -> bool:
-        mandatory_fields = [
-            profile.full_name,
-            profile.date_of_birth,
-            profile.gender
-        ]
+        mandatory_fields = [profile.full_name, profile.date_of_birth, profile.gender]
         return all(field is not None and field != "" for field in mandatory_fields)
 
     async def _notify_profile_completed(self, user_id: UUID7):
@@ -53,9 +41,7 @@ class UpdateProfileUseCase:
         if self.event_publisher:
             try:
                 await self.event_publisher.publish(
-                    exchange_name="user_events",
-                    routing_key="profile.completed",
-                    message={"user_id": str(user_id)}
+                    exchange_name="user_events", routing_key="profile.completed", message={"user_id": str(user_id)}
                 )
                 logger.info(f"Event published: PROFILE_COMPLETED for user {user_id}")
             except Exception as e:

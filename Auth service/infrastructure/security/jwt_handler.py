@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
+
 import jwt
-from jwt.exceptions import PyJWTError
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
-from uuid_extension import UUID7
+from cryptography.hazmat.primitives import serialization
 from Domain import UserRole
+from jwt.exceptions import PyJWTError
+from uuid_extension import UUID7
 
 private_key_path = "private.pem"
 
@@ -24,29 +25,22 @@ class JWTHandler:
         self.private_key = private_key
 
         private_key_pem = serialization.load_pem_private_key(
-            private_key.encode(),
-            password=None,
-            backend=default_backend()
+            private_key.encode(), password=None, backend=default_backend()
         )
 
         self.public_key = private_key_pem.public_key().public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
     def create_access_token(
-        self,
-        user_id: UUID7,
-        role: UserRole,
-        is_profile_completed: bool,
-        expires_in: int = 15
+        self, user_id: UUID7, role: UserRole, is_profile_completed: bool, expires_in: int = 15
     ) -> str:
         payload = {
             "user_id": str(user_id),
             "role": role,
             "is_profile_completed": is_profile_completed,
             "exp": datetime.now() + timedelta(minutes=expires_in),
-            "iss": "healthcare-system-issuer"
+            "iss": "healthcare-system-issuer",
         }
         return jwt.encode(payload, self.private_key, algorithm="RS256")
 

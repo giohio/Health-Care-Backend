@@ -9,7 +9,10 @@ exclude =
     .venv,
     migrations,
     build,
-    dist
+    dist,
+    tests,
+    alembic,
+    seed_*.py,
 
 extend-ignore = E203, W503, B008
 

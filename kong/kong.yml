@@ -66,6 +66,38 @@ services:
                 - exp
               anonymous: anonymous-user
 
+  - name: payment-service
+    url: http://payment_service:8000
+    routes:
+      - name: payment-routes
+        paths:
+          - /payments
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: notification-service
+    url: http://notification_service:8000
+    routes:
+      - name: notification-routes
+        paths:
+          - /notifications
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
   - name: docs-hub
     url: http://static_docs:80
     routes:
@@ -100,14 +132,24 @@ plugins:
 
   - name: rate-limiting
     config:
-      minute: 100
+      second: 100
+      minute: 2000
+      hour: 20000
+      limit_by: ip
       policy: local
 
   - name: pre-function
     config:
       access:
         - |
+          -- Decode JWT locally and inject X-User-Id / X-User-Role / X-User-Email headers
           local token = ngx.var.cookie_access_token
+          if not token then
+            local auth_header = kong.request.get_header("authorization")
+            if auth_header then
+              token = auth_header:match("^[Bb]earer%s+(.+)$")
+            end
+          end
           if token then
             local parts = {}
             for part in token:gmatch("[^.]+") do
@@ -124,15 +166,27 @@ plugins:
               if decoded then
                 local user_id = decoded:match('"user_id"%s*:%s*"([^"]+)"')
                 local role = decoded:match('"role"%s*:%s*"([^"]+)"')
+                local email = decoded:match('"email"%s*:%s*"([^"]+)"')
                 if user_id then
                   kong.service.request.set_header("X-User-Id", user_id)
                 end
                 if role then
                   kong.service.request.set_header("X-User-Role", role)
                 end
+                if email then
+                  kong.service.request.set_header("X-User-Email", email)
+                end
               end
             end
           end
+
+  - name: opentelemetry
+    config:
+      endpoint: https://jaeger:4318/v1/traces
+      resource_attributes:
+        service.name: healthcare-gateway
+      header_type: preserve
+      sampling_rate: 1.0
 
 consumers:
   - username: anonymous-user

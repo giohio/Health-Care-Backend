@@ -1,6 +1,8 @@
 from typing import List
-from Domain.interfaces.specialty_repository import ISpecialtyRepository
+
 from Application.dtos import SpecialtyDTO
+from Domain.interfaces.specialty_repository import ISpecialtyRepository
+
 
 class ListSpecialtiesUseCase:
     def __init__(self, specialty_repo: ISpecialtyRepository):
