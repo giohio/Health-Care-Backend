@@ -5,8 +5,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 @pytest.fixture(scope="session", autouse=True)
-def temp_rsa_private_key(tmp_path_factory):
-    """Generate a temporary RSA private key so JWTHandler can be instantiated during unit tests."""
+def patch_jwt_private_key_path(tmp_path_factory):
+    """Patch jwt_handler.private_key_path to a temp RSA key so JWTHandler can be instantiated in unit tests."""
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
