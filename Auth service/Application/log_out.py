@@ -12,7 +12,7 @@ class LogOutUseCase:
         if logout_all_devices:
             if not user_id:
                 raise ValueError("user_id required for logout_all_devices")
-            await self.token_repository.revoke_all_for_user(UUID7(str(user_id)))
+            await self.token_repository.revoke_all_for_user(user_id)
         else:
             if not refresh_token_value:
                 raise ValueError("refresh_token required")
