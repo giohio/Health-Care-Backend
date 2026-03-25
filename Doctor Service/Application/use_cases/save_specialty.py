@@ -21,4 +21,9 @@ class SaveSpecialtyUseCase:
         specialty = Specialty(id=specialty_id, name=dto.name, description=dto.description)
 
         saved = await self.specialty_repo.save(specialty)
-        return SpecialtyDTO.model_validate(saved)
+        # UUID7 is not always treated as uuid.UUID by pydantic in CI, normalize to string.
+        return SpecialtyDTO(
+            id=str(saved.id),
+            name=saved.name,
+            description=saved.description,
+        )

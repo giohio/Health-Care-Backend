@@ -38,6 +38,18 @@ class UpdateScheduleUseCase:
                 slot_duration_minutes=dto.slot_duration_minutes,
             )
             saved = await self.schedule_repo.save(schedule)
-            new_schedules.append(ScheduleDTO.model_validate(saved))
+            # UUID7 is not always treated as uuid.UUID by pydantic in CI, normalize to string.
+            new_schedules.append(
+                ScheduleDTO.model_validate(
+                    {
+                        "id": str(saved.id),
+                        "doctor_id": str(saved.doctor_id),
+                        "day_of_week": saved.day_of_week,
+                        "start_time": saved.start_time,
+                        "end_time": saved.end_time,
+                        "slot_duration_minutes": saved.slot_duration_minutes,
+                    }
+                )
+            )
 
         return new_schedules
