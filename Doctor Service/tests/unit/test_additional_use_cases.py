@@ -17,10 +17,8 @@ from Domain.entities.doctor_schedule import DoctorSchedule
 from Domain.value_objects.day_of_week import DayOfWeek
 from Domain.exceptions.domain_exceptions import (
     DoctorNotFoundException,
-    SpecialtyNotFoundException,
     SpecialtyAlreadyExistsException,
 )
-from uuid_extension import UUID7
 
 
 # ============================================================================
@@ -122,8 +120,8 @@ class FakePublisher:
 @pytest.mark.asyncio
 async def test_list_specialties_returns_all_specialties():
     """Happy path: Returns all specialties from repo"""
-    spec1 = Specialty(id=UUID7(), name="Cardiology", description="Heart specialist")
-    spec2 = Specialty(id=UUID7(), name="Neurology", description="Brain specialist")
+    spec1 = Specialty(id=uuid4(), name="Cardiology", description="Heart specialist")
+    spec2 = Specialty(id=uuid4(), name="Neurology", description="Brain specialist")
     repo = FakeSpecialtyRepo(
         specialties={spec1.id: spec1, spec2.id: spec2}
     )
@@ -150,7 +148,7 @@ async def test_list_specialties_returns_empty_when_no_specialties():
 @pytest.mark.asyncio
 async def test_list_specialties_returns_dto_objects():
     """Validation: Returns SpecialtyDTO objects, not domain entities"""
-    spec = Specialty(id=UUID7(), name="Orthopedics", description="Bone specialist")
+    spec = Specialty(id=uuid4(), name="Orthopedics", description="Bone specialist")
     repo = FakeSpecialtyRepo(specialties={spec.id: spec})
     use_case = ListSpecialtiesUseCase(specialty_repo=repo)
 
@@ -168,8 +166,8 @@ async def test_list_specialties_returns_dto_objects():
 @pytest.mark.asyncio
 async def test_search_available_doctors_happy_path():
     """Happy path: Returns doctors with available slots for specialty/day/time"""
-    doctor_id = UUID7()
-    specialty_id = UUID7()
+    doctor_id = uuid4()
+    specialty_id = uuid4()
     doctor = Doctor(
         user_id=doctor_id,
         full_name="Dr. Smith",
@@ -192,7 +190,7 @@ async def test_search_available_doctors_happy_path():
 @pytest.mark.asyncio
 async def test_search_available_doctors_no_results_when_no_doctors():
     """Edge case: Returns empty list when no doctors exist"""
-    specialty_id = UUID7()
+    specialty_id = uuid4()
 
     doctor_repo = FakeDoctorRepo(doctors={})
 
@@ -208,12 +206,12 @@ async def test_search_available_doctors_no_results_when_no_doctors():
 @pytest.mark.asyncio
 async def test_search_available_doctors_filters_by_specialty():
     """Validation: Filters doctors by requested specialty only"""
-    specialty_id = UUID7()
-    other_specialty_id = UUID7()
+    specialty_id = uuid4()
+    other_specialty_id = uuid4()
 
-    doctor1 = Doctor(user_id=UUID7(), full_name="Dr. A", specialty_id=specialty_id)
+    doctor1 = Doctor(user_id=uuid4(), full_name="Dr. A", specialty_id=specialty_id)
     doctor2 = Doctor(
-        user_id=UUID7(), full_name="Dr. B", specialty_id=other_specialty_id
+        user_id=uuid4(), full_name="Dr. B", specialty_id=other_specialty_id
     )
 
     doctor_repo = FakeDoctorRepo(doctors={doctor1.user_id: doctor1, doctor2.user_id: doctor2})
@@ -235,7 +233,7 @@ async def test_search_available_doctors_filters_by_specialty():
 @pytest.mark.asyncio
 async def test_set_auto_confirm_settings_happy_path():
     """Happy path: Updates auto confirm settings for doctor"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
@@ -253,7 +251,7 @@ async def test_set_auto_confirm_settings_happy_path():
 @pytest.mark.asyncio
 async def test_set_auto_confirm_settings_with_false_value():
     """Happy path: Can disable auto confirm"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None, auto_confirm=True)
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
@@ -271,7 +269,7 @@ async def test_set_auto_confirm_settings_doctor_not_found():
     """Error case: Raises DoctorNotFoundException when doctor doesn't exist"""
     repo = FakeDoctorRepo(doctors={})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
-    doctor_id = UUID7()
+    doctor_id = uuid4()
 
     with pytest.raises(DoctorNotFoundException):
         await use_case.execute(doctor_id, auto_confirm=True, confirmation_timeout_minutes=10)
@@ -280,7 +278,7 @@ async def test_set_auto_confirm_settings_doctor_not_found():
 @pytest.mark.asyncio
 async def test_set_auto_confirm_settings_negative_timeout_raises_error():
     """Validation: Rejects negative timeout values"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
@@ -299,7 +297,7 @@ async def test_set_auto_confirm_settings_negative_timeout_raises_error():
 @pytest.mark.asyncio
 async def test_set_auto_confirm_settings_zero_timeout_raises_error():
     """Validation: Rejects zero timeout values"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
@@ -316,7 +314,7 @@ async def test_set_auto_confirm_settings_zero_timeout_raises_error():
 @pytest.mark.asyncio
 async def test_set_auto_confirm_settings_minimum_valid_timeout():
     """Validation: Accepts minimum valid timeout (1 minute)"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
@@ -350,7 +348,7 @@ async def test_save_specialty_creates_new_specialty():
 @pytest.mark.asyncio
 async def test_save_specialty_updates_existing_specialty():
     """Happy path: Updates specialty when ID is provided"""
-    specialty_id = UUID7()
+    specialty_id = uuid4()
     existing = Specialty(id=specialty_id, name="Old Name", description="Old desc")
     repo = FakeSpecialtyRepo(
         specialties={specialty_id: existing},
@@ -370,7 +368,7 @@ async def test_save_specialty_updates_existing_specialty():
 @pytest.mark.asyncio
 async def test_save_specialty_rejects_duplicate_name():
     """Error case: Raises exception when specialty name already exists"""
-    existing = Specialty(id=UUID7(), name="Cardiology", description="Heart specialist")
+    existing = Specialty(id=uuid4(), name="Cardiology", description="Heart specialist")
     repo = FakeSpecialtyRepo(
         specialties={existing.id: existing},
     )
@@ -378,7 +376,7 @@ async def test_save_specialty_rejects_duplicate_name():
     use_case = SaveSpecialtyUseCase(specialty_repo=repo)
 
     # Try to create new specialty with existing name
-    new_id = UUID7()
+    new_id = uuid4()
     dto = SpecialtyDTO(id=new_id, name="Cardiology", description="Different desc")
 
     with pytest.raises(SpecialtyAlreadyExistsException):
@@ -388,7 +386,7 @@ async def test_save_specialty_rejects_duplicate_name():
 @pytest.mark.asyncio
 async def test_save_specialty_allows_same_name_for_update():
     """Edge case: Allows same name when updating existing specialty"""
-    specialty_id = UUID7()
+    specialty_id = uuid4()
     existing = Specialty(id=specialty_id, name="Cardiology", description="Heart specialist")
     repo = FakeSpecialtyRepo(
         specialties={specialty_id: existing},
@@ -412,7 +410,7 @@ async def test_save_specialty_allows_same_name_for_update():
 @pytest.mark.asyncio
 async def test_update_schedule_replaces_doctor_schedule():
     """Happy path: Replaces all schedules for doctor"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
 
     doctor_repo = FakeDoctorRepo(doctors={doctor_id: doctor})
@@ -420,7 +418,7 @@ async def test_update_schedule_replaces_doctor_schedule():
 
     # Add existing schedule to be deleted
     old_schedule = DoctorSchedule(
-        id=UUID7(),
+        id=uuid4(),
         doctor_id=doctor_id,
         day_of_week=DayOfWeek.MONDAY.value,
         start_time=time(9, 0),
@@ -455,7 +453,7 @@ async def test_update_schedule_replaces_doctor_schedule():
 @pytest.mark.asyncio
 async def test_update_schedule_creates_multiple_schedules():
     """Happy path: Can create multiple schedules at once"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
 
     doctor_repo = FakeDoctorRepo(doctors={doctor_id: doctor})
@@ -481,7 +479,7 @@ async def test_update_schedule_creates_multiple_schedules():
 @pytest.mark.asyncio
 async def test_update_schedule_doctor_not_found():
     """Error case: Raises exception when doctor doesn't exist"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
 
     doctor_repo = FakeDoctorRepo(doctors={})
     schedule_repo = FakeScheduleRepo()
@@ -506,7 +504,7 @@ async def test_update_schedule_doctor_not_found():
 @pytest.mark.asyncio
 async def test_update_schedule_clears_existing_before_adding_new():
     """Validation: Deletes all existing schedules before adding new ones"""
-    doctor_id = UUID7()
+    doctor_id = uuid4()
     doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
 
     doctor_repo = FakeDoctorRepo(doctors={doctor_id: doctor})
@@ -515,7 +513,7 @@ async def test_update_schedule_clears_existing_before_adding_new():
     # Add 3 existing schedules
     for i in range(3):
         old_schedule = DoctorSchedule(
-            id=UUID7(),
+            id=uuid4(),
             doctor_id=doctor_id,
             day_of_week=i,
             start_time=time(9, 0),
