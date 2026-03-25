@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
 from Application.use_cases.create_payment import CreatePaymentFromEventUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
@@ -12,7 +12,7 @@ from infrastructure.repositories.payment_repository import PaymentRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 

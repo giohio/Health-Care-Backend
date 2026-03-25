@@ -285,7 +285,11 @@ async def get_available_slots(
     )
 
 
-@router.get("/doctor/{doctor_id}/queue", response_model=List[DoctorQueueItemResponse])
+@router.get(
+    "/doctor/{doctor_id}/queue",
+    response_model=List[DoctorQueueItemResponse],
+    responses={422: {"description": "appointment_date or date is required"}},
+)
 async def get_doctor_queue(
     doctor_id: UUID,
     use_case: Annotated[GetDoctorQueueUseCase, Depends(get_doctor_queue_use_case)],

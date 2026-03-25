@@ -55,5 +55,5 @@ class TestConcurrentBooking:
         successes = [c for c in status_codes if c in (200, 201)]
         conflicts = [c for c in status_codes if c == 409]
 
-        assert len(successes) == 1, f"Expected exactly 1 success, got " f"{len(successes)}. Codes: {status_codes}"
+        assert len(successes) == 1, f"Expected exactly 1 success, got {len(successes)}. Codes: {status_codes}"
         assert len(conflicts) == 9, f"Expected 9 conflicts, got {len(conflicts)}"

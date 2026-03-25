@@ -55,7 +55,7 @@ class TestNotifications:
             # No unread notifications, test pass
             return
 
-        r = await http.put(f"{NOTIFICATION_URL}/notifications" f"/{first_unread['id']}/read", headers=p_header)
+        r = await http.put(f"{NOTIFICATION_URL}/notifications/{first_unread['id']}/read", headers=p_header)
         assert r.status_code == 200
 
         notifs_after = (await http.get(f"{NOTIFICATION_URL}/notifications/me", headers=p_header)).json()

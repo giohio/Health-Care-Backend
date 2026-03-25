@@ -145,6 +145,7 @@ jobs:
           for service in "${services[@]}"; do
             echo "\n=== ${service} (coverage >= 85%) ==="
             pushd "${service}" > /dev/null
+            export PYTHONPATH="${GITHUB_WORKSPACE}/${service}:${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common:${PYTHONPATH:-}"
             pytest tests/unit --cov=Application --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=85 -q
             popd > /dev/null
           done
