@@ -147,8 +147,10 @@ jobs:
             pushd "${service}" > /dev/null
             # Isolate import paths per service to avoid cross-service package shadowing.
             unset PYTHONPATH
+            cov_targets=(--cov=Application)
+
             PYTHONPATH="${GITHUB_WORKSPACE}/${service}:${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common" \
-              python -m pytest tests/unit --cov=Application --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=85 -q
+              python -m pytest tests/unit "${cov_targets[@]}" --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=85 -q
             popd > /dev/null
           done
 
