@@ -75,6 +75,7 @@ async def test_cancel_for_payment_ignores_non_pending_payment(monkeypatch):
     writes = []
 
     async def fake_write(session, **kwargs):
+        await asyncio.sleep(0)
         writes.append(kwargs)
 
     monkeypatch.setattr(payment_consumers_module.OutboxWriter, "write", fake_write)
@@ -97,6 +98,7 @@ async def test_cancel_for_payment_updates_status_and_emits_events(monkeypatch):
     writes = []
 
     async def fake_write(session, **kwargs):
+        await asyncio.sleep(0)
         writes.append(kwargs)
 
     monkeypatch.setattr(payment_consumers_module.OutboxWriter, "write", fake_write)

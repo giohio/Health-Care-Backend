@@ -25,11 +25,11 @@ async def doctor_health_check():
     return {"status": "healthy", "service": "doctor-service"}
 
 
-@router.post("/", response_model=DoctorDTO)
+@router.post("/", response_model=DoctorDTO, responses={403: {"description": "Admin only"}})
 async def provision_doctor(
     dto: DoctorDTO,
     use_case: Annotated[RegisterDoctorUseCase, Depends(get_register_doctor_use_case)],
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_role: Annotated[str | None, Header(alias="X-User-Role")] = None,
 ):
     if x_user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
@@ -41,13 +41,17 @@ async def provision_doctor(
 @router.put(
     "/me/auto-confirm",
     response_model=DoctorAutoConfirmSettingsResponse,
-    responses={403: {"description": "Doctor only"}, 404: {"description": "Doctor not found"}},
+    responses={
+        400: {"description": "Invalid auto-confirm configuration"},
+        403: {"description": "Doctor only"},
+        404: {"description": "Doctor not found"},
+    },
 )
 async def set_my_auto_confirm_settings(
     payload: DoctorAutoConfirmSettingsRequest,
     use_case: Annotated[SetAutoConfirmSettingsUseCase, Depends(get_set_auto_confirm_settings_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_role: Annotated[str | None, Header(alias="X-User-Role")] = None,
 ):
     if x_user_role != "doctor":
         raise HTTPException(status_code=403, detail="Doctor only")

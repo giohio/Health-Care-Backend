@@ -12,11 +12,15 @@ from presentation.dependencies import get_get_payment_use_case, get_process_vnpa
 router = APIRouter(tags=["Payments"])
 
 
-@router.get("/payments/{appointment_id}", response_model=dict)
+@router.get(
+    "/payments/{appointment_id}",
+    response_model=dict,
+    responses={404: {"description": "Payment not found"}},
+)
 async def get_payment(
     appointment_id: UUID,
     use_case: Annotated[GetPaymentUseCase, Depends(get_get_payment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     """Fetch payment record by appointment ID"""
     try:

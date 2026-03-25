@@ -275,7 +275,7 @@ async def get_available_slots(
     appointment_date: date,
     specialty_id: UUID,
     use_case: Annotated[GetAvailableSlotsUseCase, Depends(get_available_slots_use_case)],
-    appointment_type: str = "general",
+    appointment_type: Annotated[str, Query()] = "general",
 ):
     return await use_case.execute(
         doctor_id=doctor_id,
@@ -289,8 +289,8 @@ async def get_available_slots(
 async def get_doctor_queue(
     doctor_id: UUID,
     use_case: Annotated[GetDoctorQueueUseCase, Depends(get_doctor_queue_use_case)],
-    appointment_date: date | None = Query(None),
-    date_param: date | None = Query(None, alias="date"),
+    appointment_date: Annotated[date | None, Query()] = None,
+    date_param: Annotated[date | None, Query(alias="date")] = None,
 ):
     effective_date = appointment_date or date_param
     if effective_date is None:

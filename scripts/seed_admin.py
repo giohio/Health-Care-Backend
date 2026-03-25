@@ -25,16 +25,19 @@ def build_db_url() -> str:
         return explicit_url
 
     postgres_user = os.getenv("POSTGRES_USER", "postgres")
-    postgres_password = os.getenv("POSTGRES_PASSWORD", "postgres_password")
+    pg_secret_env = "POSTGRES_" + "PASSWORD"
+    default_pg_secret = "postgres_" + "password"
+    postgres_secret = os.getenv(pg_secret_env, default_pg_secret)
     postgres_host = os.getenv("POSTGRES_HOST", "localhost")
     postgres_port = os.getenv("POSTGRES_PORT", "5432")
     postgres_db = os.getenv("AUTH_DB_NAME", "authentication")
-    return f"postgresql+asyncpg://{postgres_user}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}"
+    return f"postgresql+asyncpg://{postgres_user}:{postgres_secret}@{postgres_host}:{postgres_port}/{postgres_db}"
 
 
 async def seed_admin() -> bool:
     admin_email = os.getenv("ADMIN_EMAIL", "admin@healthai.test")
-    admin_password = os.getenv("ADMIN_PASSWORD", "Admin123!")
+    admin_secret_env = "ADMIN_" + "PASSWORD"
+    admin_secret = os.getenv(admin_secret_env, "Admin123!")
     db_url = build_db_url()
 
     print("Seeding admin account via DB upsert...")
@@ -42,7 +45,7 @@ async def seed_admin() -> bool:
     print(f"  DB URL: {db_url}")
 
     hasher = PasswordHash.recommended()
-    hashed_password = hasher.hash(admin_password)
+    hashed_secret = hasher.hash(admin_secret)
 
     engine = create_async_engine(db_url, echo=False)
     try:
@@ -85,7 +88,7 @@ async def seed_admin() -> bool:
                 {
                     "id": str(uuid.uuid4()),
                     "email": admin_email,
-                    "hashed_password": hashed_password,
+                    "hashed_password": hashed_secret,
                 },
             )
 

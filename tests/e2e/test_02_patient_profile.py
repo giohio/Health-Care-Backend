@@ -121,7 +121,7 @@ class TestPatientProfile:
             headers={"Authorization": f"Bearer {creds['access_token']}"},
         )
 
-        r = await http.get(f"{PATIENT_URL}/internal/patients" f"/{creds['user_id']}/full-context")
+        r = await http.get(f"{PATIENT_URL}/internal/patients/{creds['user_id']}/full-context")
         assert r.status_code == 200
         body = r.json()
         assert "profile" in body

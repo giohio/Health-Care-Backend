@@ -17,7 +17,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
 
         # Log một dòng duy nhất cho gọn
         logger.info(
-            f"{request.method} {request.url.path} - " f"Status: {response.status_code} - " f"Time: {process_time:.2f}ms"
+            f"{request.method} {request.url.path} - Status: {response.status_code} - Time: {process_time:.2f}ms"
         )
 
         response.headers["X-Process-Time"] = str(process_time)

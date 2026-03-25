@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+ASYNC_DIALECT_REPLACE='s/postgresql+asyncpg/postgresql/'
+
 # Wait for database
 echo "Waiting for database..."
 until pg_isready -h postgres -p 5432 -U "${POSTGRES_USER:-postgres}" >/dev/null 2>&1; do
@@ -9,7 +11,7 @@ until pg_isready -h postgres -p 5432 -U "${POSTGRES_USER:-postgres}" >/dev/null 
 done
 
 ensure_database_exists() {
-    PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
+    PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed "$ASYNC_DIALECT_REPLACE")
     TARGET_DB=$(echo "$PSQL_DATABASE_URL" | sed -E 's#^.*/([^/?]+).*$#\1#')
     ADMIN_DB_URL=$(echo "$PSQL_DATABASE_URL" | sed -E 's#/([^/?]+)(\?.*)?$#/postgres\2#')
 
@@ -29,7 +31,7 @@ ensure_database_exists() {
 ensure_database_exists
 
 ensure_payment_schema() {
-    PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
+    PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed "$ASYNC_DIALECT_REPLACE")
     # VNPay URLs can exceed 500 chars; widen column for existing databases.
     psql "$PSQL_DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER TABLE IF EXISTS payments ALTER COLUMN payment_url TYPE TEXT;" >/dev/null 2>&1 || true
     return 0
@@ -50,7 +52,7 @@ create_initial_migration() {
     if ! alembic revision --autogenerate -m "initial" >/tmp/alembic_revision.log 2>&1; then
         if grep -q "Can't locate revision identified by" /tmp/alembic_revision.log; then
             echo "Detected stale Alembic revision marker before initial revision. Resetting alembic_version and retrying..."
-            PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
+            PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed "$ASYNC_DIALECT_REPLACE")
             psql "$PSQL_DATABASE_URL" -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS alembic_version;"
             alembic revision --autogenerate -m "initial"
         else
@@ -75,7 +77,7 @@ if [ -d /app/alembic ]; then
     if ! upgrade_head >/tmp/alembic_upgrade.log 2>&1; then
         if grep -q "Can't locate revision identified by" /tmp/alembic_upgrade.log; then
             echo "Detected stale Alembic revision marker. Resetting alembic_version and retrying..."
-            PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
+            PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed "$ASYNC_DIALECT_REPLACE")
             psql "$PSQL_DATABASE_URL" -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS alembic_version;"
 
             if ! has_migration_files; then

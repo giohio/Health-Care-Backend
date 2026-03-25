@@ -117,48 +117,80 @@ async def _wait_for_service_ready(
     )
 
 
+def _deref_openapi_schema(spec: dict, schema: dict) -> dict:
+    if not isinstance(schema, dict):
+        return {}
+    ref = schema.get("$ref")
+    if not ref or not isinstance(ref, str):
+        return schema
+    if not ref.startswith("#/components/schemas/"):
+        return schema
+    schema_name = ref.split("/")[-1]
+    return spec.get("components", {}).get("schemas", {}).get(schema_name, {})
+
+
+def _notification_me_is_object_contract(spec: dict) -> bool:
+    paths = spec.get("paths", {})
+    operation = paths.get("/notifications/me", {}).get("get") or paths.get("/me", {}).get("get")
+    if not operation:
+        return False
+
+    schema = (
+        operation.get("responses", {})
+        .get("200", {})
+        .get("content", {})
+        .get("application/json", {})
+        .get("schema", {})
+    )
+    resolved = _deref_openapi_schema(spec, schema)
+
+    if resolved.get("type") == "object":
+        return True
+
+    properties = resolved.get("properties", {}) if isinstance(resolved, dict) else {}
+    return "notifications" in properties and "unread_count" in properties
+
+
+def _contract_debug_hint(spec: dict) -> str:
+    info_title = str(spec.get("info", {}).get("title", ""))
+    sample_paths = list(spec.get("paths", {}).keys())[:5]
+    return f"detected_title={info_title!r}, sample_paths={sample_paths}"
+
+
+async def _validate_service_contract(
+    http: httpx.AsyncClient,
+    base_url: str | None,
+    service_name: str,
+    predicate,
+    contract_error: str,
+) -> None:
+    await _wait_for_service_ready(http, base_url, service_name, timeout_seconds=90)
+    try:
+        openapi_resp = await http.get(f"{base_url}/openapi.json")
+        if openapi_resp.status_code != 200:
+            pytest.exit(
+                f"{service_name} openapi is not reachable. status={openapi_resp.status_code}",
+                returncode=2,
+            )
+
+        spec = openapi_resp.json()
+        if not predicate(spec):
+            pytest.exit(
+                f"{service_name} runtime contract mismatch: {contract_error}. "
+                f"Likely stale container image or wrong gateway route. {_contract_debug_hint(spec)}",
+                returncode=2,
+            )
+    except Exit:
+        raise
+    except Exception as exc:
+        pytest.exit(
+            f"Failed to validate {service_name} runtime contract: {exc}",
+            returncode=2,
+        )
+
+
 async def _assert_runtime_contracts(http: httpx.AsyncClient) -> None:
     """Fail fast when runtime contracts do not match what E2E suite expects."""
-
-    def _deref_schema(spec: dict, schema: dict) -> dict:
-        if not isinstance(schema, dict):
-            return {}
-        ref = schema.get("$ref")
-        if not ref or not isinstance(ref, str):
-            return schema
-
-        # OpenAPI local refs look like: #/components/schemas/SomeSchema
-        if not ref.startswith("#/components/schemas/"):
-            return schema
-
-        schema_name = ref.split("/")[-1]
-        return spec.get("components", {}).get("schemas", {}).get(schema_name, {})
-
-    def _notification_me_is_object_contract(spec: dict) -> bool:
-        paths = spec.get("paths", {})
-        operation = paths.get("/notifications/me", {}).get("get") or paths.get("/me", {}).get("get")
-        if not operation:
-            return False
-
-        schema = (
-            operation.get("responses", {})
-            .get("200", {})
-            .get("content", {})
-            .get("application/json", {})
-            .get("schema", {})
-        )
-        resolved = _deref_schema(spec, schema)
-
-        if resolved.get("type") == "object":
-            return True
-
-        properties = resolved.get("properties", {}) if isinstance(resolved, dict) else {}
-        return "notifications" in properties and "unread_count" in properties
-
-    def _contract_debug_hint(spec: dict) -> str:
-        info_title = str(spec.get("info", {}).get("title", ""))
-        sample_paths = list(spec.get("paths", {}).keys())[:5]
-        return f"detected_title={info_title!r}, sample_paths={sample_paths}"
 
     checks = [
         (
@@ -182,29 +214,7 @@ async def _assert_runtime_contracts(http: httpx.AsyncClient) -> None:
     ]
 
     for base_url, service_name, predicate, contract_error in checks:
-        await _wait_for_service_ready(http, base_url, service_name, timeout_seconds=90)
-        try:
-            openapi_resp = await http.get(f"{base_url}/openapi.json")
-            if openapi_resp.status_code != 200:
-                pytest.exit(
-                    f"{service_name} openapi is not reachable. status={openapi_resp.status_code}",
-                    returncode=2,
-                )
-
-            spec = openapi_resp.json()
-            if not predicate(spec):
-                pytest.exit(
-                    f"{service_name} runtime contract mismatch: {contract_error}. "
-                    f"Likely stale container image or wrong gateway route. {_contract_debug_hint(spec)}",
-                    returncode=2,
-                )
-        except Exit:
-            raise
-        except Exception as exc:
-            pytest.exit(
-                f"Failed to validate {service_name} runtime contract: {exc}",
-                returncode=2,
-            )
+        await _validate_service_contract(http, base_url, service_name, predicate, contract_error)
 
 
 def _seed_admin_account() -> tuple[bool, str]:
