@@ -60,7 +60,7 @@ async def startup_event():
 
         for attempt in range(1, max_attempts + 1):
             try:
-                reader, writer = await asyncio.open_connection(host, port)
+                _, writer = await asyncio.open_connection(host, port)
                 writer.close()
                 await writer.wait_closed()
                 logger.info("RabbitMQ is reachable at %s:%s", host, port)

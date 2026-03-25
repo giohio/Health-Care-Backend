@@ -19,7 +19,11 @@ from infrastructure.consumers import (
     AppointmentNoShowConsumer,
     AppointmentReminderConsumer,
     AppointmentRescheduledConsumer,
+    PaymentCreatedConsumer,
+    PaymentExpiredConsumer,
+    PaymentPaidConsumer,
     PaymentFailedConsumer,
+    PaymentRefundedConsumer,
 )
 from infrastructure.database.session import AsyncSessionLocal
 from infrastructure.email.email_sender import EmailSender
@@ -93,7 +97,11 @@ async def startup_event():
         AppointmentRescheduledConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         AppointmentNoShowConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         AppointmentCompletedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        PaymentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        PaymentPaidConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         PaymentFailedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        PaymentExpiredConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        PaymentRefundedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
         AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
     ]
 

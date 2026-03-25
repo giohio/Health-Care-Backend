@@ -15,6 +15,7 @@ class _NotificationConsumer(BaseConsumer):
         body: str,
         event_type: str,
         recipient_email: str | None = None,
+        send_email: bool = False,
     ):
         async with self._session_factory() as session:
             use_case: CreateNotificationUseCase = self._create_notification_use_case_factory(session)
@@ -24,6 +25,7 @@ class _NotificationConsumer(BaseConsumer):
                 body=body,
                 event_type=event_type,
                 recipient_email=recipient_email,
+                send_email=send_email,
             )
             await session.commit()
 
@@ -188,6 +190,68 @@ class PaymentFailedConsumer(_NotificationConsumer):
             body="Your payment failed. Please retry booking/payment.",
             event_type="payment.failed",
             recipient_email=payload.get("patient_email"),
+        )
+
+
+class PaymentCreatedConsumer(_NotificationConsumer):
+    QUEUE = "notification.payment.created"
+    EXCHANGE = "payment_events"
+    ROUTING_KEY = "payment.created"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Payment Created",
+            body="Your payment request is ready. Please complete payment to confirm appointment.",
+            event_type="payment.created",
+            recipient_email=payload.get("patient_email"),
+        )
+
+
+class PaymentPaidConsumer(_NotificationConsumer):
+    QUEUE = "notification.payment.paid"
+    EXCHANGE = "payment_events"
+    ROUTING_KEY = "payment.paid"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Payment Successful",
+            body="Your payment was successful.",
+            event_type="payment.paid",
+            recipient_email=payload.get("patient_email"),
+            send_email=True,
+        )
+
+
+class PaymentExpiredConsumer(_NotificationConsumer):
+    QUEUE = "notification.payment.expired"
+    EXCHANGE = "payment_events"
+    ROUTING_KEY = "payment.expired"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Payment Expired",
+            body="Your payment window has expired. Please book again if needed.",
+            event_type="payment.expired",
+            recipient_email=payload.get("patient_email"),
+        )
+
+
+class PaymentRefundedConsumer(_NotificationConsumer):
+    QUEUE = "notification.payment.refunded"
+    EXCHANGE = "payment_events"
+    ROUTING_KEY = "payment.refunded"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Payment Refunded",
+            body="Your payment has been refunded.",
+            event_type="payment.refunded",
+            recipient_email=payload.get("patient_email"),
+            send_email=True,
         )
 
 

@@ -8,7 +8,11 @@ from .appointment_events_consumers import (
     AppointmentNoShowConsumer,
     AppointmentReminderConsumer,
     AppointmentRescheduledConsumer,
+    PaymentCreatedConsumer,
+    PaymentExpiredConsumer,
+    PaymentPaidConsumer,
     PaymentFailedConsumer,
+    PaymentRefundedConsumer,
 )
 
 __all__ = [
@@ -20,6 +24,10 @@ __all__ = [
     "AppointmentRescheduledConsumer",
     "AppointmentNoShowConsumer",
     "AppointmentCompletedConsumer",
+    "PaymentCreatedConsumer",
+    "PaymentPaidConsumer",
     "PaymentFailedConsumer",
+    "PaymentExpiredConsumer",
+    "PaymentRefundedConsumer",
     "AppointmentReminderConsumer",
 ]

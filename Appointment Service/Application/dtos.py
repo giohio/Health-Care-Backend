@@ -4,7 +4,7 @@ from uuid import UUID
 
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
-from pydantic import BaseModel, BeforeValidator, field_serializer
+from pydantic import BaseModel, BeforeValidator, ConfigDict, field_serializer
 
 
 # Convert UUID7 to string
@@ -43,8 +43,7 @@ class AppointmentResponse(BaseModel):
     payment_status: PaymentStatus
     queue_number: int | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @field_serializer("start_time", "end_time")
     def serialize_time(self, v: time, _info):

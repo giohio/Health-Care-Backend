@@ -1,9 +1,12 @@
 from typing import Annotated
+from urllib.parse import parse_qsl, urlencode
 from uuid import UUID
 
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
 from Application.use_cases.process_vnpay_ipn import GetPaymentUseCase
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from infrastructure.config import settings
 from presentation.dependencies import get_get_payment_use_case, get_process_vnpay_ipn_use_case
 
 router = APIRouter(tags=["Payments"])
@@ -26,6 +29,7 @@ async def get_payment(
 
 
 @router.get("/vnpay/ipn", response_model=dict)
+@router.post("/vnpay/ipn", response_model=dict)
 async def handle_vnpay_ipn(
     request: Request,
     use_case: Annotated[ProcessVNPayIPnUseCase, Depends(get_process_vnpay_ipn_use_case)],
@@ -38,6 +42,15 @@ async def handle_vnpay_ipn(
       vnp_SecureHash, etc.
     """
     params = dict(request.query_params)
+    if request.method == "POST":
+        try:
+            form_data = await request.form()
+            params.update({k: str(v) for k, v in form_data.items()})
+        except Exception:
+            # Fallback when form parser dependency is unavailable.
+            raw_body = (await request.body()).decode(errors="ignore")
+            if raw_body:
+                params.update(dict(parse_qsl(raw_body, keep_blank_values=True)))
 
     try:
         result = await use_case.execute(params)
@@ -49,12 +62,30 @@ async def handle_vnpay_ipn(
         }
 
 
-@router.get("/vnpay/return", response_model=dict)
-async def handle_vnpay_return():
+@router.get("/vnpay/return")
+async def handle_vnpay_return(request: Request):
     """
     VNPAY return URL (redirect from payment page)
-    Status is updated via IPN, not here
+    Status of record is still finalized by IPN callback.
     """
-    return {
-        "message": "Payment processing. Please wait for confirmation.",
-    }
+    response_code = str(request.query_params.get("vnp_ResponseCode", ""))
+    transaction_status = str(request.query_params.get("vnp_TransactionStatus", ""))
+    txn_ref = str(request.query_params.get("vnp_TxnRef", ""))
+
+    if response_code == "00" and transaction_status in ("00", ""):
+        payment_status = "success"
+    elif response_code:
+        payment_status = "failed"
+    else:
+        payment_status = "pending"
+
+    query = urlencode(
+        {
+            "status": payment_status,
+            "txn_ref": txn_ref,
+            "response_code": response_code,
+            "transaction_status": transaction_status,
+        }
+    )
+    redirect_url = f"{settings.VNPAY_RETURN_URL}?{query}"
+    return RedirectResponse(url=redirect_url, status_code=302)

@@ -27,6 +27,7 @@ class CreateNotificationUseCase:
         body: str,
         event_type: str,
         recipient_email: str | None = None,
+        send_email: bool = False,
     ) -> NotificationResponse:
         notification = Notification(
             id=uuid7(),
@@ -53,7 +54,7 @@ class CreateNotificationUseCase:
                 await self.ws_manager.send_to_user(canonical_user_id, message)
         except Exception:
             pass
-        if self.email_sender and recipient_email:
+        if self.email_sender and recipient_email and send_email:
             await self.email_sender.send_email(
                 to=recipient_email,
                 subject=title,

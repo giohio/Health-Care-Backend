@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from pydantic_settings import BaseSettings
 
 
@@ -26,9 +26,7 @@ class Settings(BaseSettings):
     # Telemetry
     OTEL_EXPORTER_OTLP_ENDPOINT: str = Field(default="http://localhost:4318/v1/traces")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
 
 settings = Settings()

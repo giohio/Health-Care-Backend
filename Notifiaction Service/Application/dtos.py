@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, computed_field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, computed_field
 from typing_extensions import Annotated
 
 
@@ -32,8 +32,7 @@ class NotificationResponse(BaseModel):
             return self.event_type.split(".", 1)[0]
         return self.event_type
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationListResponse(BaseModel):
