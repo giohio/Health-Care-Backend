@@ -23,6 +23,7 @@ ensure_database_exists() {
         echo "Database '${TARGET_DB}' does not exist. Creating..."
         psql "$ADMIN_DB_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"${TARGET_DB}\";"
     fi
+    return 0
 }
 
 ensure_database_exists
@@ -31,12 +32,16 @@ ensure_payment_schema() {
     PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
     # VNPay URLs can exceed 500 chars; widen column for existing databases.
     psql "$PSQL_DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER TABLE IF EXISTS payments ALTER COLUMN payment_url TYPE TEXT;" >/dev/null 2>&1 || true
+    return 0
 }
 
 ensure_payment_schema
 
 has_migration_files() {
-    [ -n "$(find /app/alembic/versions -maxdepth 1 -type f -name '*.py' ! -name '__init__.py' -print -quit 2>/dev/null)" ]
+    if [ -n "$(find /app/alembic/versions -maxdepth 1 -type f -name '*.py' ! -name '__init__.py' -print -quit 2>/dev/null)" ]; then
+        return 0
+    fi
+    return 1
 }
 
 create_initial_migration() {
@@ -53,10 +58,12 @@ create_initial_migration() {
             exit 1
         fi
     fi
+    return 0
 }
 
 upgrade_head() {
     alembic upgrade head
+    return $?
 }
 
 echo "Running database migrations..."

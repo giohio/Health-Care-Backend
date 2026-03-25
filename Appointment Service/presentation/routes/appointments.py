@@ -47,11 +47,19 @@ from presentation.dependencies import (
 router = APIRouter(tags=["Appointments"])
 
 
-@router.post("/", response_model=AppointmentResponse, responses={400: {"description": "No doctor available"}})
+@router.post(
+    "/",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "No doctor available or booking failed"},
+        403: {"description": "Cannot create appointment for another patient"},
+        409: {"description": "Requested slot is not available"},
+    },
+)
 async def book_appointment(
     request: CreateAppointmentRequest,
     use_case: Annotated[BookAppointmentUseCase, Depends(get_book_appointment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     try:
         if request.patient_id and request.patient_id != x_user_id:
@@ -79,12 +87,16 @@ async def list_patient_appointments(
     return await use_case.execute(patient_id)
 
 
-@router.get("/{appointment_id}", response_model=AppointmentResponse)
+@router.get(
+    "/{appointment_id}",
+    response_model=AppointmentResponse,
+    responses={403: {"description": "Forbidden"}, 404: {"description": "Appointment not found"}},
+)
 async def get_appointment_by_id(
     appointment_id: UUID,
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
-    x_user_role: str = Header(..., alias="X-User-Role"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_role: Annotated[str, Header(alias="X-User-Role")],
 ):
     appointment = await repo.get_by_id(appointment_id)
     if not appointment:
@@ -99,14 +111,18 @@ async def get_appointment_by_id(
 @router.put(
     "/{appointment_id}/cancel",
     response_model=AppointmentResponse,
-    responses={404: {"description": "Appointment not found"}},
+    responses={
+        400: {"description": "Invalid status transition"},
+        403: {"description": "Unauthorized action"},
+        404: {"description": "Appointment not found"},
+    },
 )
 async def cancel_appointment(
     appointment_id: UUID,
     request: CancelAppointmentRequest,
     use_case: Annotated[CancelAppointmentUseCase, Depends(get_cancel_appointment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
-    x_user_role: str = Header(..., alias="X-User-Role"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_role: Annotated[str, Header(alias="X-User-Role")],
 ):
     try:
         return await use_case.execute(
@@ -123,11 +139,19 @@ async def cancel_appointment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{appointment_id}/confirm", response_model=AppointmentResponse)
+@router.put(
+    "/{appointment_id}/confirm",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "Invalid status transition"},
+        403: {"description": "Unauthorized action"},
+        404: {"description": "Appointment not found"},
+    },
+)
 async def confirm_appointment(
     appointment_id: UUID,
     use_case: Annotated[ConfirmAppointmentUseCase, Depends(get_confirm_appointment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -139,12 +163,20 @@ async def confirm_appointment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{appointment_id}/decline", response_model=AppointmentResponse)
+@router.put(
+    "/{appointment_id}/decline",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "Invalid status transition"},
+        403: {"description": "Unauthorized action"},
+        404: {"description": "Appointment not found"},
+    },
+)
 async def decline_appointment(
     appointment_id: UUID,
     request: DeclineAppointmentRequest,
     use_case: Annotated[DeclineAppointmentUseCase, Depends(get_decline_appointment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id, request.reason)
@@ -156,12 +188,21 @@ async def decline_appointment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{appointment_id}/reschedule", response_model=AppointmentResponse)
+@router.put(
+    "/{appointment_id}/reschedule",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "Invalid status transition"},
+        403: {"description": "Unauthorized action"},
+        404: {"description": "Appointment not found"},
+        409: {"description": "Slot not available"},
+    },
+)
 async def reschedule_appointment(
     appointment_id: UUID,
     request: RescheduleAppointmentRequest,
     use_case: Annotated[RescheduleAppointmentUseCase, Depends(get_reschedule_appointment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     try:
         return await use_case.execute(
@@ -180,11 +221,19 @@ async def reschedule_appointment(
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@router.put("/{appointment_id}/complete", response_model=AppointmentResponse)
+@router.put(
+    "/{appointment_id}/complete",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "Invalid status transition"},
+        403: {"description": "Unauthorized action"},
+        404: {"description": "Appointment not found"},
+    },
+)
 async def complete_appointment(
     appointment_id: UUID,
     use_case: Annotated[CompleteAppointmentUseCase, Depends(get_complete_appointment_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -196,11 +245,19 @@ async def complete_appointment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{appointment_id}/no-show", response_model=AppointmentResponse)
+@router.put(
+    "/{appointment_id}/no-show",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "Invalid status transition"},
+        403: {"description": "Unauthorized action"},
+        404: {"description": "Appointment not found"},
+    },
+)
 async def mark_no_show(
     appointment_id: UUID,
     use_case: Annotated[MarkNoShowUseCase, Depends(get_mark_no_show_use_case)],
-    x_user_id: UUID = Header(..., alias="X-User-Id"),
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)

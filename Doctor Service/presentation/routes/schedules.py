@@ -23,7 +23,7 @@ async def update_schedule(
     doctor_id: UUID,
     dtos: List[ScheduleDTO],
     use_case: Annotated[UpdateScheduleUseCase, Depends(get_update_schedule_use_case)],
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         ret = await use_case.execute(doctor_id, dtos)

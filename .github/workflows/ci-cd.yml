@@ -14,8 +14,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
-  security-events: write
 
 env:
   PYTHONDONTWRITEBYTECODE: "1"
@@ -201,6 +199,9 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     needs: [lint_flake8, lint_bandit, lint_gitleaks, lint_deps, unit_tests_coverage]
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:

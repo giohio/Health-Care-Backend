@@ -10,7 +10,10 @@ done
 PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
 
 has_migration_files() {
-  [ -n "$(find /app/alembic/versions -maxdepth 1 -type f -name '*.py' ! -name '__init__.py' -print -quit 2>/dev/null)" ]
+  if [ -n "$(find /app/alembic/versions -maxdepth 1 -type f -name '*.py' ! -name '__init__.py' -print -quit 2>/dev/null)" ]; then
+    return 0
+  fi
+  return 1
 }
 
 create_initial_migration() {
@@ -26,10 +29,12 @@ create_initial_migration() {
       exit 1
     fi
   fi
+  return 0
 }
 
 upgrade_head() {
   alembic upgrade head
+  return $?
 }
 
 echo "Running database migrations..."

@@ -105,7 +105,7 @@ async def test_update_health_updates_existing_without_recreate():
 
     result = await use_case.execute(user_id=profile.user_id, weight_kg=65.5)
 
-    assert result.weight_kg == 65.5
+    assert result.weight_kg == pytest.approx(65.5)
     assert health_repo.created == []
     assert len(health_repo.updated) == 1
 

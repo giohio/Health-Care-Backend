@@ -32,7 +32,7 @@ INTERNAL_SERVER_ERROR_MSG = "Internal server error"
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserRegister, register_service: Annotated[RegisterService, Depends(get_register_service)],
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         # Call service to handle logic with dict unpacking
@@ -54,8 +54,8 @@ async def register(
 async def register_staff(
     user_data: RegisterStaffRequest,
     register_service: Annotated[RegisterService, Depends(get_register_service)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     x_user_role: str | None = Header(default=None, alias="X-User-Role"),
-    db: AsyncSession = Depends(get_db),
 ):
     if x_user_role != UserRole.ADMIN.value:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
@@ -82,7 +82,7 @@ async def login(
     login_data: UserLogin,
     response: Response,
     login_use_case: Annotated[LoginUseCase, Depends(get_login_use_case)],
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         access_token, refresh_token, user = await login_use_case.execute(**login_data.model_dump())
@@ -119,9 +119,9 @@ async def logout(
     logout_data: LogoutRequest,
     response: Response,
     logout_use_case: Annotated[LogOutUseCase, Depends(get_logout_use_case)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     refresh_token: str | None = Cookie(default=None),
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),
-    db: AsyncSession = Depends(get_db),
 ):
     try:
         token_to_use = logout_data.refresh_token or refresh_token
@@ -147,8 +147,8 @@ async def refresh_token(
     refresh_data: RefreshTokenRequest,
     response: Response,
     refresh_use_case: Annotated[RefreshTokenUseCase, Depends(get_refresh_token_use_case)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     refresh_token_cookie: str | None = Cookie(default=None, alias="refresh_token"),
-    db: AsyncSession = Depends(get_db),
 ):
     try:
         token_to_use = refresh_data.refresh_token or refresh_token_cookie
