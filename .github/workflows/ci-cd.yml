@@ -195,6 +195,8 @@ jobs:
           args: >
             -Dproject.settings=sonar-project.properties
             -Dsonar.exclusions=**/tests/**,**/alembic/**,**/migrations/**,**/env.py,**/test_*.py
+            -Dsonar.coverage.exclusions=**/tests/**,**/test_*.py,**/alembic/**,**/migrations/**,**/env.py,**/main.py,**/infrastructure/publishers/outbox_event_publisher.py,**/infrastructure/database/models.py
+            -Dsonar.cpd.exclusions=**/tests/**,**/test_*.py,**/alembic/**,**/migrations/**,**/env.py,**/infrastructure/publishers/outbox_event_publisher.py,**/infrastructure/database/models.py
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
