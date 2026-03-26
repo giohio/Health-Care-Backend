@@ -14,7 +14,6 @@ async def test_maybe_await_with_awaitable():
     async_val.__await__ = MagicMock(return_value=iter(["resolved"]))
     
     # In practice AsyncMock is awaitable
-    res = await repo._maybe_await(asyncio.Future())
     # This is a bit tricky to test with simple mocks, let's use a real future
     f = asyncio.Future()
     f.set_result("done")
