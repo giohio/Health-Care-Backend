@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-
+import uuid
 from uuid_extension import UUID7, uuid7
 
 
@@ -14,6 +14,6 @@ def extract_timestamp(uid) -> datetime:
     Không cần query DB để biết thời điểm tạo.
     """
     if isinstance(uid, str):
-        uid = UUID7(uid)
+        uid = uuid.UUID(uid)
     ts_ms = uid.int >> 80
     return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
