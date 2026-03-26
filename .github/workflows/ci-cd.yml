@@ -175,11 +175,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.component }}
-          path: |
-            ${{ matrix.component == 'shared' && 'shared/coverage.xml' || format('{0}/coverage.xml', matrix.component) }}
+          path: ${{ matrix.component }}/coverage.xml
           if-no-files-found: ignore
           retention-days: 1
-          compression-level: 0 # Try disabling compression to reduce CPU/buffer overhead during upload
+          compression-level: 0
 
   sonarqube_scan:
     name: SonarQube Scan
@@ -197,12 +196,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download coverage reports
+      - name: Download all coverage reports
         uses: actions/download-artifact@v4
         with:
           pattern: coverage-*
-          merge-multiple: true
           path: .
+          merge-multiple: false # Keep them in separate directories to avoid collision
 
       - name: SonarQube Scan
         if: ${{ env.SONAR_TOKEN != '' }}
@@ -210,10 +209,6 @@ jobs:
         with:
           args: >
             -Dproject.settings=sonar-project.properties
-            -Dsonar.exclusions=**/tests/**,**/alembic/**,**/migrations/**,**/env.py,**/test_*.py
-            -Dsonar.coverage.exclusions=**/tests/**,**/test_*.py,**/alembic/**,**/migrations/**,**/env.py,**/main.py,**/infrastructure/publishers/outbox_event_publisher.py,**/infrastructure/database/models.py
-            -Dsonar.cpd.exclusions=**/tests/**,**/test_*.py,**/alembic/**,**/migrations/**,**/env.py,**/infrastructure/publishers/outbox_event_publisher.py,**/infrastructure/database/models.py
-            -Dsonar.python.coverage.reportPaths=Auth\ service/coverage.xml,Appointment\ Service/coverage.xml,Doctor\ Service/coverage.xml,Patient\ Service/coverage.xml,Payment\ Service/coverage.xml,Notifiaction\ Service/coverage.xml,shared/coverage.xml
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
