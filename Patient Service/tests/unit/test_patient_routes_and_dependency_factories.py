@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 from types import SimpleNamespace
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
@@ -34,6 +34,8 @@ class FakeProfileRepo:
 
     async def create(self, profile):
         await asyncio.sleep(0)
+        # Route response schema expects built-in UUID, not custom UUID7.
+        profile.id = UUID(str(profile.id))
         self.profile = profile
         return profile
 
