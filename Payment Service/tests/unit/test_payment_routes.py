@@ -3,9 +3,9 @@ from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from presentation.dependencies import get_event_publisher, get_get_payment_use_case, get_process_vnpay_ipn_use_case
 from presentation.routes.payments import router
 
@@ -51,42 +51,50 @@ def app_with_overrides():
     return app
 
 
-def test_get_payment_success(app_with_overrides):
-    client = TestClient(app_with_overrides)
+@pytest.mark.asyncio
+async def test_get_payment_success(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
     appt_id = str(uuid4())
-    r = client.get(f"/payments/{appt_id}", headers={"X-User-Id": str(uuid4())})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(f"/payments/{appt_id}", headers={"X-User-Id": str(uuid4())})
 
     assert r.status_code == 200
     assert r.json()["id"] == "p-1"
     assert len(app_with_overrides.state.get_payment_uc.calls) == 1
 
 
-def test_get_payment_not_found_maps_to_404():
+@pytest.mark.asyncio
+async def test_get_payment_not_found_maps_to_404():
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_get_payment_use_case] = lambda: DummyGetPaymentUseCase(exc=ValueError("missing"))
     app.dependency_overrides[get_process_vnpay_ipn_use_case] = lambda: DummyProcessIpnUseCase()
     app.dependency_overrides[get_event_publisher] = lambda: SimpleNamespace()
 
-    client = TestClient(app)
-    r = client.get(f"/payments/{uuid4()}", headers={"X-User-Id": str(uuid4())})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(f"/payments/{uuid4()}", headers={"X-User-Id": str(uuid4())})
 
     assert r.status_code == 404
     assert r.json()["detail"] == "missing"
 
 
-def test_vnpay_ipn_supports_get_and_passes_query(app_with_overrides):
-    client = TestClient(app_with_overrides)
-    r = client.get("/vnpay/ipn", params={"vnp_TxnRef": "T1", "vnp_ResponseCode": "00"})
+@pytest.mark.asyncio
+async def test_vnpay_ipn_supports_get_and_passes_query(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/vnpay/ipn", params={"vnp_TxnRef": "T1", "vnp_ResponseCode": "00"})
 
     assert r.status_code == 200
     assert r.json()["RspCode"] == "00"
     assert app_with_overrides.state.ipn_uc.calls[-1]["vnp_TxnRef"] == "T1"
 
 
-def test_vnpay_ipn_supports_post_and_merges_form(app_with_overrides):
-    client = TestClient(app_with_overrides)
-    r = client.post("/vnpay/ipn?vnp_TxnRef=TQ", data={"vnp_ResponseCode": "00", "x": "1"})
+@pytest.mark.asyncio
+async def test_vnpay_ipn_supports_post_and_merges_form(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/vnpay/ipn?vnp_TxnRef=TQ", data={"vnp_ResponseCode": "00", "x": "1"})
 
     assert r.status_code == 200
     called = app_with_overrides.state.ipn_uc.calls[-1]
@@ -103,9 +111,11 @@ def test_vnpay_ipn_supports_post_and_merges_form(app_with_overrides):
         ({"vnp_TxnRef": "C"}, "pending"),
     ],
 )
-def test_vnpay_return_redirects_with_derived_status(app_with_overrides, params, expected_status):
-    client = TestClient(app_with_overrides)
-    r = client.get("/vnpay/return", params=params, follow_redirects=False)
+@pytest.mark.asyncio
+async def test_vnpay_return_redirects_with_derived_status(app_with_overrides, params, expected_status):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver", follow_redirects=False) as client:
+        r = await client.get("/vnpay/return", params=params)
 
     assert r.status_code == 302
     location = r.headers["location"]

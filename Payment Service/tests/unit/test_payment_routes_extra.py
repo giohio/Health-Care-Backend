@@ -1,8 +1,9 @@
 import asyncio
 from types import SimpleNamespace
 
+import httpx
+import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from presentation.dependencies import get_event_publisher, get_get_payment_use_case, get_process_vnpay_ipn_use_case
 from presentation.routes.payments import router
 from starlette.requests import Request
@@ -32,7 +33,8 @@ def _build_app(ipn_uc):
     return app
 
 
-def test_vnpay_ipn_post_falls_back_to_raw_body_when_form_parse_fails(monkeypatch):
+@pytest.mark.asyncio
+async def test_vnpay_ipn_post_falls_back_to_raw_body_when_form_parse_fails(monkeypatch):
     async def broken_form(_self):
         await asyncio.sleep(0)
         raise RuntimeError("multipart unavailable")
@@ -41,9 +43,9 @@ def test_vnpay_ipn_post_falls_back_to_raw_body_when_form_parse_fails(monkeypatch
 
     ipn_uc = DummyProcessIpnUseCase()
     app = _build_app(ipn_uc)
-    client = TestClient(app)
-
-    r = client.post("/vnpay/ipn?vnp_TxnRef=TQ", data="vnp_ResponseCode=00&x=1")
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/vnpay/ipn?vnp_TxnRef=TQ", content="vnp_ResponseCode=00&x=1")
 
     assert r.status_code == 200
     assert r.json()["RspCode"] == "00"
@@ -53,7 +55,8 @@ def test_vnpay_ipn_post_falls_back_to_raw_body_when_form_parse_fails(monkeypatch
     assert called["x"] == "1"
 
 
-def test_vnpay_ipn_post_uses_form_items_when_parser_succeeds(monkeypatch):
+@pytest.mark.asyncio
+async def test_vnpay_ipn_post_uses_form_items_when_parser_succeeds(monkeypatch):
     async def ok_form(_self):
         await asyncio.sleep(0)
         return {"vnp_ResponseCode": "00", "x": 1}
@@ -62,9 +65,9 @@ def test_vnpay_ipn_post_uses_form_items_when_parser_succeeds(monkeypatch):
 
     ipn_uc = DummyProcessIpnUseCase()
     app = _build_app(ipn_uc)
-    client = TestClient(app)
-
-    r = client.post("/vnpay/ipn?vnp_TxnRef=TFORM")
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/vnpay/ipn?vnp_TxnRef=TFORM")
 
     assert r.status_code == 200
     called = app.state.ipn_uc.calls[-1]
@@ -73,12 +76,13 @@ def test_vnpay_ipn_post_uses_form_items_when_parser_succeeds(monkeypatch):
     assert called["x"] == "1"
 
 
-def test_vnpay_ipn_returns_99_when_use_case_raises():
+@pytest.mark.asyncio
+async def test_vnpay_ipn_returns_99_when_use_case_raises():
     ipn_uc = DummyProcessIpnUseCase(exc=RuntimeError("boom"))
     app = _build_app(ipn_uc)
-    client = TestClient(app)
-
-    r = client.get("/vnpay/ipn", params={"vnp_TxnRef": "ERR"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/vnpay/ipn", params={"vnp_TxnRef": "ERR"})
 
     assert r.status_code == 200
     assert r.json() == {"RspCode": "99", "Message": "boom"}
