@@ -12,21 +12,21 @@ def redis():
     # Simple storage for get/set
     storage = {}
     
-    async def mock_get(key):
+    def mock_get(key):
         return storage.get(key)
     
-    async def mock_set(key, val, **kwargs):
+    def mock_set(key, val, **kwargs):
         storage[key] = val
         return True
     
-    async def mock_setex(key, ttl, val):
+    def mock_setex(key, ttl, val):
         storage[key] = val
         return True
         
-    async def mock_hgetall(key):
+    def mock_hgetall(key):
         return storage.get(key, {})
 
-    async def mock_hset(key, mapping=None, **kwargs):
+    def mock_hset(key, mapping=None, **kwargs):
         if mapping:
             storage[key] = {k.encode(): v.encode() if isinstance(v, str) else v for k, v in mapping.items()}
         return 1
@@ -75,7 +75,7 @@ async def test_stampede_protection_single_flight(redis):
     key = "heavy-op"
     call_count = 0
     
-    async def heavy_fn():
+    def heavy_fn():
         nonlocal call_count
         call_count += 1
         return {"data": "rich"}
@@ -106,7 +106,6 @@ async def test_stampede_protection_leader_fails(redis):
 async def test_stampede_protection_timeout_waiting(redis):
     cache = StampedeProtectedCache(redis)
     cache.WAIT_SLEEP = 0.01
-    key = "slow-leader"
     
     # Mock redis: follower (set returns False), but leader never finishes (get returns None)
     redis.set.return_value = False
@@ -114,4 +113,3 @@ async def test_stampede_protection_timeout_waiting(redis):
     
     # Smoke test: check it doesn't crash
     # (In real scenario we'd use a timeout, but here we just verify it polled)
-    pass

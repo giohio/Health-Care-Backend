@@ -9,6 +9,7 @@ class FakeConsumer(BaseConsumer):
     ROUTING_KEY = "test.event"
     
     async def handle(self, payload: dict):
+        # Implementation intentionally empty for base consumer unit testing
         pass
 
 @pytest.fixture
