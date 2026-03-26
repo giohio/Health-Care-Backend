@@ -1,13 +1,19 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
+from sqlalchemy.ext.asyncio import AsyncSession
 from healthai_db import OutboxEvent, OutboxWriter
 from uuid_extension import uuid7
 
 
 @pytest.fixture
 def mock_session():
-    """Create a mock async session."""
-    return AsyncMock()
+    """Create a mock async session with sync add/add_all."""
+    session = MagicMock(spec=AsyncSession)
+    session.add = MagicMock()
+    session.add_all = MagicMock()
+    session.flush = AsyncMock()
+    session.execute = AsyncMock()
+    return session
 
 
 @pytest.mark.asyncio

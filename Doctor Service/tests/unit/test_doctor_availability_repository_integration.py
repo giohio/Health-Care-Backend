@@ -1,6 +1,7 @@
 """Unit tests for AvailabilityRepository using AsyncMock."""
 import pytest
 from unittest.mock import AsyncMock, MagicMock
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import time
 from uuid import uuid4
 
@@ -10,8 +11,12 @@ from infrastructure.database.models import DoctorAvailabilityModel
 
 @pytest.fixture
 def mock_session():
-    """Create a mock async session."""
-    return AsyncMock()
+    """Create a mock async session with sync add."""
+    session = MagicMock(spec=AsyncSession)
+    session.add = MagicMock()
+    session.execute = AsyncMock()
+    session.flush = AsyncMock()
+    return session
 
 
 @pytest.mark.asyncio

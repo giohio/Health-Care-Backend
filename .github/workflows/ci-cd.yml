@@ -177,6 +177,9 @@ jobs:
           name: coverage-${{ matrix.component }}
           path: |
             ${{ matrix.component == 'shared' && 'shared/coverage.xml' || format('{0}/coverage.xml', matrix.component) }}
+          if-no-files-found: ignore
+          retention-days: 1
+          compression-level: 0 # Try disabling compression to reduce CPU/buffer overhead during upload
 
   sonarqube_scan:
     name: SonarQube Scan

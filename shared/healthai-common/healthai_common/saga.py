@@ -87,7 +87,13 @@ class SagaOrchestrator(ABC):
         self.cache = cache
 
     async def run(self, payload: dict) -> dict:
-        saga = SagaState(saga_type=self.SAGA_TYPE, payload=payload, status="running")
+        saga = SagaState(
+            saga_type=self.SAGA_TYPE, 
+            payload=payload, 
+            status="running",
+            completed_steps=[],
+            compensated_steps=[]
+        )
         self.session.add(saga)
         await self.session.flush()
 
