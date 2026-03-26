@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.repositories.day_off_repository import DayOffRepository
+from infrastructure.database.models import DoctorDayOffModel
 
 
 @pytest.mark.asyncio
