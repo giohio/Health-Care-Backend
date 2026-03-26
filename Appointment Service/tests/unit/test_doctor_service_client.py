@@ -160,3 +160,23 @@ async def test_get_patient_context_and_doctor_fallback_none():
 
     assert patient_ctx is None
     assert doctor_ctx is None
+
+
+@pytest.mark.asyncio
+async def test_get_enhanced_schedule_success_and_fallback():
+    async def fake_get(path, params=None):
+        await asyncio.sleep(0)
+        return FakeResponse({"working_hours": []})
+
+    client = DoctorServiceClient(cache=DummyCache(), base_url="http://doctor")
+    client._client = SimpleNamespace(get=fake_get)
+    
+    # Test success
+    client._cb = FakeCircuitBreaker(mode="fetch")
+    res = await client.get_enhanced_schedule(str(uuid4()), "2026-04-20")
+    assert res == {"working_hours": []}
+    
+    # Test fallback
+    client._cb = FakeCircuitBreaker(mode="fallback")
+    res = await client.get_enhanced_schedule(str(uuid4()), "2026-04-20")
+    assert res is None
