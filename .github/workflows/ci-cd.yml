@@ -146,10 +146,11 @@ jobs:
           )
 
           for service in "${services[@]}"; do
-            echo "\n=== ${service} (coverage >= 85%) ==="
+            echo "\n=== ${service} (overall coverage >= 85%) ==="
             pushd "${service}" > /dev/null
             # Isolate import paths per service to avoid cross-service package shadowing.
             unset PYTHONPATH
+
             cov_targets=(
               --cov=Application
               --cov=Domain
@@ -158,10 +159,7 @@ jobs:
             )
 
             PYTHONPATH="${GITHUB_WORKSPACE}/${service}:${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common" \
-              python -m pytest tests/unit "${cov_targets[@]}" --cov-report=xml:coverage.xml --cov-report=term-missing -q
-
-            # Keep strict quality gate on core business logic while still exporting full coverage for Sonar.
-            python -m coverage report --include="Application/*" --fail-under=85
+              python -m pytest tests/unit "${cov_targets[@]}" --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=85 -q
             popd > /dev/null
           done
 
