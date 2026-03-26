@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/**
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -14,7 +15,7 @@ jobs:
   create_or_update_pr:
     name: Create PR -> develop
     runs-on: ubuntu-latest
-    if: github.ref_type == 'branch'
+    if: github.ref_type == 'branch' && startsWith(github.ref_name, 'feature/')
     steps:
       - name: Check automation token
         id: token_check
@@ -42,6 +43,69 @@ jobs:
               core.info('Source branch is develop; skipping.');
               return;
             }
+
+            const existing = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              base: baseBranch,
+              head: `${owner}:${sourceBranch}`,
+              per_page: 1,
+            });
+
+            if (existing.data.length > 0) {
+              core.info(`PR already exists: #${existing.data[0].number}`);
+              return;
+            }
+
+            const title = `Auto PR: ${sourceBranch} -> ${baseBranch}`;
+            const body = [
+              'This PR was created automatically by CI.',
+              '',
+              `- Source branch: \`${sourceBranch}\``,
+              `- Target branch: \`${baseBranch}\``,
+              '',
+              'Please review before merging.'
+            ].join('\n');
+
+            const created = await github.rest.pulls.create({
+              owner,
+              repo,
+              title,
+              head: sourceBranch,
+              base: baseBranch,
+              body,
+              maintainer_can_modify: true,
+            });
+
+            core.info(`Created PR #${created.data.number}`);
+
+  create_or_update_pr_main:
+    name: Create PR develop -> main
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'branch' && github.ref_name == 'develop'
+    steps:
+      - name: Check automation token
+        id: token_check
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.AUTO_PR_TOKEN }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "AUTO_PR_TOKEN is not configured; skipping auto PR creation."
+          fi
+
+      - name: Create PR if missing
+        if: steps.token_check.outputs.enabled == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.AUTO_PR_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sourceBranch = context.ref.replace('refs/heads/', '');
+            const baseBranch = 'main';
 
             const existing = await github.rest.pulls.list({
               owner,
