@@ -10,8 +10,8 @@ from .appointment_events_consumers import (
     AppointmentRescheduledConsumer,
     PaymentCreatedConsumer,
     PaymentExpiredConsumer,
-    PaymentPaidConsumer,
     PaymentFailedConsumer,
+    PaymentPaidConsumer,
     PaymentRefundedConsumer,
 )
 

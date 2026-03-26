@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-
 from Domain.interfaces import PaymentRequest
 from infrastructure.providers.vnpay_provider import VnpayProvider
 

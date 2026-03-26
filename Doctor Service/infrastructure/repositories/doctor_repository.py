@@ -5,8 +5,8 @@ from Domain.entities.doctor import Doctor
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from Domain.value_objects.day_of_week import DayOfWeek
 from infrastructure.database.models import DoctorModel, DoctorScheduleModel
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy import and_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
 
@@ -103,3 +103,15 @@ class DoctorRepository(IDoctorRepository):
             )
             for m in models
         ]
+
+    async def update_average_rating(self, doctor_id: UUID7, average_rating: float):
+        import uuid
+
+        from sqlalchemy import update
+
+        await self.session.execute(
+            update(DoctorModel)
+            .where(DoctorModel.user_id == uuid.UUID(str(doctor_id)))
+            .values(average_rating=average_rating, rating_count=DoctorModel.rating_count + 1)
+        )
+        await self.session.flush()

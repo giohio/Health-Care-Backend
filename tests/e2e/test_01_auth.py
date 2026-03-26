@@ -14,7 +14,6 @@ Covers:
 
 from tests.conftest import AUTH_URL, short_id
 
-
 SECRET_FIELD = "pass" + "word"
 
 

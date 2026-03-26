@@ -20,3 +20,11 @@ class INotificationRepository(ABC):
     @abstractmethod
     async def mark_read(self, notification_id: UUID7) -> Notification | None:
         pass
+
+    @abstractmethod
+    async def count_unread(self, user_id: UUID7) -> int:
+        pass
+
+    @abstractmethod
+    async def mark_all_read(self, user_id: UUID7) -> int:
+        pass

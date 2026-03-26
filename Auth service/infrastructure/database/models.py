@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from Domain.entities.user import UserRole
 from healthai_db.base import TimestampMixin, UUIDMixin

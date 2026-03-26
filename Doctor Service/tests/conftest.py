@@ -2,8 +2,9 @@
 Pytest configuration for Doctor Service unit tests.
 This ensures the service's Application and Domain modules are importable.
 """
-import sys
+
 import os
+import sys
 from pathlib import Path
 
 # Get the service root directory (two levels up from this file)
@@ -16,4 +17,4 @@ if service_root_str not in sys.path:
     sys.path.insert(0, service_root_str)
 
 # Also set the environment variable for subprocess calls
-os.environ['PYTHONPATH'] = service_root_str + os.pathsep + os.environ.get('PYTHONPATH', '')
+os.environ["PYTHONPATH"] = service_root_str + os.pathsep + os.environ.get("PYTHONPATH", "")

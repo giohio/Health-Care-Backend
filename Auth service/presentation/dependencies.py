@@ -4,13 +4,7 @@ from typing import AsyncGenerator
 from Application import LoginUseCase, LogOutUseCase, RefreshTokenUseCase, RegisterService
 from Domain.interfaces import IEventPublisher
 from fastapi import Depends
-from infrastructure import (
-    AsyncSessionLocal,
-    JWTHandler,
-    PasswordHasher,
-    RefreshTokenRepository,
-    UserRepository
-)
+from infrastructure import AsyncSessionLocal, JWTHandler, PasswordHasher, RefreshTokenRepository, UserRepository
 from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 from sqlalchemy.ext.asyncio import AsyncSession
 

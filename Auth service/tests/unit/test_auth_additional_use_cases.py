@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
 import asyncio
+from datetime import datetime, timedelta
 
 import pytest
-
 from Application.log_out import LogOutUseCase
 from Application.login_service import LoginUseCase
 from Application.refresh_token import RefreshTokenUseCase

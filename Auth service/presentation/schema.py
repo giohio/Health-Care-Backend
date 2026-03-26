@@ -56,3 +56,13 @@ class RefreshTokenRequest(BaseModel):
 class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
     logout_all_devices: bool = False
+
+
+class MeResponse(BaseModel):
+    id: UUID
+    email: str
+    role: UserRole
+    is_active: bool
+    created_at: str
+
+    model_config = ConfigDict(from_attributes=True)

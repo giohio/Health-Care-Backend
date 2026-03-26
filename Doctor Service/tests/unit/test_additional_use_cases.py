@@ -1,29 +1,24 @@
-from uuid import uuid4
 import asyncio
 from datetime import time
+from uuid import uuid4
 
 import pytest
-
-from Application.dtos import SpecialtyDTO, ScheduleDTO
+from Application.dtos import ScheduleDTO, SpecialtyDTO
 from Application.use_cases.list_specialties import ListSpecialtiesUseCase
+from Application.use_cases.save_specialty import SaveSpecialtyUseCase
 from Application.use_cases.search_available_doctors import SearchAvailableDoctorsUseCase
 from Application.use_cases.set_auto_confirm_settings import SetAutoConfirmSettingsUseCase
-from Application.use_cases.save_specialty import SaveSpecialtyUseCase
 from Application.use_cases.update_schedule import UpdateScheduleUseCase
-
 from Domain.entities.doctor import Doctor
-from Domain.entities.specialty import Specialty
 from Domain.entities.doctor_schedule import DoctorSchedule
+from Domain.entities.specialty import Specialty
+from Domain.exceptions.domain_exceptions import DoctorNotFoundException, SpecialtyAlreadyExistsException
 from Domain.value_objects.day_of_week import DayOfWeek
-from Domain.exceptions.domain_exceptions import (
-    DoctorNotFoundException,
-    SpecialtyAlreadyExistsException,
-)
-
 
 # ============================================================================
 # FAKE OBJECTS
 # ============================================================================
+
 
 class FakeSpecialtyRepo:
     def __init__(self, specialties=None):
@@ -117,14 +112,13 @@ class FakePublisher:
 # LIST SPECIALTIES USE CASE TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_list_specialties_returns_all_specialties():
     """Happy path: Returns all specialties from repo"""
     spec1 = Specialty(id=uuid4(), name="Cardiology", description="Heart specialist")
     spec2 = Specialty(id=uuid4(), name="Neurology", description="Brain specialist")
-    repo = FakeSpecialtyRepo(
-        specialties={spec1.id: spec1, spec2.id: spec2}
-    )
+    repo = FakeSpecialtyRepo(specialties={spec1.id: spec1, spec2.id: spec2})
     use_case = ListSpecialtiesUseCase(specialty_repo=repo)
 
     result = await use_case.execute()
@@ -162,6 +156,7 @@ async def test_list_specialties_returns_dto_objects():
 # ============================================================================
 # SEARCH AVAILABLE DOCTORS USE CASE TESTS
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_search_available_doctors_happy_path():
@@ -210,9 +205,7 @@ async def test_search_available_doctors_filters_by_specialty():
     other_specialty_id = uuid4()
 
     doctor1 = Doctor(user_id=uuid4(), full_name="Dr. A", specialty_id=specialty_id)
-    doctor2 = Doctor(
-        user_id=uuid4(), full_name="Dr. B", specialty_id=other_specialty_id
-    )
+    doctor2 = Doctor(user_id=uuid4(), full_name="Dr. B", specialty_id=other_specialty_id)
 
     doctor_repo = FakeDoctorRepo(doctors={doctor1.user_id: doctor1, doctor2.user_id: doctor2})
 
@@ -230,6 +223,7 @@ async def test_search_available_doctors_filters_by_specialty():
 # SET AUTO CONFIRM SETTINGS USE CASE TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_set_auto_confirm_settings_happy_path():
     """Happy path: Updates auto confirm settings for doctor"""
@@ -238,9 +232,7 @@ async def test_set_auto_confirm_settings_happy_path():
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
-    result = await use_case.execute(
-        doctor_id, auto_confirm=True, confirmation_timeout_minutes=10
-    )
+    result = await use_case.execute(doctor_id, auto_confirm=True, confirmation_timeout_minutes=10)
 
     assert result.auto_confirm == True
     assert result.confirmation_timeout_minutes == 10
@@ -256,9 +248,7 @@ async def test_set_auto_confirm_settings_with_false_value():
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
-    result = await use_case.execute(
-        doctor_id, auto_confirm=False, confirmation_timeout_minutes=5
-    )
+    result = await use_case.execute(doctor_id, auto_confirm=False, confirmation_timeout_minutes=5)
 
     assert result.auto_confirm == False
     assert result.confirmation_timeout_minutes == 5
@@ -284,9 +274,7 @@ async def test_set_auto_confirm_settings_negative_timeout_raises_error():
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
     with pytest.raises(ValueError, match="confirmation_timeout_minutes must be greater than 0"):
-        await use_case.execute(
-            doctor_id, auto_confirm=True, confirmation_timeout_minutes=-5
-        )
+        await use_case.execute(doctor_id, auto_confirm=True, confirmation_timeout_minutes=-5)
 
 
 @pytest.mark.asyncio
@@ -298,9 +286,7 @@ async def test_set_auto_confirm_settings_zero_timeout_raises_error():
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
     with pytest.raises(ValueError, match="confirmation_timeout_minutes must be greater than 0"):
-        await use_case.execute(
-            doctor_id, auto_confirm=True, confirmation_timeout_minutes=0
-        )
+        await use_case.execute(doctor_id, auto_confirm=True, confirmation_timeout_minutes=0)
 
 
 @pytest.mark.asyncio
@@ -311,9 +297,7 @@ async def test_set_auto_confirm_settings_minimum_valid_timeout():
     repo = FakeDoctorRepo(doctors={doctor_id: doctor})
     use_case = SetAutoConfirmSettingsUseCase(doctor_repo=repo)
 
-    result = await use_case.execute(
-        doctor_id, auto_confirm=True, confirmation_timeout_minutes=1
-    )
+    result = await use_case.execute(doctor_id, auto_confirm=True, confirmation_timeout_minutes=1)
 
     assert result.confirmation_timeout_minutes == 1
 
@@ -321,6 +305,7 @@ async def test_set_auto_confirm_settings_minimum_valid_timeout():
 # ============================================================================
 # SAVE SPECIALTY USE CASE TESTS
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_save_specialty_creates_new_specialty():
@@ -399,6 +384,7 @@ async def test_save_specialty_allows_same_name_for_update():
 # UPDATE SCHEDULE USE CASE TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_update_schedule_replaces_doctor_schedule():
     """Happy path: Replaces all schedules for doctor"""
@@ -457,9 +443,27 @@ async def test_update_schedule_creates_multiple_schedules():
     )
 
     dtos = [
-        ScheduleDTO(doctor_id=doctor_id, day_of_week=DayOfWeek.MONDAY, start_time=time(9, 0), end_time=time(17, 0), slot_duration_minutes=30),
-        ScheduleDTO(doctor_id=doctor_id, day_of_week=DayOfWeek.TUESDAY, start_time=time(9, 0), end_time=time(17, 0), slot_duration_minutes=30),
-        ScheduleDTO(doctor_id=doctor_id, day_of_week=DayOfWeek.WEDNESDAY, start_time=time(10, 0), end_time=time(18, 0), slot_duration_minutes=30),
+        ScheduleDTO(
+            doctor_id=doctor_id,
+            day_of_week=DayOfWeek.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            slot_duration_minutes=30,
+        ),
+        ScheduleDTO(
+            doctor_id=doctor_id,
+            day_of_week=DayOfWeek.TUESDAY,
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            slot_duration_minutes=30,
+        ),
+        ScheduleDTO(
+            doctor_id=doctor_id,
+            day_of_week=DayOfWeek.WEDNESDAY,
+            start_time=time(10, 0),
+            end_time=time(18, 0),
+            slot_duration_minutes=30,
+        ),
     ]
 
     result = await use_case.execute(doctor_id, dtos)
@@ -521,8 +525,20 @@ async def test_update_schedule_clears_existing_before_adding_new():
 
     # Add 2 new schedules
     new_dtos = [
-        ScheduleDTO(doctor_id=doctor_id, day_of_week=DayOfWeek.THURSDAY, start_time=time(9, 0), end_time=time(17, 0), slot_duration_minutes=30),
-        ScheduleDTO(doctor_id=doctor_id, day_of_week=DayOfWeek.FRIDAY, start_time=time(9, 0), end_time=time(17, 0), slot_duration_minutes=30),
+        ScheduleDTO(
+            doctor_id=doctor_id,
+            day_of_week=DayOfWeek.THURSDAY,
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            slot_duration_minutes=30,
+        ),
+        ScheduleDTO(
+            doctor_id=doctor_id,
+            day_of_week=DayOfWeek.FRIDAY,
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            slot_duration_minutes=30,
+        ),
     ]
 
     result = await use_case.execute(doctor_id, new_dtos)

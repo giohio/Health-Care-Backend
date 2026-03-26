@@ -12,7 +12,6 @@ from Domain.value_objects.payment_status import PaymentStatus
 from healthai_db import OutboxWriter
 from healthai_events.consumer import BaseConsumer
 
-
 logger = logging.getLogger(__name__)
 
 

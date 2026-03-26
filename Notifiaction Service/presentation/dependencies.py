@@ -2,7 +2,9 @@ from functools import lru_cache
 from typing import Annotated
 
 from Application.use_cases.create_notification import CreateNotificationUseCase
+from Application.use_cases.get_unread_count import GetUnreadCountUseCase
 from Application.use_cases.list_notifications import ListNotificationsUseCase
+from Application.use_cases.mark_all_read import MarkAllReadUseCase
 from Application.use_cases.mark_notification_read import MarkNotificationReadUseCase
 from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.realtime_notifier import IRealtimeNotifier
@@ -56,3 +58,15 @@ def get_mark_notification_read_use_case(
     repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
 ):
     return MarkNotificationReadUseCase(repo)
+
+
+def get_unread_count_use_case(
+    repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
+):
+    return GetUnreadCountUseCase(repo)
+
+
+def get_mark_all_read_use_case(
+    repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
+):
+    return MarkAllReadUseCase(repo)

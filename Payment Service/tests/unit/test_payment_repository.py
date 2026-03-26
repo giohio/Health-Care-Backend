@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
-
 from Domain.entities.payment import Payment
 from Domain.value_objects.payment_status import PaymentStatus
 from Domain.value_objects.payment_transaction_type import PaymentTransactionType

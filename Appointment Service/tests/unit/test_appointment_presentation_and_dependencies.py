@@ -3,8 +3,6 @@ from datetime import date, time
 from types import SimpleNamespace
 from uuid import uuid4
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,
     InvalidStatusTransitionError,
@@ -13,8 +11,9 @@ from Domain.exceptions.domain_exceptions import (
 )
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from healthai_common import SagaFailedError
-
 from presentation import dependencies
 from presentation.dependencies import get_appointment_repo, get_doctor_queue_use_case
 from presentation.routes.appointments import router
@@ -226,9 +225,7 @@ def test_book_appointment_success_and_exception_mappings():
     conflict = client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
     assert conflict.status_code == 409
 
-    app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(
-        exc=SagaFailedError("step failed")
-    )
+    app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(exc=SagaFailedError("step failed"))
     bad_request = client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
     assert bad_request.status_code == 400
 

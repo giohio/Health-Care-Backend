@@ -1,18 +1,11 @@
 import asyncio
 from types import SimpleNamespace
-from uuid import uuid4
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.requests import Request
-
-from presentation.dependencies import (
-    get_event_publisher,
-    get_get_payment_use_case,
-    get_process_vnpay_ipn_use_case,
-)
+from presentation.dependencies import get_event_publisher, get_get_payment_use_case, get_process_vnpay_ipn_use_case
 from presentation.routes.payments import router
+from starlette.requests import Request
 
 
 class DummyProcessIpnUseCase:

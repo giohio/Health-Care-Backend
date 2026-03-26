@@ -64,21 +64,22 @@ class TestNoShow:
 
         # Wait for confirmed
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "confirmed", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "CONFIRMED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Doctor marks no-show
         r = await http.put(f"{APPOINTMENT_URL}/{appt_id}/no-show", headers=d_header)
         assert r.status_code == 200
-        assert r.json()["status"] == "no_show"
+        assert r.json()["status"] == "NO_SHOW"
 
         # Appointment no_show
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "no_show", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "NO_SHOW", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Payment refunded
         from tests.helpers.wait import wait_for_payment_status
+
         payment_after = await wait_for_payment_status(
             http, PAYMENT_URL, appt_id, ("refunded", "refund_pending"), patient["access_token"], timeout=EVENT_TIMEOUT
         )

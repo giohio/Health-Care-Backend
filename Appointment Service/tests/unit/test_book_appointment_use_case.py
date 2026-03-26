@@ -1,11 +1,9 @@
+import asyncio
 from datetime import date, time
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.book_appointment import BookAppointmentSaga
-from Domain.entities.appointment import Appointment
 from Domain.exceptions.domain_exceptions import SlotNotAvailableError
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus

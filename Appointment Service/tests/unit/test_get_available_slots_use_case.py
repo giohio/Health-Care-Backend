@@ -1,9 +1,8 @@
-from datetime import date, time, datetime, timedelta
-from uuid import uuid4
 import asyncio
+from datetime import date, datetime, time
+from uuid import uuid4
 
 import pytest
-
 from Application.use_cases.get_available_slots import GetAvailableSlotsUseCase
 
 
@@ -17,9 +16,10 @@ class FakeRepo:
 
 
 class FakeDoctorClient:
-    def __init__(self, schedule=None, config=None):
+    def __init__(self, schedule=None, config=None, enhanced_schedule=None):
         self.schedule = schedule
         self.config = config or {"duration_minutes": 30, "buffer_minutes": 5}
+        self.enhanced_schedule = enhanced_schedule
 
     async def get_type_config(self, specialty_id, appointment_type):
         await asyncio.sleep(0)
@@ -28,6 +28,10 @@ class FakeDoctorClient:
     async def get_schedule(self, doctor_id):
         await asyncio.sleep(0)
         return self.schedule
+
+    async def get_enhanced_schedule(self, doctor_id, appointment_date):
+        await asyncio.sleep(0)
+        return self.enhanced_schedule
 
 
 @pytest.mark.asyncio
@@ -157,7 +161,12 @@ async def test_get_available_slots_respects_slot_duration():
     )
 
     for slot in result.slots:
-        slot_duration_minutes = int((datetime.combine(date.today(), slot.end_time) - datetime.combine(date.today(), slot.start_time)).total_seconds() / 60)
+        slot_duration_minutes = int(
+            (
+                datetime.combine(date.today(), slot.end_time) - datetime.combine(date.today(), slot.start_time)
+            ).total_seconds()
+            / 60
+        )
         assert slot_duration_minutes == 60
 
 

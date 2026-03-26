@@ -13,8 +13,7 @@ from healthai_events import OutboxRelay, RabbitMQPublisher
 from infrastructure.config import settings
 from infrastructure.consumers import PaymentExpiryConsumer, PaymentRefundRequestedConsumer, PaymentRequiredConsumer
 from infrastructure.database import models as _db_models  # noqa: F401
-from infrastructure.database.session import AsyncSessionLocal
-from infrastructure.database.session import engine
+from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.providers.vnpay_provider import VnpayProvider
 from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 from infrastructure.repositories.payment_repository import PaymentRepository
@@ -27,11 +26,13 @@ if str(TRACING_DIR) not in sys.path:
 try:
     from telemetry import setup_logging, setup_telemetry  # noqa: E402
 except ModuleNotFoundError:
+
     def setup_logging(*_args, **_kwargs):
         return None
 
     def setup_telemetry(*_args, **_kwargs):
         return None
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

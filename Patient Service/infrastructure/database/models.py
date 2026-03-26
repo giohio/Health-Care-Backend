@@ -1,5 +1,5 @@
-from datetime import date, datetime
 import uuid
+from datetime import date, datetime
 from typing import Any
 
 from Domain.entities.patient_health_background import BloodType
@@ -68,3 +68,19 @@ class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PatientVitalsModel(Base):
+    __tablename__ = "patient_vitals"
+
+    id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("patient_profiles.id"), nullable=False)
+    recorded_by: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    height_cm: Mapped[float | None] = mapped_column(nullable=True)
+    weight_kg: Mapped[float | None] = mapped_column(nullable=True)
+    blood_pressure_systolic: Mapped[int | None] = mapped_column(nullable=True)
+    blood_pressure_diastolic: Mapped[int | None] = mapped_column(nullable=True)
+    heart_rate: Mapped[int | None] = mapped_column(nullable=True)
+    temperature_celsius: Mapped[float | None] = mapped_column(nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

@@ -1,9 +1,7 @@
 import asyncio
 
 import pytest
-
 from infrastructure.database import session as session_module
-from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 
 
 @pytest.mark.asyncio
@@ -46,5 +44,3 @@ async def test_get_db_commit_and_rollback(monkeypatch):
     with pytest.raises(RuntimeError):
         await agen2.athrow(RuntimeError("x"))
     assert db.rollbacks == 1
-
-

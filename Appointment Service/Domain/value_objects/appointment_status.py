@@ -2,13 +2,14 @@ from enum import Enum
 
 
 class AppointmentStatus(str, Enum):
-    PENDING_PAYMENT = "pending_payment"
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    DECLINED = "declined"
-    CANCELLED = "cancelled"
-    COMPLETED = "completed"
-    NO_SHOW = "no_show"
+    PENDING_PAYMENT = "PENDING_PAYMENT"
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    IN_PROGRESS = "IN_PROGRESS"
+    DECLINED = "DECLINED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+    NO_SHOW = "NO_SHOW"
 
 
 class CancelledBy(str, Enum):
@@ -29,8 +30,13 @@ VALID_TRANSITIONS = {
         AppointmentStatus.CANCELLED,
     ],
     AppointmentStatus.CONFIRMED: [
+        AppointmentStatus.IN_PROGRESS,
         AppointmentStatus.COMPLETED,
         AppointmentStatus.CANCELLED,
+        AppointmentStatus.NO_SHOW,
+    ],
+    AppointmentStatus.IN_PROGRESS: [
+        AppointmentStatus.COMPLETED,
         AppointmentStatus.NO_SHOW,
     ],
 }

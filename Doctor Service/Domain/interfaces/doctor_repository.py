@@ -22,3 +22,7 @@ class IDoctorRepository(ABC):
     @abstractmethod
     async def search_available(self, specialty_id: UUID7, day_of_week: int, time_slot: time) -> List[Doctor]:
         pass
+
+    @abstractmethod
+    async def update_average_rating(self, doctor_id: UUID7, average_rating: float):
+        pass

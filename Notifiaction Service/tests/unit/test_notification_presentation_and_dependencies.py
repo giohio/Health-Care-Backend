@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from presentation import dependencies
 from presentation.dependencies import get_list_notifications_use_case, get_mark_notification_read_use_case
 from presentation.routes.notifications import router
@@ -50,7 +49,12 @@ def test_notification_dependencies_smoke():
     assert repo is not None
     assert dependencies.get_ws_manager() is not None
     assert dependencies.get_email_sender() is dependencies.get_email_sender()
-    assert dependencies.get_create_notification_use_case(repo, dependencies.get_ws_manager(), dependencies.get_email_sender()) is not None
+    assert (
+        dependencies.get_create_notification_use_case(
+            repo, dependencies.get_ws_manager(), dependencies.get_email_sender()
+        )
+        is not None
+    )
     assert dependencies.get_list_notifications_use_case(repo) is not None
     assert dependencies.get_mark_notification_read_use_case(repo) is not None
 

@@ -20,7 +20,6 @@ if str(TRACING_DIR) not in sys.path:
 
 from telemetry import setup_logging, setup_telemetry  # noqa: E402
 
-
 logger = logging.getLogger(__name__)
 
 app = FastAPI(

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from Domain.entities.notification import Notification
 from Domain.interfaces.notification_repository import INotificationRepository
 from infrastructure.database.models import NotificationModel
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
 
@@ -57,6 +57,23 @@ class NotificationRepository(INotificationRepository):
         await self.session.flush()
         await self.session.commit()
         return self._to_entity(model)
+
+    async def count_unread(self, user_id: UUID7) -> int:
+        result = await self.session.execute(
+            select(func.count()).where(
+                NotificationModel.user_id == uuid.UUID(str(user_id)), NotificationModel.is_read.is_(False)
+            )
+        )
+        return result.scalar_one()
+
+    async def mark_all_read(self, user_id: UUID7) -> int:
+        result = await self.session.execute(
+            update(NotificationModel)
+            .where(NotificationModel.user_id == uuid.UUID(str(user_id)), NotificationModel.is_read.is_(False))
+            .values(is_read=True, read_at=datetime.now(timezone.utc))
+        )
+        await self.session.commit()
+        return result.rowcount
 
     @staticmethod
     def _to_entity(model: NotificationModel) -> Notification:

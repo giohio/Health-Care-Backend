@@ -3,19 +3,18 @@ from datetime import time
 from types import SimpleNamespace
 from uuid import uuid4
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from Domain.exceptions.domain_exceptions import DoctorNotFoundException, SpecialtyAlreadyExistsException
 from Domain.value_objects.day_of_week import DayOfWeek
-
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from presentation import dependencies
 from presentation.dependencies import (
     get_db,
     get_doctor_repo,
     get_list_specialties_use_case,
+    get_save_specialty_use_case,
     get_schedule_repo,
     get_search_available_doctors_use_case,
-    get_save_specialty_use_case,
     get_set_auto_confirm_settings_use_case,
     get_update_doctor_profile_use_case,
     get_update_schedule_use_case,
@@ -310,9 +309,7 @@ def test_schedules_and_specialties_routes_exception_mappings():
     class ListSpecialtiesUC:
         async def execute(self):
             await asyncio.sleep(0)
-            return [
-                SimpleNamespace(id=uuid4(), name="Cardiology", description="Heart")
-            ]
+            return [SimpleNamespace(id=uuid4(), name="Cardiology", description="Heart")]
 
     class SaveSpecialtyErrUC:
         async def execute(self, _dto):

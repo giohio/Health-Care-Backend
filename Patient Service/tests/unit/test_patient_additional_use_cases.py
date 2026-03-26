@@ -3,9 +3,8 @@ from datetime import date
 from uuid import uuid4
 
 import pytest
-
-from Application.event_handlers.user_registered import UserRegisteredHandler
 from Application.event_handlers import user_registered as user_registered_module
+from Application.event_handlers.user_registered import UserRegisteredHandler
 from Application.use_cases.get_profile import GetProfileUseCase
 from Application.use_cases.update_health import UpdateHealthBackgroundUseCase
 from Domain.entities.patient_health_background import BloodType, PatientHealthBackground

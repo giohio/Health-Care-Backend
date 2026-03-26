@@ -64,7 +64,7 @@ class TestReschedule:
         vnpay = VNPaySimulator(os.getenv("VNPAY_HASH_SECRET"), PAYMENT_URL)
         await vnpay.simulate_payment(http, payment["vnpay_txn_ref"], payment["amount"], success=True)
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "confirmed", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "CONFIRMED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Reschedule to next week
@@ -80,7 +80,7 @@ class TestReschedule:
         updated = r.json()
         assert updated["appointment_date"] == next_week
         assert updated["start_time"] == "10:00"
-        assert updated["status"] == "pending"
+        assert updated["status"] == "PENDING"
         assert updated["queue_number"] is None
 
         # Doctor notified to re-confirm
