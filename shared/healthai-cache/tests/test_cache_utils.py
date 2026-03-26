@@ -75,9 +75,10 @@ async def test_stampede_protection_single_flight(redis):
     key = "heavy-op"
     call_count = 0
     
-    def heavy_fn():
+    async def heavy_fn():
         nonlocal call_count
         call_count += 1
+        await asyncio.sleep(0)  # Satisfy lint warning "use async features"
         return {"data": "rich"}
     
     # Simple sequential test first to verify logic
