@@ -20,7 +20,7 @@ router = APIRouter(tags=["Payments"])
 async def get_payment(
     appointment_id: UUID,
     use_case: Annotated[GetPaymentUseCase, Depends(get_get_payment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     """Fetch payment record by appointment ID"""
     try:

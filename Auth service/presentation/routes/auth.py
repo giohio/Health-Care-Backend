@@ -55,7 +55,7 @@ async def register_staff(
     user_data: RegisterStaffRequest,
     register_service: Annotated[RegisterService, Depends(get_register_service)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    x_user_role: Annotated[str | None, Header(alias="X-User-Role")] = None,
+    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
 ):
     if x_user_role != UserRole.ADMIN.value:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
@@ -120,8 +120,8 @@ async def logout(
     response: Response,
     logout_use_case: Annotated[LogOutUseCase, Depends(get_logout_use_case)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    refresh_token: Annotated[str | None, Cookie()] = None,
-    x_user_id: Annotated[str | None, Header(alias="X-User-Id")] = None,
+    refresh_token: str | None = Cookie(default=None),
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ):
     try:
         token_to_use = logout_data.refresh_token or refresh_token
@@ -148,7 +148,7 @@ async def refresh_token(
     response: Response,
     refresh_use_case: Annotated[RefreshTokenUseCase, Depends(get_refresh_token_use_case)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    refresh_token_cookie: Annotated[str | None, Cookie(alias="refresh_token")] = None,
+    refresh_token_cookie: str | None = Cookie(default=None, alias="refresh_token"),
 ):
     try:
         token_to_use = refresh_data.refresh_token or refresh_token_cookie

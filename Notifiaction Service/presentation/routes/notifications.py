@@ -13,7 +13,7 @@ router = APIRouter(tags=["Notifications"])
 @router.get("/me", response_model=NotificationListResponse)
 async def list_my_notifications(
     use_case: Annotated[ListNotificationsUseCase, Depends(get_list_notifications_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
     limit: int = 50,
     offset: int = 0,
 ):

@@ -59,7 +59,7 @@ router = APIRouter(tags=["Appointments"])
 async def book_appointment(
     request: CreateAppointmentRequest,
     use_case: Annotated[BookAppointmentUseCase, Depends(get_book_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     try:
         if request.patient_id and request.patient_id != x_user_id:
@@ -95,8 +95,8 @@ async def list_patient_appointments(
 async def get_appointment_by_id(
     appointment_id: UUID,
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
-    x_user_role: Annotated[str, Header(alias="X-User-Role")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
+    x_user_role: str = Header(alias="X-User-Role"),
 ):
     appointment = await repo.get_by_id(appointment_id)
     if not appointment:
@@ -121,8 +121,8 @@ async def cancel_appointment(
     appointment_id: UUID,
     request: CancelAppointmentRequest,
     use_case: Annotated[CancelAppointmentUseCase, Depends(get_cancel_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
-    x_user_role: Annotated[str, Header(alias="X-User-Role")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
+    x_user_role: str = Header(alias="X-User-Role"),
 ):
     try:
         return await use_case.execute(
@@ -151,7 +151,7 @@ async def cancel_appointment(
 async def confirm_appointment(
     appointment_id: UUID,
     use_case: Annotated[ConfirmAppointmentUseCase, Depends(get_confirm_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -176,7 +176,7 @@ async def decline_appointment(
     appointment_id: UUID,
     request: DeclineAppointmentRequest,
     use_case: Annotated[DeclineAppointmentUseCase, Depends(get_decline_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id, request.reason)
@@ -202,7 +202,7 @@ async def reschedule_appointment(
     appointment_id: UUID,
     request: RescheduleAppointmentRequest,
     use_case: Annotated[RescheduleAppointmentUseCase, Depends(get_reschedule_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(
@@ -233,7 +233,7 @@ async def reschedule_appointment(
 async def complete_appointment(
     appointment_id: UUID,
     use_case: Annotated[CompleteAppointmentUseCase, Depends(get_complete_appointment_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -257,7 +257,7 @@ async def complete_appointment(
 async def mark_no_show(
     appointment_id: UUID,
     use_case: Annotated[MarkNoShowUseCase, Depends(get_mark_no_show_use_case)],
-    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    x_user_id: UUID = Header(alias="X-User-Id"),
 ):
     try:
         return await use_case.execute(appointment_id, x_user_id)
@@ -272,10 +272,10 @@ async def mark_no_show(
 @router.get("/doctor/{doctor_id}/slots", response_model=AvailableSlotsResponse)
 async def get_available_slots(
     doctor_id: UUID,
-    appointment_date: date,
-    specialty_id: UUID,
     use_case: Annotated[GetAvailableSlotsUseCase, Depends(get_available_slots_use_case)],
-    appointment_type: Annotated[str, Query()] = "general",
+    appointment_date: date = Query(...),
+    specialty_id: UUID = Query(...),
+    appointment_type: str = Query(default="general"),
 ):
     return await use_case.execute(
         doctor_id=doctor_id,
@@ -293,8 +293,8 @@ async def get_available_slots(
 async def get_doctor_queue(
     doctor_id: UUID,
     use_case: Annotated[GetDoctorQueueUseCase, Depends(get_doctor_queue_use_case)],
-    appointment_date: Annotated[date | None, Query()] = None,
-    date_param: Annotated[date | None, Query(alias="date")] = None,
+    appointment_date: date | None = Query(default=None),
+    date_param: date | None = Query(default=None, alias="date"),
 ):
     effective_date = appointment_date or date_param
     if effective_date is None:
