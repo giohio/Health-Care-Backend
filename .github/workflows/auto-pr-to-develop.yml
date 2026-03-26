@@ -16,9 +16,22 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_type == 'branch'
     steps:
+      - name: Check automation token
+        id: token_check
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.AUTO_PR_TOKEN }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "AUTO_PR_TOKEN is not configured; skipping auto PR creation."
+          fi
+
       - name: Create PR if missing
+        if: steps.token_check.outputs.enabled == 'true'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.AUTO_PR_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
