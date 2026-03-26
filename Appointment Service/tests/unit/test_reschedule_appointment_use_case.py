@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date, time
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.reschedule_appointment import RescheduleAppointmentUseCase
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,
@@ -38,7 +37,7 @@ class FakeRepo:
     async def save(self, appointment):
         await asyncio.sleep(0)
         self.saved.append(appointment)
-    
+
     async def is_slot_taken(self, doctor_id, appointment_date, start_time, end_time, exclude_id=None):
         await asyncio.sleep(0)
         return False

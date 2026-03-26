@@ -1,17 +1,12 @@
-from types import SimpleNamespace
 import asyncio
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from presentation.dependencies import (
-    get_event_publisher,
-    get_get_payment_use_case,
-    get_process_vnpay_ipn_use_case,
-)
+from presentation.dependencies import get_event_publisher, get_get_payment_use_case, get_process_vnpay_ipn_use_case
 from presentation.routes.payments import router
 
 
@@ -45,9 +40,7 @@ def app_with_overrides():
     app = FastAPI()
     app.include_router(router)
 
-    get_payment_uc = DummyGetPaymentUseCase(
-        payload={"id": "p-1", "status": "pending", "appointment_id": str(uuid4())}
-    )
+    get_payment_uc = DummyGetPaymentUseCase(payload={"id": "p-1", "status": "pending", "appointment_id": str(uuid4())})
     ipn_uc = DummyProcessIpnUseCase()
 
     app.dependency_overrides[get_get_payment_use_case] = lambda: get_payment_uc

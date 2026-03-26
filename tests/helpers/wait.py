@@ -128,6 +128,7 @@ async def wait_for_payment_record(
     )
     return result["body"]
 
+
 async def wait_for_payment_status(
     http: httpx.AsyncClient,
     payment_url: str,

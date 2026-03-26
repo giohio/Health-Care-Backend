@@ -4,7 +4,6 @@ import os
 import sys
 from pathlib import Path
 
-
 service_root = Path(__file__).resolve().parent.parent
 workspace_root = service_root.parent
 

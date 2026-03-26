@@ -14,7 +14,6 @@ from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.repositories.repositories import PatientHealthRepository, PatientProfileRepository
 from presentation.routes import internal, patient
 
-
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +23,6 @@ if str(TRACING_DIR) not in sys.path:
     sys.path.append(str(TRACING_DIR))
 
 from telemetry import setup_logging, setup_telemetry  # noqa: E402
-
 
 app = FastAPI(
     title="Patient Profile Service",

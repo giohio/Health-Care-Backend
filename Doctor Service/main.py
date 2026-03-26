@@ -15,13 +15,11 @@ from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.repositories import DoctorRepository
 from presentation.routes import doctors_router, schedules_router, specialties_router
 
-
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
 if str(TRACING_DIR) not in sys.path:
     sys.path.append(str(TRACING_DIR))
 
 from telemetry import setup_logging, setup_telemetry  # noqa: E402
-
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

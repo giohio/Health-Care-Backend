@@ -2,7 +2,6 @@ import asyncio
 from uuid import uuid4
 
 import pytest
-
 from infrastructure.database import session as session_module
 from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 

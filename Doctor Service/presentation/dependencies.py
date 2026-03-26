@@ -66,3 +66,108 @@ def get_search_available_doctors_use_case(repo: Annotated[DoctorRepository, Depe
 
 def get_set_auto_confirm_settings_use_case(repo: Annotated[DoctorRepository, Depends(get_doctor_repo)]):
     return SetAutoConfirmSettingsUseCase(repo)
+
+
+def get_rating_repo(session: Annotated[AsyncSession, Depends(get_db)]):
+    from infrastructure.repositories.rating_repository import RatingRepository
+
+    return RatingRepository(session)
+
+
+def get_appointment_repo():
+    from infrastructure.clients.appointment_service_client import AppointmentServiceClient
+    from infrastructure.repositories.appointment_repository import AppointmentRepository
+
+    return AppointmentRepository(AppointmentServiceClient())
+
+
+def get_submit_rating_use_case(
+    rating_repo=Depends(get_rating_repo),
+    doctor_repo=Depends(get_doctor_repo),
+    appointment_repo=Depends(get_appointment_repo),
+):
+    from Application.use_cases.submit_rating import SubmitRatingUseCase
+
+    return SubmitRatingUseCase(rating_repo, doctor_repo, appointment_repo)
+
+
+def get_list_ratings_use_case(rating_repo=Depends(get_rating_repo)):
+    from Application.use_cases.list_ratings import ListRatingsUseCase
+
+    return ListRatingsUseCase(rating_repo)
+
+
+def get_availability_repo(session: Annotated[AsyncSession, Depends(get_db)]):
+    from infrastructure.repositories.availability_repository import AvailabilityRepository
+
+    return AvailabilityRepository(session)
+
+
+def get_day_off_repo(session: Annotated[AsyncSession, Depends(get_db)]):
+    from infrastructure.repositories.day_off_repository import DayOffRepository
+
+    return DayOffRepository(session)
+
+
+def get_service_offering_repo(session: Annotated[AsyncSession, Depends(get_db)]):
+    from infrastructure.repositories.service_offering_repository import ServiceOfferingRepository
+
+    return ServiceOfferingRepository(session)
+
+
+def get_set_availability_use_case(repo=Depends(get_availability_repo)):
+    from Application.use_cases.set_availability import SetAvailabilityUseCase
+
+    return SetAvailabilityUseCase(repo)
+
+
+def get_get_availability_use_case(repo=Depends(get_availability_repo)):
+    from Application.use_cases.get_availability import GetAvailabilityUseCase
+
+    return GetAvailabilityUseCase(repo)
+
+
+def get_add_day_off_use_case(repo=Depends(get_day_off_repo)):
+    from Application.use_cases.manage_day_off import AddDayOffUseCase
+
+    return AddDayOffUseCase(repo)
+
+
+def get_remove_day_off_use_case(repo=Depends(get_day_off_repo)):
+    from Application.use_cases.manage_day_off import RemoveDayOffUseCase
+
+    return RemoveDayOffUseCase(repo)
+
+
+def get_add_service_offering_use_case(repo=Depends(get_service_offering_repo)):
+    from Application.use_cases.manage_service_offerings import AddServiceOfferingUseCase
+
+    return AddServiceOfferingUseCase(repo)
+
+
+def get_update_service_offering_use_case(repo=Depends(get_service_offering_repo)):
+    from Application.use_cases.manage_service_offerings import UpdateServiceOfferingUseCase
+
+    return UpdateServiceOfferingUseCase(repo)
+
+
+def get_list_service_offerings_use_case(repo=Depends(get_service_offering_repo)):
+    from Application.use_cases.manage_service_offerings import ListServiceOfferingsUseCase
+
+    return ListServiceOfferingsUseCase(repo)
+
+
+def get_deactivate_service_offering_use_case(repo=Depends(get_service_offering_repo)):
+    from Application.use_cases.manage_service_offerings import DeactivateServiceOfferingUseCase
+
+    return DeactivateServiceOfferingUseCase(repo)
+
+
+def get_enhanced_schedule_use_case(
+    availability_repo=Depends(get_availability_repo),
+    day_off_repo=Depends(get_day_off_repo),
+    service_offering_repo=Depends(get_service_offering_repo),
+):
+    from Application.use_cases.get_enhanced_schedule import GetEnhancedScheduleUseCase
+
+    return GetEnhancedScheduleUseCase(availability_repo, day_off_repo, service_offering_repo)

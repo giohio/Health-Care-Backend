@@ -21,6 +21,7 @@ class Appointment:
     status: AppointmentStatus = AppointmentStatus.PENDING_PAYMENT
     payment_status: PaymentStatus = PaymentStatus.PROCESSING
     confirmed_at: datetime | None = None
+    started_at: datetime | None = None
     completed_at: datetime | None = None
     cancelled_at: datetime | None = None
     cancelled_by: str | None = None

@@ -6,7 +6,7 @@ from Application.use_cases.update_schedule import UpdateScheduleUseCase
 from Domain.exceptions.domain_exceptions import DoctorNotFoundException
 from Domain.interfaces.schedule_repository import IScheduleRepository
 from fastapi import APIRouter, Depends, HTTPException
-from presentation.dependencies import get_schedule_repo, get_update_schedule_use_case, get_db
+from presentation.dependencies import get_db, get_schedule_repo, get_update_schedule_use_case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/{doctor_id}/schedule", tags=["Schedules"])

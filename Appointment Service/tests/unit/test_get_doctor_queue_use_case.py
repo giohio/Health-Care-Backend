@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date, time
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.get_doctor_queue import GetDoctorQueueUseCase
 from Domain.value_objects.appointment_status import AppointmentStatus
 
@@ -103,7 +102,7 @@ async def test_get_doctor_queue_filters_by_doctor_id():
     result = await use_case.execute(doctor_id=doctor_id1, appointment_date=appointment_date)
 
     assert len(result) == 1
-    assert result[0]["patient_id"] == appt1.patient_id
+    assert result[0]["patient_id"] == str(appt1.patient_id)
 
 
 @pytest.mark.asyncio
@@ -122,7 +121,7 @@ async def test_get_doctor_queue_filters_by_appointment_date():
     result = await use_case.execute(doctor_id=doctor_id, appointment_date=date1)
 
     assert len(result) == 1
-    assert result[0]["appointment_date"] == date1
+    assert result[0]["appointment_date"] == str(date1)
 
 
 @pytest.mark.asyncio
@@ -143,12 +142,12 @@ async def test_get_doctor_queue_includes_all_appointment_fields():
     use_case = GetDoctorQueueUseCase(appointment_repo=repo, doctor_client=doctor_client)
     result = await use_case.execute(doctor_id=doctor_id, appointment_date=appointment_date)
 
-    assert result[0]["appointment_id"] == appt.id
-    assert result[0]["patient_id"] == patient_id
+    assert result[0]["appointment_id"] == str(appt.id)
+    assert result[0]["patient_id"] == str(patient_id)
     assert result[0]["patient_name"] == "Test Patient"
-    assert result[0]["appointment_date"] == appointment_date
-    assert result[0]["start_time"] == time(10, 0)
-    assert result[0]["end_time"] == time(10, 30)
+    assert result[0]["appointment_date"] == str(appointment_date)
+    assert result[0]["start_time"] == str(time(10, 0))
+    assert result[0]["end_time"] == str(time(10, 30))
     assert result[0]["status"] == AppointmentStatus.CONFIRMED
     assert result[0]["appointment_type"] == "specialized"
     assert result[0]["chief_complaint"] == "Severe headache"

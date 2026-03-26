@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
 import asyncio
+from datetime import datetime, timedelta
 
 import pytest
-
 from Application.log_out import LogOutUseCase
 from Application.login_service import LoginUseCase
 from Application.refresh_token import RefreshTokenUseCase
@@ -209,7 +208,9 @@ async def test_register_service_creates_user_and_publishes_event():
 async def test_register_service_invalid_email_raises():
     user_repo = FakeUserRepo(user=None)
     user_repo.create = lambda _user: None
-    use_case = RegisterService(user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher())
+    use_case = RegisterService(
+        user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher()
+    )
 
     with pytest.raises(ValueError, match="Invalid email format"):
         await use_case.execute("not-an-email", "Valid1!A")
@@ -219,7 +220,9 @@ async def test_register_service_invalid_email_raises():
 async def test_register_service_existing_email_raises():
     existing_user = User("dup@example.com", "hashed", UserRole.PATIENT)
     user_repo = FakeUserRepo(user=existing_user)
-    use_case = RegisterService(user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher())
+    use_case = RegisterService(
+        user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher()
+    )
 
     with pytest.raises(ValueError, match="Email already exists"):
         await use_case.execute("dup@example.com", "Valid1!A")

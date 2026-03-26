@@ -3,10 +3,9 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from Application.use_cases.create_notification import CreateNotificationUseCase
 from Application.use_cases.list_notifications import ListNotificationsUseCase
+from pydantic import ValidationError
 
 
 class FakeRepo:

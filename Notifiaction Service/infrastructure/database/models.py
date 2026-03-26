@@ -16,5 +16,5 @@ class NotificationModel(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

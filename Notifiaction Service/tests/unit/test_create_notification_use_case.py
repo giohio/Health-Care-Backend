@@ -2,7 +2,6 @@ import asyncio
 from uuid import uuid4
 
 import pytest
-
 from Application.use_cases.create_notification import CreateNotificationUseCase
 
 

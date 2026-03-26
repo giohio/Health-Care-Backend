@@ -20,6 +20,12 @@ class IAppointmentRepository(ABC):
         pass
 
     @abstractmethod
+    async def list_by_doctor(
+        self, doctor_id: UUID7, date_from: date | None = None, date_to: date | None = None
+    ) -> List[Appointment]:
+        pass
+
+    @abstractmethod
     async def check_doctor_availability(self, doctor_id: UUID7, appointment_date: date, start_time: time) -> bool:
         """Returns True if the doctor is FREE at the given time."""
 
@@ -53,3 +59,15 @@ class IAppointmentRepository(ABC):
         appointment_date: date,
     ) -> list[tuple[time, time]]:
         """Return booked time ranges for active appointments."""
+
+    @abstractmethod
+    async def count_confirmed_on_date(self, doctor_id: UUID7, appointment_date: date) -> int:
+        """Count confirmed and pending appointments for a doctor on a specific date."""
+
+    @abstractmethod
+    async def get_upcoming_for_reminders(self, start_time, end_time) -> List[Appointment]:
+        """Get upcoming appointments for reminder processing."""
+
+    @abstractmethod
+    async def mark_reminder_sent(self, appointment_id: UUID7, reminder_type: str):
+        """Mark reminder as sent for an appointment."""

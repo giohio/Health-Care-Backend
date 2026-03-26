@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date, time
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.cancel_appointment import CancelAppointmentUseCase
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,
@@ -114,12 +113,12 @@ async def test_cancel_appointment_by_patient_refunds_if_paid():
 async def test_cancel_appointment_by_admin_works():
     admin_id = uuid4()
     appointment = FakeAppointment(patient_id=uuid4(), payment_status=PaymentStatus.PROCESSING, can_cancel=True)
-    
+
     def mock_can_cancel_admin(actor_id, actor_role):
         return actor_role == "admin"
-    
+
     appointment.can_be_cancelled_by = mock_can_cancel_admin
-    
+
     session = FakeSession()
     repo = FakeRepo(appointment)
     publisher = FakePublisher()
@@ -186,12 +185,12 @@ async def test_cancel_appointment_invalid_transition_raises():
     patient_id = uuid4()
     appointment = FakeAppointment(patient_id=patient_id, payment_status=PaymentStatus.PAID, can_cancel=True)
     appointment.status = AppointmentStatus.COMPLETED
-    
+
     def mock_can_transition(target):
         return False
-    
+
     appointment.can_transition_to = mock_can_transition
-    
+
     session = FakeSession()
     repo = FakeRepo(appointment)
     publisher = FakePublisher()

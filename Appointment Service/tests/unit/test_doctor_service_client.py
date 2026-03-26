@@ -1,10 +1,9 @@
+import asyncio
 from datetime import time
 from types import SimpleNamespace
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from infrastructure.clients.doctor_service_client import DoctorServiceClient
 
 

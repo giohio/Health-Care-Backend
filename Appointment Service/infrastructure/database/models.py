@@ -35,6 +35,7 @@ class AppointmentModel(Base):
         SQLEnum(PaymentStatus), default=PaymentStatus.UNPAID, nullable=False
     )
     confirmed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_by: Mapped[str | None] = mapped_column(String(20), nullable=True)

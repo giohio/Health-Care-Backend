@@ -76,9 +76,9 @@ class TestBookingManualConfirm:
 
         # Must be PENDING (not confirmed) after payment
         pending = await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "pending", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "PENDING", patient["access_token"], timeout=EVENT_TIMEOUT
         )
-        assert pending["status"] == "pending"
+        assert pending["status"] == "PENDING"
 
         # Doctor confirms
         r = await http.put(f"{APPOINTMENT_URL}/{appt_id}/confirm", headers=d_header)
@@ -86,7 +86,7 @@ class TestBookingManualConfirm:
 
         # Appointment confirmed
         confirmed = await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "confirmed", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "CONFIRMED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
         assert confirmed["queue_number"] >= 1
 
@@ -147,7 +147,7 @@ class TestBookingManualConfirm:
         await vnpay.simulate_payment(http, payment["vnpay_txn_ref"], payment["amount"], success=True)
 
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "pending", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "PENDING", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Doctor declines
@@ -158,7 +158,7 @@ class TestBookingManualConfirm:
 
         # Appointment cancelled (declined)
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "declined", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "DECLINED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Patient notified of decline

@@ -182,7 +182,7 @@ plugins:
 
   - name: opentelemetry
     config:
-      endpoint: https://jaeger:4318/v1/traces
+      endpoint: http://jaeger:4318/v1/traces
       resource_attributes:
         service.name: healthcare-gateway
       header_type: preserve

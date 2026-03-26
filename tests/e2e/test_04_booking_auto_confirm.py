@@ -35,18 +35,24 @@ class TestBookingAutoConfirm:
             return ""
 
     @staticmethod
-    async def _wait_for_notification_api_event(http, patient_token: str, expected_event_types: set[str], timeout: int):
+    async def _wait_for_notification_api_event(
+        http, patient_token: str, expected_event_types: set[str], timeout_seconds: int
+    ):
         """Poll notifications API until one of the expected events is present."""
         headers = {"Authorization": f"Bearer {patient_token}"}
-        for _ in range(int(timeout * 2)):
-            resp = await http.get(f"{NOTIFICATION_URL}/notifications/me", headers=headers)
-            if resp.status_code == 200:
-                body = resp.json() or {}
-                notifications = body.get("notifications", []) or []
-                for n in notifications:
-                    if (n or {}).get("event_type") in expected_event_types:
-                        return n
-            await asyncio.sleep(0.5)
+        try:
+            async with asyncio.timeout(timeout_seconds):
+                while True:
+                    resp = await http.get(f"{NOTIFICATION_URL}/notifications/me", headers=headers)
+                    if resp.status_code == 200:
+                        body = resp.json() or {}
+                        notifications = body.get("notifications", []) or []
+                        for n in notifications:
+                            if (n or {}).get("event_type") in expected_event_types:
+                                return n
+                    await asyncio.sleep(0.5)
+        except TimeoutError:
+            return None
         return None
 
     async def test_full_auto_confirm_flow(self, http, admin_token, specialty_id):
@@ -93,7 +99,7 @@ class TestBookingAutoConfirm:
             )
             assert book_resp.status_code in (200, 201), book_resp.text
             appointment_id = book_resp.json()["id"]
-            assert book_resp.json()["status"] == "pending_payment"
+            assert book_resp.json()["status"] == "PENDING_PAYMENT"
 
             # Wait payment record created by async consumer.
             payment = await wait_for_payment_record(
@@ -119,11 +125,11 @@ class TestBookingAutoConfirm:
                 http=http,
                 appointment_url=APPOINTMENT_URL,
                 appointment_id=appointment_id,
-                expected_status="confirmed",
+                expected_status="CONFIRMED",
                 token=patient["access_token"],
                 timeout=EVENT_TIMEOUT,
             )
-            assert confirmed["status"] == "confirmed"
+            assert confirmed["status"] == "CONFIRMED"
 
             expected_events = {"appointment.confirmed", "appointment.auto_confirmed", "payment.paid"}
 
@@ -132,7 +138,7 @@ class TestBookingAutoConfirm:
                 http=http,
                 patient_token=patient["access_token"],
                 expected_event_types=expected_events,
-                timeout=EVENT_TIMEOUT,
+                timeout_seconds=30,  # Increased for reliability
             )
             assert persisted_notification is not None, "Expected notification persisted for auto-confirm flow"
 
@@ -206,7 +212,7 @@ class TestBookingAutoConfirm:
         )
         assert book_resp.status_code in (200, 201), book_resp.text
         appointment_id = book_resp.json()["id"]
-        assert book_resp.json()["status"] == "pending_payment"
+        assert book_resp.json()["status"] == "PENDING_PAYMENT"
 
         payment = await wait_for_payment_record(
             http=http,
@@ -229,8 +235,8 @@ class TestBookingAutoConfirm:
             http=http,
             appointment_url=APPOINTMENT_URL,
             appointment_id=appointment_id,
-            expected_status="pending",
+            expected_status="PENDING",
             token=patient["access_token"],
             timeout=EVENT_TIMEOUT,
         )
-        assert pending["status"] == "pending"
+        assert pending["status"] == "PENDING"

@@ -1,10 +1,9 @@
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
-
 from Domain.entities.patient_health_background import PatientHealthBackground
 from Domain.entities.patient_profile import PatientProfile
+from fastapi import HTTPException
 from presentation import dependencies
 
 

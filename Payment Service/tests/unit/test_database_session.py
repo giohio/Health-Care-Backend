@@ -1,5 +1,4 @@
 import pytest
-
 from infrastructure.database import session as session_module
 
 

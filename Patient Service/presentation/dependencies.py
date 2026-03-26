@@ -37,3 +37,44 @@ def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid user identity in token.",
         )
+
+
+def get_vitals_repo(session: Annotated[AsyncSession, Depends(get_db)]):
+    from infrastructure.repositories.vitals_repository import VitalsRepository
+
+    return VitalsRepository(session)
+
+
+def get_initialize_profile_use_case(
+    profile_repo: Annotated[PatientProfileRepository, Depends(get_profile_repo)],
+    health_repo: Annotated[PatientHealthRepository, Depends(get_health_repo)],
+):
+    from Application.use_cases.initialize_profile import InitializeProfileUseCase
+
+    return InitializeProfileUseCase(profile_repo, health_repo)
+
+
+def get_record_vitals_use_case(
+    repo=Depends(get_vitals_repo),
+    session: Annotated[AsyncSession, Depends(get_db)] = None,
+    initialize_use_case=Depends(get_initialize_profile_use_case),
+):
+    from Application.use_cases.manage_vitals import RecordVitalsUseCase
+
+    return RecordVitalsUseCase(repo, session, initialize_use_case)
+
+
+def get_latest_vitals_use_case(
+    repo=Depends(get_vitals_repo), initialize_use_case=Depends(get_initialize_profile_use_case)
+):
+    from Application.use_cases.manage_vitals import GetLatestVitalsUseCase
+
+    return GetLatestVitalsUseCase(repo, initialize_use_case)
+
+
+def get_vitals_history_use_case(
+    repo=Depends(get_vitals_repo), initialize_use_case=Depends(get_initialize_profile_use_case)
+):
+    from Application.use_cases.manage_vitals import GetVitalsHistoryUseCase
+
+    return GetVitalsHistoryUseCase(repo, initialize_use_case)

@@ -5,8 +5,6 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import IntegrityError
-
 from presentation import dependencies
 from presentation.dependencies import (
     get_db,
@@ -16,6 +14,7 @@ from presentation.dependencies import (
     get_register_service,
 )
 from presentation.routes.auth import router
+from sqlalchemy.exc import IntegrityError
 
 
 class DummyDb:
@@ -40,13 +39,35 @@ class DummyLoginUC:
         await asyncio.sleep(0)
         if self.exc:
             raise self.exc
-        return "a", "r", {"id": str(uuid4()), "email": "a@b.com", "role": "patient", "is_active": True, "is_email_verified": True, "is_profile_completed": False}
+        return (
+            "a",
+            "r",
+            {
+                "id": str(uuid4()),
+                "email": "a@b.com",
+                "role": "patient",
+                "is_active": True,
+                "is_email_verified": True,
+                "is_profile_completed": False,
+            },
+        )
 
 
 class DummyRefreshUC:
     async def execute(self, **_kwargs):
         await asyncio.sleep(0)
-        return "a2", "r2", {"id": str(uuid4()), "email": "a@b.com", "role": "patient", "is_active": True, "is_email_verified": True, "is_profile_completed": False}
+        return (
+            "a2",
+            "r2",
+            {
+                "id": str(uuid4()),
+                "email": "a@b.com",
+                "role": "patient",
+                "is_active": True,
+                "is_email_verified": True,
+                "is_profile_completed": False,
+            },
+        )
 
 
 class DummyRegisterUC:
@@ -116,7 +137,10 @@ def test_dependency_factories_smoke(monkeypatch):
     assert token_repo is not None
 
     assert get_register_service(user_repo, dependencies.get_password_hasher(), SimpleNamespace()) is not None
-    assert get_login_use_case(user_repo, token_repo, dependencies.get_password_hasher(), dependencies.get_jwt_handler()) is not None
+    assert (
+        get_login_use_case(user_repo, token_repo, dependencies.get_password_hasher(), dependencies.get_jwt_handler())
+        is not None
+    )
     assert get_logout_use_case(token_repo) is not None
     assert get_refresh_token_use_case(user_repo, token_repo, dependencies.get_jwt_handler()) is not None
 

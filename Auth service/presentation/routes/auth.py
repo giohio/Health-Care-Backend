@@ -1,20 +1,21 @@
-from typing import Annotated
 import logging
+from typing import Annotated
 
 from Application import LoginUseCase, LogOutUseCase, RefreshTokenUseCase, RegisterService
 from Domain.entities.user import UserRole
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response, status
-from sqlalchemy.exc import IntegrityError
+from infrastructure import UserRepository
 from presentation.dependencies import (
+    get_db,
     get_login_use_case,
     get_logout_use_case,
     get_refresh_token_use_case,
     get_register_service,
-    get_db,
+    get_user_repository,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 from presentation.schema import (
     LogoutRequest,
+    MeResponse,
     RefreshTokenRequest,
     RegisterStaffRequest,
     TokenResponse,
@@ -22,6 +23,8 @@ from presentation.schema import (
     UserRegister,
     UserResponse,
 )
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Authentication"])
 logger = logging.getLogger(__name__)
@@ -31,7 +34,8 @@ INTERNAL_SERVER_ERROR_MSG = "Internal server error"
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
-    user_data: UserRegister, register_service: Annotated[RegisterService, Depends(get_register_service)],
+    user_data: UserRegister,
+    register_service: Annotated[RegisterService, Depends(get_register_service)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
@@ -73,8 +77,6 @@ async def register_staff(
         return user
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=INTERNAL_SERVER_ERROR_MSG)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -174,5 +176,33 @@ async def refresh_token(
         return {"access_token": access_token, "refresh_token": refresh_token, "user": user}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=INTERNAL_SERVER_ERROR_MSG)
+
+
+@router.get("/me", response_model=MeResponse)
+async def get_me(
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    if not x_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthenticated")
+    try:
+        from uuid import UUID
+
+        user = await user_repo.get_by_id(UUID(x_user_id))
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        return MeResponse(
+            id=user.id,
+            email=user.email,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at.isoformat(),
+        )
+    except HTTPException:
+        raise
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID")
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=INTERNAL_SERVER_ERROR_MSG)

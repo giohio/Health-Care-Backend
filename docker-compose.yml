@@ -82,7 +82,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/authentication
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /auth
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -101,7 +101,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /patients
       REDIS_URL: redis://redis:6379/0
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -122,7 +122,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /doctors
       REDIS_URL: redis://redis:6379/0
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -144,7 +144,7 @@ services:
       APP_ROOT_PATH: /appointments
       DOCTOR_SERVICE_URL: http://doctor_service:8000
       REDIS_URL: redis://redis:6379/0
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -170,7 +170,7 @@ services:
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-TV1BKXSO}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-9W8MLHMKMYTSO7DN1JGI1H9XEQOYXPWH}
       VNPAY_URL: https://sandbox.vnpayment.vn/paygate
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
@@ -196,7 +196,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
-      OTEL_EXPORTER_OTLP_ENDPOINT: https://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net
     depends_on:
