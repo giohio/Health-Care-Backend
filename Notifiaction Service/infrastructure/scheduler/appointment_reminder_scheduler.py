@@ -42,10 +42,11 @@ class AppointmentReminderScheduler:
             )
 
             for appt in appointments:
+                from datetime import date, time
                 from datetime import datetime as dt
 
                 appt_datetime = dt.combine(
-                    dt.fromisoformat(appt["appointment_date"]).date(), dt.fromisoformat(appt["start_time"]).time()
+                    date.fromisoformat(appt["appointment_date"]), time.fromisoformat(appt["start_time"])
                 )
                 time_until = appt_datetime - now
 
