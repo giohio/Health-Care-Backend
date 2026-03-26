@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-
 from infrastructure.email.email_sender import EmailSender
 
 

@@ -104,3 +104,15 @@ class DoctorServiceClient(IDoctorServiceClient):
             return None
 
         return await self._cb.call(_fetch, fallback=_fallback)
+
+    async def get_enhanced_schedule(self, doctor_id: str, date: str) -> dict | None:
+        async def _fetch():
+            response = await self._client.get(f"/{doctor_id}/schedule-enhanced", params={"date": date})
+            response.raise_for_status()
+            return response.json()
+
+        async def _fallback(*_args, **_kwargs):
+            await asyncio.sleep(0)
+            return None
+
+        return await self._cb.call(_fetch, fallback=_fallback)

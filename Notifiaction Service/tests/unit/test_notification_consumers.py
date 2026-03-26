@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-
 from infrastructure.consumers.appointment_events_consumers import (
     AppointmentAutoConfirmedConsumer,
     AppointmentCancelledConsumer,

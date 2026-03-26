@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date, time
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.complete_appointment import CompleteAppointmentUseCase
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,

@@ -51,6 +51,21 @@ class AppointmentConfirmedConsumer(_NotificationConsumer):
         )
 
 
+class AppointmentStartedConsumer(_NotificationConsumer):
+    QUEUE = "notification.appointment.started"
+    EXCHANGE = "appointment_events"
+    ROUTING_KEY = "appointment.started"
+
+    async def handle(self, payload: dict):
+        await self._create_notification(
+            user_id=payload["patient_id"],
+            title="Appointment Started",
+            body="Your appointment has started, please proceed to the examination room",
+            event_type="appointment.started",
+            recipient_email=payload.get("patient_email"),
+        )
+
+
 class AppointmentAutoConfirmedConsumer(_NotificationConsumer):
     QUEUE = "notification.appointment.auto_confirmed"
     EXCHANGE = "appointment_events"

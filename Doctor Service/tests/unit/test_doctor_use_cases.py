@@ -1,8 +1,7 @@
-from uuid import uuid4
 import asyncio
+from uuid import uuid4
 
 import pytest
-
 from Application.dtos import DoctorDTO
 from Application.use_cases.register_doctor import RegisterDoctorUseCase
 from Application.use_cases.update_doctor_profile import UpdateDoctorProfileUseCase

@@ -2,9 +2,8 @@ import asyncio
 
 import pytest
 from fastapi import Request
-from starlette.responses import Response
-
 from presentation.middleware import ExceptionMiddleware, RequestLogMiddleware
+from starlette.responses import Response
 
 
 @pytest.mark.asyncio

@@ -236,5 +236,6 @@ class BookAppointmentUseCase:
             pricing_policy=self.pricing_policy,
         )
         results = await saga.run(request.model_dump(mode="json"))
+        await self.session.commit()
         appt = results.get("create_appointment")
         return AppointmentResponse.model_validate(appt)

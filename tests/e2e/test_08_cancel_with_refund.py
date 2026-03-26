@@ -65,7 +65,7 @@ class TestCancelWithRefund:
 
         # Wait for confirmed
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "confirmed", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "CONFIRMED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Patient cancels
@@ -74,11 +74,12 @@ class TestCancelWithRefund:
 
         # Appointment cancelled
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "cancelled", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "CANCELLED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Payment refunded
         from tests.helpers.wait import wait_for_payment_status
+
         payment_after = await wait_for_payment_status(
             http, PAYMENT_URL, appt_id, ("refunded", "refund_pending"), patient["access_token"], timeout=EVENT_TIMEOUT
         )

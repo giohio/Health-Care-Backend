@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
 from infrastructure.consumers import payment_consumers as payment_consumers_module

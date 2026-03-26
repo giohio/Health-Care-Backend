@@ -4,15 +4,11 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from healthai_events.exceptions import RetryableError
-
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
+from healthai_events.exceptions import RetryableError
 from infrastructure.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
-from infrastructure.consumers.payment_consumers import (
-    PaymentPaidConsumer,
-    _cancel_for_payment,
-)
+from infrastructure.consumers.payment_consumers import PaymentPaidConsumer, _cancel_for_payment
 
 
 class FakeBegin:
@@ -181,7 +177,9 @@ async def test_cancel_for_payment_paths(monkeypatch):
     monkeypatch.setattr(module.OutboxWriter, "write", fake_write)
 
     # not found
-    await _cancel_for_payment(SessionFactory(), lambda _s: FakeRepo(appt=None), {"appointment_id": str(uuid4())}, "payment_failed")
+    await _cancel_for_payment(
+        SessionFactory(), lambda _s: FakeRepo(appt=None), {"appointment_id": str(uuid4())}, "payment_failed"
+    )
 
     # status mismatch
     not_pending = _appt(status=AppointmentStatus.CONFIRMED)

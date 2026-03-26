@@ -66,7 +66,7 @@ class TestPaymentFailed:
 
         # Appointment should be cancelled
         await wait_for_appointment_status(
-            http, APPOINTMENT_URL, appt_id, "cancelled", patient["access_token"], timeout=EVENT_TIMEOUT
+            http, APPOINTMENT_URL, appt_id, "CANCELLED", patient["access_token"], timeout=EVENT_TIMEOUT
         )
 
         # Patient notified

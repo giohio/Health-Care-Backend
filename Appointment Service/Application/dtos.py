@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -42,6 +42,7 @@ class AppointmentResponse(BaseModel):
     status: AppointmentStatus
     payment_status: PaymentStatus
     queue_number: int | None = None
+    started_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

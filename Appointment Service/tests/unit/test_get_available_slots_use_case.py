@@ -1,25 +1,30 @@
-from datetime import date, time, datetime, timedelta
-from uuid import uuid4
 import asyncio
+from datetime import date, datetime, time
+from uuid import uuid4
 
 import pytest
-
 from Application.use_cases.get_available_slots import GetAvailableSlotsUseCase
 
 
 class FakeRepo:
-    def __init__(self, booked_slots=None):
+    def __init__(self, booked_slots=None, confirmed_count=0):
         self.booked_slots = booked_slots or []
+        self.confirmed_count = confirmed_count
 
     async def get_booked_slots(self, doctor_id, appointment_date):
         await asyncio.sleep(0)
         return self.booked_slots
 
+    async def count_confirmed_on_date(self, doctor_id, appointment_date):
+        await asyncio.sleep(0)
+        return self.confirmed_count
+
 
 class FakeDoctorClient:
-    def __init__(self, schedule=None, config=None):
+    def __init__(self, schedule=None, config=None, enhanced_schedule=None):
         self.schedule = schedule
         self.config = config or {"duration_minutes": 30, "buffer_minutes": 5}
+        self.enhanced_schedule = enhanced_schedule
 
     async def get_type_config(self, specialty_id, appointment_type):
         await asyncio.sleep(0)
@@ -28,6 +33,10 @@ class FakeDoctorClient:
     async def get_schedule(self, doctor_id):
         await asyncio.sleep(0)
         return self.schedule
+
+    async def get_enhanced_schedule(self, doctor_id, appointment_date):
+        await asyncio.sleep(0)
+        return self.enhanced_schedule
 
 
 @pytest.mark.asyncio
@@ -157,7 +166,12 @@ async def test_get_available_slots_respects_slot_duration():
     )
 
     for slot in result.slots:
-        slot_duration_minutes = int((datetime.combine(date.today(), slot.end_time) - datetime.combine(date.today(), slot.start_time)).total_seconds() / 60)
+        slot_duration_minutes = int(
+            (
+                datetime.combine(date.today(), slot.end_time) - datetime.combine(date.today(), slot.start_time)
+            ).total_seconds()
+            / 60
+        )
         assert slot_duration_minutes == 60
 
 
@@ -209,3 +223,113 @@ async def test_get_available_slots_uses_default_duration_when_no_config():
 
     assert result.duration_minutes == 30
     assert len(result.slots) > 0
+
+
+@pytest.mark.asyncio
+async def test_get_available_slots_enhanced_schedule_uses_service_duration():
+    doctor_id = uuid4()
+    specialty_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+
+    enhanced_schedule = {
+        "working_hours": [{"start_time": "09:00", "end_time": "10:00", "max_patients": 10}],
+        "services": [{"id": "svc-1", "duration_minutes": 20}],
+    }
+    repo = FakeRepo(booked_slots=[], confirmed_count=1)
+    doctor_client = FakeDoctorClient(enhanced_schedule=enhanced_schedule)
+
+    use_case = GetAvailableSlotsUseCase(appointment_repo=repo, doctor_client=doctor_client)
+    result = await use_case.execute(
+        doctor_id=doctor_id,
+        appointment_date=appointment_date,
+        specialty_id=specialty_id,
+        appointment_type="general",
+        service_id="svc-1",
+    )
+
+    assert result.error is None
+    assert result.duration_minutes == 20
+    assert len(result.slots) == 3
+
+
+@pytest.mark.asyncio
+async def test_get_available_slots_enhanced_schedule_respects_max_patients():
+    doctor_id = uuid4()
+    specialty_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+
+    enhanced_schedule = {
+        "working_hours": [{"start_time": "09:00", "end_time": "11:00", "max_patients": 2}],
+        "services": [],
+    }
+    repo = FakeRepo(booked_slots=[], confirmed_count=2)
+    doctor_client = FakeDoctorClient(enhanced_schedule=enhanced_schedule)
+
+    use_case = GetAvailableSlotsUseCase(appointment_repo=repo, doctor_client=doctor_client)
+    result = await use_case.execute(
+        doctor_id=doctor_id,
+        appointment_date=appointment_date,
+        specialty_id=specialty_id,
+        appointment_type="general",
+    )
+
+    assert result.slots == []
+    assert result.error == "Doctor has reached maximum patients for this date"
+
+
+@pytest.mark.asyncio
+async def test_get_available_slots_enhanced_schedule_uses_type_config_when_service_missing():
+    doctor_id = uuid4()
+    specialty_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+
+    enhanced_schedule = {
+        "working_hours": [{"start_time": "09:00", "end_time": "10:30"}],
+        "services": [{"id": "svc-1", "duration_minutes": 20}],
+    }
+    repo = FakeRepo(booked_slots=[], confirmed_count=0)
+    doctor_client = FakeDoctorClient(
+        enhanced_schedule=enhanced_schedule,
+        config={"duration_minutes": 45, "buffer_minutes": 5},
+    )
+
+    use_case = GetAvailableSlotsUseCase(appointment_repo=repo, doctor_client=doctor_client)
+    result = await use_case.execute(
+        doctor_id=doctor_id,
+        appointment_date=appointment_date,
+        specialty_id=specialty_id,
+        appointment_type="general",
+        service_id="svc-unknown",
+    )
+
+    assert result.duration_minutes == 45
+    assert len(result.slots) >= 1
+
+
+def test_extract_working_windows_splits_break_window():
+    use_case = GetAvailableSlotsUseCase(appointment_repo=FakeRepo(), doctor_client=FakeDoctorClient())
+
+    windows = use_case._extract_working_windows(
+        {
+            "start_time": "08:00",
+            "end_time": "12:00",
+            "break_start": "10:00",
+            "break_end": "10:30",
+        }
+    )
+
+    assert windows == [(time(8, 0), time(10, 0)), (time(10, 30), time(12, 0))]
+
+
+def test_extract_schedule_window_skips_invalid_and_malformed_items():
+    schedule = {
+        "working_hours": [
+            {"start_time": "invalid", "end_time": "10:00"},
+            {"start_time": "09:00"},
+            {"start_time": "11:00", "end_time": "12:00"},
+        ]
+    }
+
+    windows = GetAvailableSlotsUseCase._extract_schedule_window(schedule)
+
+    assert windows == [(time(11, 0), time(12, 0))]

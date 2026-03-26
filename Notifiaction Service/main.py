@@ -8,6 +8,7 @@ from Application.use_cases.create_notification import CreateNotificationUseCase
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
+from infrastructure.clients.appointment_service_client import AppointmentServiceClient
 from infrastructure.config import settings
 from infrastructure.consumers import (
     AppointmentAutoConfirmedConsumer,
@@ -21,13 +22,14 @@ from infrastructure.consumers import (
     AppointmentRescheduledConsumer,
     PaymentCreatedConsumer,
     PaymentExpiredConsumer,
-    PaymentPaidConsumer,
     PaymentFailedConsumer,
+    PaymentPaidConsumer,
     PaymentRefundedConsumer,
 )
 from infrastructure.database.session import AsyncSessionLocal
 from infrastructure.email.email_sender import EmailSender
 from infrastructure.repositories.notification_repository import NotificationRepository
+from infrastructure.scheduler.appointment_reminder_scheduler import AppointmentReminderScheduler
 from presentation.dependencies import get_ws_manager
 from presentation.routes import notifications_router, websocket_router
 
@@ -112,9 +114,18 @@ async def startup_event():
 
     logger.info("Notification consumers started")
 
+    appointment_client = AppointmentServiceClient()
+    scheduler = AppointmentReminderScheduler(AsyncSessionLocal, appointment_client, cache)
+    app.state.scheduler = scheduler
+    await scheduler.start()
+    logger.info("Appointment reminder scheduler started")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    if getattr(app.state, "scheduler", None):
+        await app.state.scheduler.stop()
+
     for task in tuple(background_tasks):
         task.cancel()
 

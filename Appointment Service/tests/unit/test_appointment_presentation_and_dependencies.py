@@ -3,8 +3,8 @@ from datetime import date, time
 from types import SimpleNamespace
 from uuid import uuid4
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+import httpx
+import pytest
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,
     InvalidStatusTransitionError,
@@ -13,8 +13,8 @@ from Domain.exceptions.domain_exceptions import (
 )
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
+from fastapi import FastAPI
 from healthai_common import SagaFailedError
-
 from presentation import dependencies
 from presentation.dependencies import get_appointment_repo, get_doctor_queue_use_case
 from presentation.routes.appointments import router
@@ -32,7 +32,8 @@ def test_dependency_factories_smoke():
     assert dependencies.get_pricing_policy() is not None
 
 
-def test_get_doctor_queue_requires_date_query():
+@pytest.mark.asyncio
+async def test_get_doctor_queue_requires_date_query():
     app = FastAPI()
     app.include_router(router)
 
@@ -43,12 +44,14 @@ def test_get_doctor_queue_requires_date_query():
 
     app.dependency_overrides[get_doctor_queue_use_case] = lambda: DummyQueueUC()
 
-    client = TestClient(app)
-    r = client.get(f"/doctor/{uuid4()}/queue")
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(f"/doctor/{uuid4()}/queue")
     assert r.status_code == 422
 
 
-def test_get_appointment_by_id_not_found():
+@pytest.mark.asyncio
+async def test_get_appointment_by_id_not_found():
     app = FastAPI()
     app.include_router(router)
 
@@ -59,15 +62,17 @@ def test_get_appointment_by_id_not_found():
 
     app.dependency_overrides[get_appointment_repo] = lambda: Repo()
 
-    client = TestClient(app)
-    r = client.get(
-        f"/{uuid4()}",
-        headers={"X-User-Id": str(uuid4()), "X-User-Role": "patient"},
-    )
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(
+            f"/{uuid4()}",
+            headers={"X-User-Id": str(uuid4()), "X-User-Role": "patient"},
+        )
     assert r.status_code == 404
 
 
-def test_book_appointment_for_other_patient_forbidden():
+@pytest.mark.asyncio
+async def test_book_appointment_for_other_patient_forbidden():
     app = FastAPI()
     app.include_router(router)
 
@@ -80,7 +85,6 @@ def test_book_appointment_for_other_patient_forbidden():
 
     app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC()
 
-    client = TestClient(app)
     payload = {
         "patient_id": str(uuid4()),
         "doctor_id": str(uuid4()),
@@ -89,11 +93,14 @@ def test_book_appointment_for_other_patient_forbidden():
         "start_time": time(8, 0).isoformat(),
         "appointment_type": "general",
     }
-    r = client.post("/", json=payload, headers={"X-User-Id": str(uuid4())})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/", json=payload, headers={"X-User-Id": str(uuid4())})
     assert r.status_code == 403
 
 
-def test_get_doctor_queue_success_path():
+@pytest.mark.asyncio
+async def test_get_doctor_queue_success_path():
     app = FastAPI()
     app.include_router(router)
 
@@ -104,13 +111,15 @@ def test_get_doctor_queue_success_path():
 
     app.dependency_overrides[get_doctor_queue_use_case] = lambda: DummyQueueUC()
 
-    client = TestClient(app)
-    r = client.get(f"/doctor/{uuid4()}/queue", params={"appointment_date": str(date.today())})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(f"/doctor/{uuid4()}/queue", params={"appointment_date": str(date.today())})
     assert r.status_code == 200
     assert r.json() == []
 
 
-def test_cancel_confirm_decline_reschedule_complete_no_show_exception_mappings():
+@pytest.mark.asyncio
+async def test_cancel_confirm_decline_reschedule_complete_no_show_exception_mappings():
     app = FastAPI()
     app.include_router(router)
 
@@ -138,42 +147,49 @@ def test_cancel_confirm_decline_reschedule_complete_no_show_exception_mappings()
     app.dependency_overrides[get_complete_appointment_use_case] = lambda: DummyUC(AppointmentNotFoundException())
     app.dependency_overrides[get_mark_no_show_use_case] = lambda: DummyUC(InvalidStatusTransitionError("bad"))
 
-    client = TestClient(app)
     appt_id = str(uuid4())
     user_id = str(uuid4())
 
-    r_cancel = client.put(
-        f"/{appt_id}/cancel",
-        json={"reason": "x"},
-        headers={"X-User-Id": user_id, "X-User-Role": "patient"},
-    )
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r_cancel = await client.put(
+            f"/{appt_id}/cancel",
+            json={"reason": "x"},
+            headers={"X-User-Id": user_id, "X-User-Role": "patient"},
+        )
     assert r_cancel.status_code == 403
 
-    r_confirm = client.put(f"/{appt_id}/confirm", headers={"X-User-Id": user_id})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r_confirm = await client.put(f"/{appt_id}/confirm", headers={"X-User-Id": user_id})
     assert r_confirm.status_code == 404
 
-    r_decline = client.put(
-        f"/{appt_id}/decline",
-        json={"reason": "x"},
-        headers={"X-User-Id": user_id},
-    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r_decline = await client.put(
+            f"/{appt_id}/decline",
+            json={"reason": "x"},
+            headers={"X-User-Id": user_id},
+        )
     assert r_decline.status_code == 400
 
-    r_reschedule = client.put(
-        f"/{appt_id}/reschedule",
-        json={"new_date": str(date.today()), "new_time": "09:00:00"},
-        headers={"X-User-Id": user_id},
-    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r_reschedule = await client.put(
+            f"/{appt_id}/reschedule",
+            json={"new_date": str(date.today()), "new_time": "09:00:00"},
+            headers={"X-User-Id": user_id},
+        )
     assert r_reschedule.status_code == 403
 
-    r_complete = client.put(f"/{appt_id}/complete", headers={"X-User-Id": user_id})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r_complete = await client.put(f"/{appt_id}/complete", headers={"X-User-Id": user_id})
     assert r_complete.status_code == 404
 
-    r_noshow = client.put(f"/{appt_id}/no-show", headers={"X-User-Id": user_id})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r_noshow = await client.put(f"/{appt_id}/no-show", headers={"X-User-Id": user_id})
     assert r_noshow.status_code == 400
 
 
-def test_book_appointment_success_and_exception_mappings():
+@pytest.mark.asyncio
+async def test_book_appointment_success_and_exception_mappings():
     app = FastAPI()
     app.include_router(router)
 
@@ -206,7 +222,6 @@ def test_book_appointment_success_and_exception_mappings():
         queue_number=None,
     )
 
-    client = TestClient(app)
     payload = {
         "patient_id": None,
         "doctor_id": str(appointment.doctor_id),
@@ -217,29 +232,33 @@ def test_book_appointment_success_and_exception_mappings():
     }
 
     app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(result=appointment)
-    ok = client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        ok = await client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
     assert ok.status_code == 200
 
     app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(
         exc=SlotNotAvailableError("slot taken")
     )
-    conflict = client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        conflict = await client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
     assert conflict.status_code == 409
 
-    app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(
-        exc=SagaFailedError("step failed")
-    )
-    bad_request = client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
+    app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(exc=SagaFailedError("step failed"))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        bad_request = await client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
     assert bad_request.status_code == 400
 
     app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC(
         exc=SagaFailedError("Slot is no longer available")
     )
-    slot_conflict = client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        slot_conflict = await client.post("/", json=payload, headers={"X-User-Id": str(appointment.patient_id)})
     assert slot_conflict.status_code == 409
 
 
-def test_get_appointment_authorization_and_slots_endpoint():
+@pytest.mark.asyncio
+async def test_get_appointment_authorization_and_slots_endpoint():
     app = FastAPI()
     app.include_router(router)
 
@@ -291,26 +310,29 @@ def test_get_appointment_authorization_and_slots_endpoint():
     app.dependency_overrides[get_appointment_repo] = lambda: Repo(appointment)
     app.dependency_overrides[get_available_slots_use_case] = lambda: SlotsUC()
 
-    client = TestClient(app)
+    transport = httpx.ASGITransport(app=app)
 
-    forbidden = client.get(
-        f"/{appointment.id}",
-        headers={"X-User-Id": str(uuid4()), "X-User-Role": "patient"},
-    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        forbidden = await client.get(
+            f"/{appointment.id}",
+            headers={"X-User-Id": str(uuid4()), "X-User-Role": "patient"},
+        )
     assert forbidden.status_code == 403
 
-    admin_ok = client.get(
-        f"/{appointment.id}",
-        headers={"X-User-Id": str(uuid4()), "X-User-Role": "admin"},
-    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        admin_ok = await client.get(
+            f"/{appointment.id}",
+            headers={"X-User-Id": str(uuid4()), "X-User-Role": "admin"},
+        )
     assert admin_ok.status_code == 200
 
-    slots_ok = client.get(
-        f"/doctor/{uuid4()}/slots",
-        params={
-            "appointment_date": str(date.today()),
-            "specialty_id": str(uuid4()),
-            "appointment_type": "general",
-        },
-    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        slots_ok = await client.get(
+            f"/doctor/{uuid4()}/slots",
+            params={
+                "appointment_date": str(date.today()),
+                "specialty_id": str(uuid4()),
+                "appointment_type": "general",
+            },
+        )
     assert slots_ok.status_code == 200

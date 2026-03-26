@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-
 from Application.use_cases.create_payment import CreatePaymentFromEventUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
 from Application.use_cases.process_vnpay_ipn import GetPaymentUseCase
@@ -112,7 +111,9 @@ async def test_create_payment_from_event_saves_payment_and_emits_events():
     publisher = FakePublisher()
     session = FakeSession()
 
-    use_case = CreatePaymentFromEventUseCase(session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher)
+    use_case = CreatePaymentFromEventUseCase(
+        session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher
+    )
     payment = await use_case.execute(_payload())
 
     assert payment.status == PaymentStatus.PENDING
@@ -137,11 +138,15 @@ async def test_process_ipn_invalid_signature_returns_97():
     )
     payment.vnpay_txn_ref = "APPX"
     repo = FakeRepo(payment=payment)
-    provider = FakeProvider(verify_result=PaymentResult(success=False, provider_ref=None, failure_reason="Invalid signature"))
+    provider = FakeProvider(
+        verify_result=PaymentResult(success=False, provider_ref=None, failure_reason="Invalid signature")
+    )
     publisher = FakePublisher()
     session = FakeSession()
 
-    use_case = ProcessVNPayIPnUseCase(session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher)
+    use_case = ProcessVNPayIPnUseCase(
+        session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher
+    )
     result = await use_case.execute({"vnp_TxnRef": "APPX"})
 
     assert result["RspCode"] == "97"
@@ -153,7 +158,9 @@ async def test_process_ipn_invalid_signature_returns_97():
 async def test_process_ipn_missing_txn_ref_returns_01():
     repo = FakeRepo()
     provider = FakeProvider(verify_result=PaymentResult(success=True, provider_ref="PR"))
-    use_case = ProcessVNPayIPnUseCase(session=FakeSession(), payment_repo=repo, payment_provider=provider, event_publisher=FakePublisher())
+    use_case = ProcessVNPayIPnUseCase(
+        session=FakeSession(), payment_repo=repo, payment_provider=provider, event_publisher=FakePublisher()
+    )
 
     result = await use_case.execute({"vnp_ResponseCode": "00"})
 
@@ -164,7 +171,9 @@ async def test_process_ipn_missing_txn_ref_returns_01():
 async def test_process_ipn_payment_not_found_returns_02():
     repo = FakeRepo(payment=None)
     provider = FakeProvider(verify_result=PaymentResult(success=True, provider_ref="PR"))
-    use_case = ProcessVNPayIPnUseCase(session=FakeSession(), payment_repo=repo, payment_provider=provider, event_publisher=FakePublisher())
+    use_case = ProcessVNPayIPnUseCase(
+        session=FakeSession(), payment_repo=repo, payment_provider=provider, event_publisher=FakePublisher()
+    )
 
     result = await use_case.execute({"vnp_TxnRef": "UNKNOWN", "vnp_ResponseCode": "00"})
 
@@ -187,7 +196,9 @@ async def test_process_ipn_success_marks_paid_and_publishes_paid_event():
     provider = FakeProvider(verify_result=PaymentResult(success=True, provider_ref="TRANS-1"))
     publisher = FakePublisher()
     session = FakeSession()
-    use_case = ProcessVNPayIPnUseCase(session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher)
+    use_case = ProcessVNPayIPnUseCase(
+        session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher
+    )
 
     result = await use_case.execute({"vnp_TxnRef": "APPPAID", "vnp_ResponseCode": "00"})
 
@@ -215,7 +226,9 @@ async def test_process_ipn_failed_marks_failed_and_publishes_failed_event():
     provider = FakeProvider(verify_result=PaymentResult(success=True, provider_ref="TRANS-2"))
     publisher = FakePublisher()
     session = FakeSession()
-    use_case = ProcessVNPayIPnUseCase(session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher)
+    use_case = ProcessVNPayIPnUseCase(
+        session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher
+    )
 
     result = await use_case.execute({"vnp_TxnRef": "APPFAIL", "vnp_ResponseCode": "24"})
 

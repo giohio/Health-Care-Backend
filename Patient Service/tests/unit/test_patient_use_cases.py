@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.initialize_profile import InitializeProfileUseCase
 from Application.use_cases.update_profile import UpdateProfileUseCase
 from Domain.entities.patient_profile import Gender, PatientProfile

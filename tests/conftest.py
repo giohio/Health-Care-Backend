@@ -20,8 +20,8 @@ from pathlib import Path
 
 import httpx
 import pytest
-from dotenv import load_dotenv
 from _pytest.outcomes import Exit
+from dotenv import load_dotenv
 
 load_dotenv(".env.test")
 
@@ -136,11 +136,7 @@ def _notification_me_is_object_contract(spec: dict) -> bool:
         return False
 
     schema = (
-        operation.get("responses", {})
-        .get("200", {})
-        .get("content", {})
-        .get("application/json", {})
-        .get("schema", {})
+        operation.get("responses", {}).get("200", {}).get("content", {}).get("application/json", {}).get("schema", {})
     )
     resolved = _deref_openapi_schema(spec, schema)
 

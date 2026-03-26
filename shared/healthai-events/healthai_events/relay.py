@@ -97,6 +97,13 @@ class OutboxRelay:
             event.published_at = datetime.now(timezone.utc)
 
         except Exception as e:
+            from healthai_events.exceptions import NonRetryableError
+            if isinstance(e, NonRetryableError):
+                event.status = "failed"
+                event.last_error = f"Non-retryable: {str(e)[:480]}"
+                logger.error(f"OutboxEvent {event.id} non-retryable failure: {e}")
+                return
+
             event.retry_count += 1
             event.last_error = str(e)[:500]
 

@@ -6,11 +6,14 @@ from Application.use_cases.cancel_appointment import CancelAppointmentUseCase
 from Application.use_cases.complete_appointment import CompleteAppointmentUseCase
 from Application.use_cases.confirm_appointment import ConfirmAppointmentUseCase
 from Application.use_cases.decline_appointment import DeclineAppointmentUseCase
+from Application.use_cases.get_appointment_stats import GetAppointmentStatsUseCase
 from Application.use_cases.get_available_slots import GetAvailableSlotsUseCase
 from Application.use_cases.get_doctor_queue import GetDoctorQueueUseCase
+from Application.use_cases.list_doctor_appointments import ListDoctorAppointmentsUseCase
 from Application.use_cases.list_patient_appointments import ListPatientAppointmentsUseCase
 from Application.use_cases.mark_no_show import MarkNoShowUseCase
 from Application.use_cases.reschedule_appointment import RescheduleAppointmentUseCase
+from Application.use_cases.start_appointment import StartAppointmentUseCase
 from Domain.interfaces.appointment_pricing import IAppointmentPricingPolicy
 from Domain.interfaces.event_publisher import IEventPublisher
 from fastapi import Depends
@@ -70,6 +73,10 @@ def get_list_appointments_use_case(repo: Annotated[AppointmentRepository, Depend
     return ListPatientAppointmentsUseCase(repo)
 
 
+def get_list_doctor_appointments_use_case(repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)]):
+    return ListDoctorAppointmentsUseCase(repo)
+
+
 def get_cancel_appointment_use_case(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
@@ -84,6 +91,14 @@ def get_confirm_appointment_use_case(
     event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
 ):
     return ConfirmAppointmentUseCase(session, repo, event_publisher)
+
+
+def get_start_appointment_use_case(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
+    event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+):
+    return StartAppointmentUseCase(session, repo, event_publisher)
 
 
 def get_decline_appointment_use_case(
@@ -132,3 +147,7 @@ def get_doctor_queue_use_case(
     doctor_client: Annotated[DoctorServiceClient, Depends(get_doctor_client)],
 ):
     return GetDoctorQueueUseCase(repo, doctor_client)
+
+
+def get_appointment_stats_use_case(repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)]):
+    return GetAppointmentStatsUseCase(repo)

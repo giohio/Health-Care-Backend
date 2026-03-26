@@ -1,5 +1,4 @@
 import pytest
-
 from Application.use_cases.create_payment import CreatePaymentFromEventUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
 from Application.use_cases.process_vnpay_ipn import GetPaymentUseCase

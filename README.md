@@ -67,24 +67,29 @@ Key endpoints:
 Responsibilities:
 
 - Initialize and update patient profiles.
-- Manage baseline medical profile information.
+- Manage baseline medical profile information and health summaries.
+- Track patient vitals (height, weight, blood pressure, heart rate, temperature) over time.
 - Expose internal profile endpoints for inter-service lookup.
 
 ### 3.3 Doctor Service
 
 Responsibilities:
 
-- Manage doctor profiles.
-- Manage specialties.
-- Manage schedules and appointment slots.
+- Manage doctor profiles and specialties.
+- Manage precise availability (working hours, breaks, max patients) and day-offs.
+- Manage custom service offerings and consultation fees.
+- Handle patient ratings and reviews.
+- Manage schedules and generate enhanced available slots.
 
 ### 3.4 Appointment Service
 
 Responsibilities:
 
 - Create appointments.
-- Manage appointment lifecycle: confirm, decline, cancel, reschedule, complete, no-show.
 - Coordinate slot and payment-related business steps using saga-style orchestration.
+- Manage appointment lifecycle: confirm, decline, cancel, reschedule, start (in progress), complete, no-show.
+- Provide doctor daily queues and appointment statistics.
+- Trigger automated appointment reminders (24h, 1h before start).
 
 ### 3.5 Payment Service
 
@@ -99,8 +104,9 @@ Responsibilities:
 Responsibilities:
 
 - Persist notification history.
-- Provide APIs to list notifications and mark as read.
+- Provide APIs to list notifications, fetch unread counts, and mark as read.
 - Push real-time notifications via WebSocket.
+- Process scheduled appointment reminders.
 
 ## 4. Standard Business Flow (Auth -> Appointment -> Doctor -> Payment -> Notification)
 

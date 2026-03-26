@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from Application.dtos import NotificationResponse
 from Domain.entities.notification import Notification
@@ -6,7 +7,6 @@ from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.notification_repository import INotificationRepository
 from Domain.interfaces.realtime_notifier import IRealtimeNotifier
 from uuid_extension import uuid7
-from uuid import UUID
 
 
 class CreateNotificationUseCase:

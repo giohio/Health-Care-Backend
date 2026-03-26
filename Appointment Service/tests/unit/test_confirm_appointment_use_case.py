@@ -1,9 +1,8 @@
+import asyncio
 from datetime import date, time
 from uuid import uuid4
-import asyncio
 
 import pytest
-
 from Application.use_cases.confirm_appointment import ConfirmAppointmentUseCase
 from Domain.exceptions.domain_exceptions import (
     AppointmentNotFoundException,
@@ -128,12 +127,12 @@ async def test_confirm_appointment_invalid_transition_raises():
     doctor_id = uuid4()
     appointment = FakeAppointment(doctor_id=doctor_id, can_confirm=True)
     appointment.status = AppointmentStatus.COMPLETED
-    
+
     def mock_can_transition(target):
         return False
-    
+
     appointment.can_transition_to = mock_can_transition
-    
+
     session = FakeSession()
     repo = FakeRepo(appointment)
     publisher = FakePublisher()

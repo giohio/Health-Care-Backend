@@ -2,11 +2,9 @@ import asyncio
 from types import SimpleNamespace
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from sqlalchemy.exc import IntegrityError
-
 from presentation import dependencies
 from presentation.dependencies import (
     get_db,
@@ -14,8 +12,10 @@ from presentation.dependencies import (
     get_logout_use_case,
     get_refresh_token_use_case,
     get_register_service,
+    get_user_repository,
 )
 from presentation.routes.auth import router
+from sqlalchemy.exc import IntegrityError
 
 
 class DummyDb:
@@ -40,13 +40,35 @@ class DummyLoginUC:
         await asyncio.sleep(0)
         if self.exc:
             raise self.exc
-        return "a", "r", {"id": str(uuid4()), "email": "a@b.com", "role": "patient", "is_active": True, "is_email_verified": True, "is_profile_completed": False}
+        return (
+            "a",
+            "r",
+            {
+                "id": str(uuid4()),
+                "email": "a@b.com",
+                "role": "patient",
+                "is_active": True,
+                "is_email_verified": True,
+                "is_profile_completed": False,
+            },
+        )
 
 
 class DummyRefreshUC:
     async def execute(self, **_kwargs):
         await asyncio.sleep(0)
-        return "a2", "r2", {"id": str(uuid4()), "email": "a@b.com", "role": "patient", "is_active": True, "is_email_verified": True, "is_profile_completed": False}
+        return (
+            "a2",
+            "r2",
+            {
+                "id": str(uuid4()),
+                "email": "a@b.com",
+                "role": "patient",
+                "is_active": True,
+                "is_email_verified": True,
+                "is_profile_completed": False,
+            },
+        )
 
 
 class DummyRegisterUC:
@@ -70,6 +92,17 @@ class DummyRegisterUC:
 class DummyLogoutUC:
     async def execute(self, **_kwargs):
         await asyncio.sleep(0)
+
+
+def _build_app():
+    app = FastAPI()
+    app.include_router(router)
+
+    async def db_dep():
+        yield DummyDb()
+
+    app.dependency_overrides[get_db] = db_dep
+    return app
 
 
 @pytest.mark.asyncio
@@ -116,215 +149,218 @@ def test_dependency_factories_smoke(monkeypatch):
     assert token_repo is not None
 
     assert get_register_service(user_repo, dependencies.get_password_hasher(), SimpleNamespace()) is not None
-    assert get_login_use_case(user_repo, token_repo, dependencies.get_password_hasher(), dependencies.get_jwt_handler()) is not None
+    assert (
+        get_login_use_case(user_repo, token_repo, dependencies.get_password_hasher(), dependencies.get_jwt_handler())
+        is not None
+    )
     assert get_logout_use_case(token_repo) is not None
     assert get_refresh_token_use_case(user_repo, token_repo, dependencies.get_jwt_handler()) is not None
 
 
-def test_register_staff_forbidden_without_admin_role():
-    app = FastAPI()
-    app.include_router(router)
+@pytest.mark.asyncio
+async def test_register_staff_forbidden_without_admin_role():
+    app = _build_app()
     app.dependency_overrides[get_register_service] = lambda: SimpleNamespace(execute=lambda **kwargs: None)
 
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
-
-    client = TestClient(app)
     payload = {"email": "staff@example.com", "password": "password123", "role": "doctor"}
-    r = client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "patient"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "patient"})
     assert r.status_code == 403
 
 
-def test_refresh_without_any_token_returns_401():
-    app = FastAPI()
-    app.include_router(router)
+@pytest.mark.asyncio
+async def test_refresh_without_any_token_returns_401():
+    app = _build_app()
     app.dependency_overrides[get_refresh_token_use_case] = lambda: DummyRefreshUC()
 
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
-
-    client = TestClient(app)
-    r = client.post("/refresh", json={})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/refresh", json={})
     assert r.status_code == 401
 
 
-def test_login_unexpected_exception_maps_to_500():
-    app = FastAPI()
-    app.include_router(router)
+@pytest.mark.asyncio
+async def test_login_unexpected_exception_maps_to_500():
+    app = _build_app()
     app.dependency_overrides[get_login_use_case] = lambda: DummyLoginUC(exc=RuntimeError("x"))
 
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
-
-    client = TestClient(app)
-    r = client.post("/login", json={"email": "u@example.com", "password": "password123"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/login", json={"email": "u@example.com", "password": "password123"})
     assert r.status_code == 500
 
 
-def test_login_invalid_credentials_maps_to_401():
-    app = FastAPI()
-    app.include_router(router)
+@pytest.mark.asyncio
+async def test_login_invalid_credentials_maps_to_401():
+    app = _build_app()
     app.dependency_overrides[get_login_use_case] = lambda: DummyLoginUC(exc=ValueError("invalid"))
 
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
-
-    client = TestClient(app)
-    r = client.post("/login", json={"email": "u@example.com", "password": "password123"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/login", json={"email": "u@example.com", "password": "password123"})
     assert r.status_code == 401
 
 
-def test_register_success_and_bad_request_paths():
-    app = FastAPI()
-    app.include_router(router)
-
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
+@pytest.mark.asyncio
+async def test_register_success_and_bad_request_paths():
+    app = _build_app()
     app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC()
 
-    client = TestClient(app)
-    ok = client.post("/register", json={"email": "u1@example.com", "password": "password123"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        ok = await client.post("/register", json={"email": "u1@example.com", "password": "password123"})
     assert ok.status_code == 201
 
     app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC(exc=ValueError("bad"))
-    bad = client.post("/register", json={"email": "u1@example.com", "password": "password123"})
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        bad = await client.post("/register", json={"email": "u1@example.com", "password": "password123"})
     assert bad.status_code == 400
 
 
-def test_register_integrity_error_maps_to_409():
-    app = FastAPI()
-    app.include_router(router)
-
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
+@pytest.mark.asyncio
+async def test_register_integrity_error_maps_to_409():
+    app = _build_app()
     app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC(
         exc=IntegrityError("insert", {}, RuntimeError("dup"))
     )
 
-    client = TestClient(app)
-    r = client.post("/register", json={"email": "u1@example.com", "password": "password123"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/register", json={"email": "u1@example.com", "password": "password123"})
     assert r.status_code == 409
 
 
-def test_register_unexpected_exception_maps_to_500():
-    app = FastAPI()
-    app.include_router(router)
-
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
+@pytest.mark.asyncio
+async def test_register_unexpected_exception_maps_to_500():
+    app = _build_app()
     app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC(exc=RuntimeError("boom"))
 
-    client = TestClient(app)
-    r = client.post("/register", json={"email": "u1@example.com", "password": "password123"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/register", json={"email": "u1@example.com", "password": "password123"})
     assert r.status_code == 500
 
 
-def test_register_staff_success_for_admin():
-    app = FastAPI()
-    app.include_router(router)
-
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
+@pytest.mark.asyncio
+async def test_register_staff_success_for_admin():
+    app = _build_app()
     app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC()
 
-    client = TestClient(app)
     payload = {"email": "staff@example.com", "password": "password123", "role": "doctor"}
-    r = client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "admin"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "admin"})
     assert r.status_code == 201
 
 
-def test_register_staff_rejects_invalid_staff_role():
-    app = FastAPI()
-    app.include_router(router)
-
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
+@pytest.mark.asyncio
+async def test_register_staff_rejects_invalid_staff_role():
+    app = _build_app()
     app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC()
 
-    client = TestClient(app)
     payload = {"email": "staff@example.com", "password": "password123", "role": "patient"}
-    r = client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "admin"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "admin"})
     assert r.status_code == 400
 
 
-def test_login_refresh_logout_success_paths():
-    app = FastAPI()
-    app.include_router(router)
-
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
+@pytest.mark.asyncio
+async def test_login_refresh_logout_success_paths():
+    app = _build_app()
     app.dependency_overrides[get_login_use_case] = lambda: DummyLoginUC()
     app.dependency_overrides[get_refresh_token_use_case] = lambda: DummyRefreshUC()
     app.dependency_overrides[get_logout_use_case] = lambda: DummyLogoutUC()
 
-    client = TestClient(app)
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        login = await client.post("/login", json={"email": "u@example.com", "password": "password123"})
+        assert login.status_code == 200
+        assert "access_token" in login.cookies
 
-    login = client.post("/login", json={"email": "u@example.com", "password": "password123"})
-    assert login.status_code == 200
-    assert "access_token" in login.cookies
+        refresh = await client.post("/refresh", json={"refresh_token": "rtok"})
+        assert refresh.status_code == 200
 
-    refresh = client.post("/refresh", json={"refresh_token": "rtok"})
-    assert refresh.status_code == 200
-
-    logout = client.post("/logout", json={"refresh_token": "rtok", "logout_all_devices": False})
+        logout = await client.post("/logout", json={"refresh_token": "rtok", "logout_all_devices": False})
     assert logout.status_code == 200
 
 
-def test_logout_value_error_maps_to_400():
-    app = FastAPI()
-    app.include_router(router)
+@pytest.mark.asyncio
+async def test_logout_value_error_maps_to_400():
+    app = _build_app()
 
     class DummyLogoutErrorUC:
         async def execute(self, **_kwargs):
             await asyncio.sleep(0)
             raise ValueError("bad logout")
 
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
     app.dependency_overrides[get_logout_use_case] = lambda: DummyLogoutErrorUC()
 
-    client = TestClient(app)
-    r = client.post("/logout", json={"refresh_token": "rtok", "logout_all_devices": False})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/logout", json={"refresh_token": "rtok", "logout_all_devices": False})
     assert r.status_code == 400
 
 
-def test_refresh_unexpected_exception_maps_to_500():
-    app = FastAPI()
-    app.include_router(router)
+@pytest.mark.asyncio
+async def test_refresh_unexpected_exception_maps_to_500():
+    app = _build_app()
 
     class DummyRefreshErrorUC:
         async def execute(self, **_kwargs):
             await asyncio.sleep(0)
             raise RuntimeError("boom")
 
-    async def db_dep():
-        yield DummyDb()
-
-    app.dependency_overrides[get_db] = db_dep
     app.dependency_overrides[get_refresh_token_use_case] = lambda: DummyRefreshErrorUC()
 
-    client = TestClient(app)
-    r = client.post("/refresh", json={"refresh_token": "rtok"})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/refresh", json={"refresh_token": "rtok"})
+    assert r.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_register_staff_value_error_maps_to_400():
+    app = _build_app()
+    app.dependency_overrides[get_register_service] = lambda: DummyRegisterUC(exc=ValueError("invalid staff data"))
+
+    payload = {"email": "staff@example.com", "password": "password123", "role": "doctor"}
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/admin/register-staff", json=payload, headers={"X-User-Role": "admin"})
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_logout_unexpected_exception_maps_to_500():
+    app = _build_app()
+
+    class DummyLogoutErrorUC:
+        async def execute(self, **_kwargs):
+            await asyncio.sleep(0)
+            raise RuntimeError("boom")
+
+    app.dependency_overrides[get_logout_use_case] = lambda: DummyLogoutErrorUC()
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.post("/logout", json={"refresh_token": "rtok", "logout_all_devices": False})
+    assert r.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_get_me_unexpected_exception_maps_to_500():
+    app = _build_app()
+
+    class DummyUserRepo:
+        async def get_by_id(self, _user_id):
+            await asyncio.sleep(0)
+            raise RuntimeError("db down")
+
+    app.dependency_overrides[get_user_repository] = lambda: DummyUserRepo()
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/me", headers={"X-User-Id": str(uuid4())})
     assert r.status_code == 500

@@ -20,10 +20,10 @@ from infrastructure.consumers import (
     PaymentTimeoutConsumer,
 )
 from infrastructure.database import models as _db_models  # noqa: F401
-from infrastructure.database.session import AsyncSessionLocal
-from infrastructure.database.session import engine
+from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.repositories.appointment_repository import AppointmentRepository
 from presentation.routes import appointments_router
+from presentation.routes.internal import router as internal_router
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
 if str(TRACING_DIR) not in sys.path:
@@ -59,8 +59,10 @@ app.add_middleware(
 async def health_check():
     return {"status": "healthy", "service": "appointment-service"}
 
+
 # Routes
 app.include_router(appointments_router)
+app.include_router(internal_router)
 
 background_tasks = set()
 app.state.cache = None

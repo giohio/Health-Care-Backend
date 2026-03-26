@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
+import httpx
+import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
 from presentation import dependencies
 from presentation.dependencies import get_list_notifications_use_case, get_mark_notification_read_use_case
 from presentation.routes.notifications import router
@@ -50,30 +50,39 @@ def test_notification_dependencies_smoke():
     assert repo is not None
     assert dependencies.get_ws_manager() is not None
     assert dependencies.get_email_sender() is dependencies.get_email_sender()
-    assert dependencies.get_create_notification_use_case(repo, dependencies.get_ws_manager(), dependencies.get_email_sender()) is not None
+    assert (
+        dependencies.get_create_notification_use_case(
+            repo, dependencies.get_ws_manager(), dependencies.get_email_sender()
+        )
+        is not None
+    )
     assert dependencies.get_list_notifications_use_case(repo) is not None
     assert dependencies.get_mark_notification_read_use_case(repo) is not None
 
 
-def test_list_notifications_returns_unread_count():
+@pytest.mark.asyncio
+async def test_list_notifications_returns_unread_count():
     app = FastAPI()
     app.include_router(router)
     items = [_notification(False), _notification(True)]
     app.dependency_overrides[get_list_notifications_use_case] = lambda: DummyListUC(items)
 
-    client = TestClient(app)
-    r = client.get("/me", headers={"X-User-Id": str(uuid4())})
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/me", headers={"X-User-Id": str(uuid4())})
 
     assert r.status_code == 200
     assert r.json()["unread_count"] == 1
 
 
-def test_mark_as_read_not_found_returns_404():
+@pytest.mark.asyncio
+async def test_mark_as_read_not_found_returns_404():
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_mark_notification_read_use_case] = lambda: DummyReadUC(None)
 
-    client = TestClient(app)
-    r = client.put(f"/{uuid4()}/read")
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.put(f"/{uuid4()}/read")
 
     assert r.status_code == 404
