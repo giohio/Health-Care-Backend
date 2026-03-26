@@ -1,5 +1,6 @@
 import sys
 from unittest.mock import MagicMock
+
 # Mock opentelemetry before they are imported by telemetry.py
 sys.modules["opentelemetry"] = MagicMock()
 sys.modules["opentelemetry.trace"] = MagicMock()
@@ -18,10 +19,9 @@ sys.modules["opentelemetry.sdk.resources"] = MagicMock()
 sys.modules["opentelemetry.sdk.trace"] = MagicMock()
 sys.modules["opentelemetry.sdk.trace.export"] = MagicMock()
 
-import pytest
-import logging
-from unittest.mock import MagicMock
-from telemetry import TraceIDFilter, SafeFormatter, setup_logging
+import logging  # noqa: E402
+from telemetry import TraceIDFilter, SafeFormatter, setup_logging  # noqa: E402
+
 
 def test_trace_id_filter():
     filter_instance = TraceIDFilter()
@@ -29,25 +29,27 @@ def test_trace_id_filter():
     # Test when attributes are missing
     delattr(record, "otelTraceID") if hasattr(record, "otelTraceID") else None
     delattr(record, "otelSpanID") if hasattr(record, "otelSpanID") else None
-    
+
     assert filter_instance.filter(record) is True
     assert record.otelTraceID == "0"
     assert record.otelSpanID == "0"
-    
+
     # Test when attributes are present
     record.otelTraceID = "trace-123"
     filter_instance.filter(record)
     assert record.otelTraceID == "trace-123"
 
+
 def test_safe_formatter():
     formatter = SafeFormatter()
     record = logging.LogRecord("name", logging.INFO, "path", 10, "msg", None, None)
-    
+
     # Before formatting, the record doesn't have the attributes
     # The formatter should add them during format()
     assert not hasattr(record, "otelTraceID")
     formatter.format(record)
     assert record.otelTraceID == "0"
+
 
 def test_setup_logging_no_crash():
     # Smoke test to ensure setup_logging runs without error
