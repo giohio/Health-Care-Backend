@@ -5,13 +5,14 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-from Application import InitializeProfileUseCase, UserRegisteredHandler
+import aio_pika
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from healthai_events import BaseConsumer, OutboxRelay, RabbitMQPublisher
+from healthai_cache import CacheClient
+from healthai_events import OutboxRelay, RabbitMQPublisher
 from infrastructure.config import settings
+from infrastructure.consumers import UserRegisteredConsumer
 from infrastructure.database.session import AsyncSessionLocal, engine
-from infrastructure.repositories.repositories import PatientHealthRepository, PatientProfileRepository
 from presentation.routes import internal, patient
 
 # Setup logging
@@ -49,6 +50,9 @@ app.include_router(internal.router)
 background_tasks = set()
 app.state.publisher = None
 app.state.relay = None
+app.state.cache = None
+app.state.rabbit_connection = None
+app.state.consumer = None
 
 
 @app.on_event("startup")
@@ -73,6 +77,12 @@ async def startup_event():
 
     await wait_for_rabbitmq()
 
+    cache = CacheClient.from_url(settings.REDIS_URL)
+    app.state.cache = cache
+
+    connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
+    app.state.rabbit_connection = connection
+
     publisher = await RabbitMQPublisher.connect(settings.RABBITMQ_URL)
     app.state.publisher = publisher
 
@@ -82,30 +92,24 @@ async def startup_event():
     background_tasks.add(relay_task)
     relay_task.add_done_callback(background_tasks.discard)
 
-    # 1. Start RabbitMQ Consumer in a background task
-    async def run_consumer():
-        while True:
-            try:
-                async with AsyncSessionLocal() as session:
-                    profile_repo = PatientProfileRepository(session)
-                    health_repo = PatientHealthRepository(session)
-                    init_use_case = InitializeProfileUseCase(profile_repo, health_repo)
-                    handler = UserRegisteredHandler(init_use_case)
+    consumer = UserRegisteredConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+    )
+    app.state.consumer = consumer
 
-                    consumer = BaseConsumer(
-                        amqp_url=settings.RABBITMQ_URL,
-                        queue_name="patient_service_register_queue",
-                        exchange_name="user_events",
-                        routing_key="user.registered",
-                    )
+    async def run_consumers():
+        try:
+            await consumer.start()
+            while True:
+                await asyncio.sleep(3600)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("Patient consumer failed: %s", exc)
 
-                await consumer.start(handler_callback=handler.handle)
-            except Exception as e:
-                logger.error("Consumer failed to start: %s", e)
-                await asyncio.sleep(5)
-
-    # Store task to prevent premature garbage collection
-    task = asyncio.create_task(run_consumer())
+    task = asyncio.create_task(run_consumers())
     app.state.consumer_task = task
     background_tasks.add(task)
     task.add_done_callback(background_tasks.discard)
@@ -117,6 +121,21 @@ async def shutdown_event():
     relay = app.state.relay
     if relay:
         relay.stop()
+
+    for task in tuple(background_tasks):
+        task.cancel()
+
+    publisher = app.state.publisher
+    if publisher:
+        await publisher.close()
+
+    connection = app.state.rabbit_connection
+    if connection:
+        await connection.close()
+
+    cache = app.state.cache
+    if cache:
+        await cache.close()
 
     for task in tuple(background_tasks):
         task.cancel()

@@ -83,6 +83,11 @@ class TestPatientProfile:
         )
         assert result["user"]["is_profile_completed"] is True
 
+        # Immediate read-after-write should reflect the new value (cache invalidation correctness)
+        latest_profile = await http.get(f"{PATIENT_URL}/", headers=headers)
+        assert latest_profile.status_code == 200
+        assert latest_profile.json()["profile"]["full_name"].startswith("Test Patient")
+
     async def test_update_health_background(self, http):
         """
         GIVEN a patient

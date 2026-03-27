@@ -129,7 +129,6 @@ async def test_payment_paid_consumer_auto_confirm_true(monkeypatch):
     assert appt.payment_status == PaymentStatus.PAID
     assert len(repo.saved) == 1
     assert any(w["event_type"] == "appointment.confirmed" for w in writes)
-    assert any(w["event_type"] == "cache.invalidate" for w in writes)
 
 
 @pytest.mark.asyncio
@@ -204,7 +203,6 @@ async def test_cancel_for_payment_paths(monkeypatch):
     assert pending.payment_status == PaymentStatus.UNPAID
     assert len(repo.saved) == 1
     assert any(w["event_type"] == "appointment.cancelled" for w in writes)
-    assert any(w["event_type"] == "cache.invalidate" for w in writes)
 
 
 @pytest.mark.asyncio

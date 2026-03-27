@@ -47,6 +47,20 @@ class FakePublisher:
         self.calls.append(kwargs)
 
 
+class FakeCache:
+    def __init__(self):
+        self.patterns = []
+        self.keys = []
+
+    async def delete_pattern(self, pattern):
+        await asyncio.sleep(0)
+        self.patterns.append(pattern)
+
+    async def delete(self, *keys):
+        await asyncio.sleep(0)
+        self.keys.extend(keys)
+
+
 class FakeAppointment:
     def __init__(self, patient_id=None, doctor_id=None, payment_status=PaymentStatus.PAID, can_cancel=True):
         self.id = uuid4()
@@ -86,8 +100,9 @@ async def test_cancel_appointment_by_patient_refunds_if_paid():
     session = FakeSession()
     repo = FakeRepo(appointment)
     publisher = FakePublisher()
+    cache = FakeCache()
 
-    use_case = CancelAppointmentUseCase(session=session, appointment_repo=repo, event_publisher=publisher)
+    use_case = CancelAppointmentUseCase(session=session, appointment_repo=repo, event_publisher=publisher, cache=cache)
     result = await use_case.execute(
         appointment_id=appointment.id,
         actor_id=patient_id,
@@ -103,10 +118,11 @@ async def test_cancel_appointment_by_patient_refunds_if_paid():
     assert appointment.cancel_reason == "Having fever"
     assert session.commits == 1
     assert len(repo.saved) == 1
-    assert len(publisher.calls) == 3
+    assert len(publisher.calls) == 2
     assert publisher.calls[0]["event_type"] == "appointment.cancelled"
-    assert publisher.calls[1]["event_type"] == "cache.invalidate"
-    assert publisher.calls[2]["event_type"] == "payment.refund_requested"
+    assert publisher.calls[1]["event_type"] == "payment.refund_requested"
+    assert cache.patterns == [f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*"]
+    assert cache.keys == [f"queue:{appointment.doctor_id}:{appointment.appointment_date}"]
 
 
 @pytest.mark.asyncio

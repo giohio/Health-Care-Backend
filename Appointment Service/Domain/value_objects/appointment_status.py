@@ -22,6 +22,7 @@ class CancelledBy(str, Enum):
 VALID_TRANSITIONS = {
     AppointmentStatus.PENDING_PAYMENT: [
         AppointmentStatus.PENDING,
+        AppointmentStatus.CONFIRMED,
         AppointmentStatus.CANCELLED,
     ],
     AppointmentStatus.PENDING: [

@@ -32,6 +32,15 @@ class FakeEmail:
         self.sent.append((to, subject, body))
 
 
+class FakeCache:
+    def __init__(self):
+        self.deleted = []
+
+    async def delete(self, key):
+        await _noop()
+        self.deleted.append(key)
+
+
 async def _noop():
     await asyncio.sleep(0)
 
@@ -76,3 +85,22 @@ async def test_create_notification_sends_email_when_send_email_true():
 
     assert len(email.sent) == 1
     assert email.sent[0][0] == "patient@example.com"
+
+
+@pytest.mark.asyncio
+async def test_create_notification_invalidates_unread_cache_when_cache_provided():
+    repo = FakeRepo()
+    ws = FakeWs()
+    email = FakeEmail()
+    cache = FakeCache()
+    use_case = CreateNotificationUseCase(repo, ws, email, cache=cache)
+
+    user_id = uuid4()
+    await use_case.execute(
+        user_id=user_id,
+        title="Appointment Reminder",
+        body="Soon",
+        event_type="appointment.reminder",
+    )
+
+    assert cache.deleted == [f"notif:unread:{user_id}"]

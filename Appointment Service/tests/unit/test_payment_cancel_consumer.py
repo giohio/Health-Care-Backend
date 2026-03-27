@@ -114,6 +114,5 @@ async def test_cancel_for_payment_updates_status_and_emits_events(monkeypatch):
     assert appointment.payment_status == PaymentStatus.UNPAID
     assert appointment.cancelled_by == "system"
     assert appointment.cancel_reason == "payment_expired"
-    assert len(writes) == 2
+    assert len(writes) == 1
     assert writes[0]["event_type"] == "appointment.cancelled"
-    assert writes[1]["event_type"] == "cache.invalidate"

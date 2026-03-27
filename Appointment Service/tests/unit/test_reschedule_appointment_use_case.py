@@ -80,6 +80,20 @@ class FakeDoctorClient:
         return self.config
 
 
+class FakeCache:
+    def __init__(self):
+        self.patterns = []
+        self.keys = []
+
+    async def delete_pattern(self, pattern):
+        await asyncio.sleep(0)
+        self.patterns.append(pattern)
+
+    async def delete(self, *keys):
+        await asyncio.sleep(0)
+        self.keys.extend(keys)
+
+
 class FakeAppointment:
     def __init__(self, patient_id=None, doctor_id=None, can_reschedule=True):
         self.id = uuid4()
@@ -118,6 +132,7 @@ async def test_reschedule_appointment_by_patient():
     publisher = FakePublisher()
     lock_manager = FakeLockManager(lock_available=True)
     doctor_client = FakeDoctorClient()
+    cache = FakeCache()
 
     use_case = RescheduleAppointmentUseCase(
         session=session,
@@ -125,6 +140,7 @@ async def test_reschedule_appointment_by_patient():
         appointment_repo=repo,
         doctor_client=doctor_client,
         event_publisher=publisher,
+        cache=cache,
     )
 
     new_date = date(2026, 4, 5)
@@ -140,9 +156,16 @@ async def test_reschedule_appointment_by_patient():
     assert result.start_time == new_time
     assert len(repo.saved) == 1
     assert len(lock_manager.acquired_slots) == 1
-    assert len(publisher.calls) == 2
+    assert len(publisher.calls) == 1
     assert publisher.calls[0]["event_type"] == "appointment.rescheduled"
-    assert publisher.calls[1]["event_type"] == "cache.invalidate"
+    assert cache.patterns == [
+        f"slots:{doctor_id}:{date(2026, 3, 30)}:*",
+        f"slots:{doctor_id}:{new_date}:*",
+    ]
+    assert cache.keys == [
+        f"queue:{doctor_id}:{date(2026, 3, 30)}",
+        f"queue:{doctor_id}:{new_date}",
+    ]
 
 
 @pytest.mark.asyncio

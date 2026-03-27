@@ -1,13 +1,21 @@
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from Domain.interfaces.rating_repository import IRatingRepository
+from healthai_cache import CacheClient
 from uuid_extension import UUID7
 
 
 class SubmitRatingUseCase:
-    def __init__(self, rating_repo: IRatingRepository, doctor_repo: IDoctorRepository, appointment_repo):
+    def __init__(
+        self,
+        rating_repo: IRatingRepository,
+        doctor_repo: IDoctorRepository,
+        appointment_repo,
+        cache: CacheClient | None = None,
+    ):
         self.rating_repo = rating_repo
         self.doctor_repo = doctor_repo
         self.appointment_repo = appointment_repo
+        self._cache = cache
 
     async def execute(
         self,
@@ -23,7 +31,6 @@ class SubmitRatingUseCase:
             if not appt:
                 raise ValueError("Invalid appointment for rating")
 
-            # Robust comparison (convert both to string to ensure type consistency)
             appt_patient_id = str(appt.patient_id)
             req_patient_id = str(patient_id)
             appt_doctor_id = str(appt.doctor_id)
@@ -48,5 +55,10 @@ class SubmitRatingUseCase:
         avg = await self.rating_repo.get_average_rating(doctor_id)
         if avg is not None:
             await self.doctor_repo.update_average_rating(doctor_id, avg)
+
+        # Invalidate all cached rating pages for this doctor
+        if self._cache:
+            await self._cache.delete_pattern(f"doctor:ratings:{doctor_id}:*")
+            await self._cache.delete(f"doctor:profile:{doctor_id}")
 
         return rating_entity

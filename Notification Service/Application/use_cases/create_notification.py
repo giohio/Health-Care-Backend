@@ -15,10 +15,12 @@ class CreateNotificationUseCase:
         repo: INotificationRepository,
         ws_manager: IRealtimeNotifier,
         email_sender: IEmailSender | None = None,
+        cache=None,
     ):
         self.repo = repo
         self.ws_manager = ws_manager
         self.email_sender = email_sender
+        self.cache = cache
 
     async def execute(
         self,
@@ -38,6 +40,8 @@ class CreateNotificationUseCase:
             created_at=datetime.now(timezone.utc),
         )
         await self.repo.save(notification)
+        if self.cache:
+            await self.cache.delete(f"notif:unread:{user_id}")
         response = NotificationResponse.model_validate(notification)
         ws_payload = response.model_dump(mode="json")
         message = {

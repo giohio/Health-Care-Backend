@@ -116,6 +116,25 @@ class FakeHistoryVitalsUseCase:
         ]
 
 
+class FakeCache:
+    def __init__(self, values=None):
+        self.values = values or {}
+        self.setex_calls = []
+        self.deleted = []
+
+    async def get(self, key):
+        await asyncio.sleep(0)
+        return self.values.get(key)
+
+    async def setex(self, key, ttl, value):
+        await asyncio.sleep(0)
+        self.setex_calls.append((key, ttl, value))
+
+    async def delete(self, key):
+        await asyncio.sleep(0)
+        self.deleted.append(key)
+
+
 def _build_app():
     app = FastAPI()
     app.include_router(router)
@@ -159,10 +178,12 @@ async def test_patient_routes_profile_health_and_summary_success_paths():
     app = _build_app()
     user_id = uuid4()
 
+    cache = FakeCache()
     app.dependency_overrides[dependencies.get_current_user_id] = lambda: user_id
     app.dependency_overrides[dependencies.get_profile_repo] = lambda: FakeProfileRepo()
     app.dependency_overrides[dependencies.get_health_repo] = lambda: FakeHealthRepo()
     app.dependency_overrides[dependencies.get_event_publisher] = lambda: SimpleNamespace(publish=FakeVitalsUseCase().execute)
+    app.dependency_overrides[dependencies.get_cache_client] = lambda: cache
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
@@ -178,6 +199,52 @@ async def test_patient_routes_profile_health_and_summary_success_paths():
         summary = await client.get("/health-summary")
         assert summary.status_code == 200
 
+    assert any(k == f"patient:profile:{user_id}" for k in cache.deleted)
+
+
+@pytest.mark.asyncio
+async def test_patient_get_profile_uses_cache_hit_without_repository_calls():
+    app = _build_app()
+    user_id = uuid4()
+    now_iso = datetime(2026, 3, 30, 9, 0, 0).isoformat()
+    cache = FakeCache(
+        values={
+            f"patient:profile:{user_id}": {
+                "profile": {
+                    "id": str(uuid4()),
+                    "user_id": str(user_id),
+                    "full_name": "Cached Patient",
+                    "date_of_birth": None,
+                    "gender": None,
+                    "phone_number": None,
+                    "address": None,
+                    "avatar_url": None,
+                    "created_at": now_iso,
+                    "updated_at": now_iso,
+                },
+                "health_background": {
+                    "patient_id": str(uuid4()),
+                    "blood_type": None,
+                    "height_cm": None,
+                    "weight_kg": None,
+                    "allergies": None,
+                    "chronic_conditions": None,
+                },
+            }
+        }
+    )
+
+    app.dependency_overrides[dependencies.get_current_user_id] = lambda: user_id
+    app.dependency_overrides[dependencies.get_profile_repo] = lambda: FakeProfileRepo(fail=True)
+    app.dependency_overrides[dependencies.get_health_repo] = lambda: FakeHealthRepo(fail=True)
+    app.dependency_overrides[dependencies.get_cache_client] = lambda: cache
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        prof = await client.get("/")
+        assert prof.status_code == 200
+        assert prof.json()["profile"]["full_name"] == "Cached Patient"
+
 
 @pytest.mark.asyncio
 async def test_patient_routes_value_error_paths_map_to_404():
@@ -188,6 +255,7 @@ async def test_patient_routes_value_error_paths_map_to_404():
     app.dependency_overrides[dependencies.get_profile_repo] = lambda: FakeProfileRepo(fail=True)
     app.dependency_overrides[dependencies.get_health_repo] = lambda: FakeHealthRepo(fail=True)
     app.dependency_overrides[dependencies.get_event_publisher] = lambda: SimpleNamespace(publish=FakeVitalsUseCase().execute)
+    app.dependency_overrides[dependencies.get_cache_client] = lambda: FakeCache()
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:

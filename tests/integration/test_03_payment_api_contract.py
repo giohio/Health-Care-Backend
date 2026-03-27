@@ -17,13 +17,11 @@ class TestPaymentApiContract:
         assert resp.status_code == 404
 
     async def test_vnpay_return_endpoint_exists(self, http):
-        resp = await http.get(f"{PAYMENT_URL}/payments/vnpay/return")
-        assert resp.status_code == 200
-        body = resp.json()
-        assert "message" in body
+        resp = await http.get(f"{PAYMENT_URL}/vnpay/return")
+        assert resp.status_code == 302
 
     async def test_vnpay_ipn_endpoint_exists(self, http):
-        resp = await http.get(f"{PAYMENT_URL}/payments/vnpay/ipn")
+        resp = await http.get(f"{PAYMENT_URL}/vnpay/ipn")
         assert resp.status_code == 200
         body = resp.json()
         assert body.get("RspCode") in ("01", "97", "99")

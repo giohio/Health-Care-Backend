@@ -1,9 +1,25 @@
+import json
+
+
+def _normalize_cached_payload(cached):
+    if isinstance(cached, str):
+        return json.loads(cached)
+    return cached
+
+
 class GetDoctorQueueUseCase:
-    def __init__(self, appointment_repo, doctor_client):
+    def __init__(self, appointment_repo, doctor_client, cache=None):
         self.appointment_repo = appointment_repo
         self.doctor_client = doctor_client
+        self.cache = cache
 
     async def execute(self, doctor_id, appointment_date):
+        if self.cache:
+            key = f"queue:{doctor_id}:{appointment_date}"
+            cached = await self.cache.get(key)
+            if cached:
+                return _normalize_cached_payload(cached)
+
         appointments = await self.appointment_repo.get_doctor_queue(doctor_id, appointment_date)
         data = []
         for appt in appointments:
@@ -23,4 +39,6 @@ class GetDoctorQueueUseCase:
                     "chief_complaint": appt.chief_complaint,
                 }
             )
+        if self.cache:
+            await self.cache.setex(key, 30, data)
         return data

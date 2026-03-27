@@ -34,6 +34,13 @@ class FakeCache:
         await asyncio.sleep(0)
         self.data[key] = value
 
+    async def delete(self, key):
+        await asyncio.sleep(0)
+        self.data.pop(key, None)
+
+    async def delete_pattern(self, pattern):
+        await asyncio.sleep(0)
+
 
 class FakeRepo:
     def __init__(self):
@@ -321,10 +328,9 @@ async def test_book_appointment_saga_publishes_payment_event():
     # Then write outbox
     await saga.execute_write_outbox(ctx)
 
-    assert len(publisher.calls) == 2
+    assert len(publisher.calls) == 1
     assert publisher.calls[0]["event_type"] == "appointment.payment_required"
     assert publisher.calls[0]["payload"]["amount"] == 250000
-    assert publisher.calls[1]["event_type"] == "cache.invalidate"
 
 
 @pytest.mark.asyncio
@@ -366,7 +372,7 @@ async def test_book_appointment_saga_uses_default_pricing():
 
     await saga.execute_write_outbox(ctx)
 
-    assert len(publisher.calls) == 2
+    assert len(publisher.calls) == 1
     assert publisher.calls[0]["payload"]["amount"] == 150000
 
 

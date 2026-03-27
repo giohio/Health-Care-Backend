@@ -18,6 +18,26 @@ from Application.use_cases.set_availability import SetAvailabilityUseCase
 from Application.use_cases.submit_rating import SubmitRatingUseCase
 
 
+class FakeCache:
+    def __init__(self, values=None):
+        self.values = values or {}
+        self.set_calls = []
+        self.delete_calls = []
+        self.delete_pattern_calls = []
+
+    async def get(self, key):
+        return self.values.get(key)
+
+    async def set(self, key, value, ttl=300):
+        self.set_calls.append((key, value, ttl))
+
+    async def delete(self, *keys):
+        self.delete_calls.append(keys)
+
+    async def delete_pattern(self, pattern):
+        self.delete_pattern_calls.append(pattern)
+
+
 @pytest.mark.asyncio
 async def test_get_enhanced_schedule_includes_breaks_services_and_day_off_flag():
     doctor_id = uuid4()
@@ -86,6 +106,64 @@ async def test_get_enhanced_schedule_returns_empty_windows_when_no_availability(
 
 
 @pytest.mark.asyncio
+async def test_get_enhanced_schedule_returns_cached_value_without_repository_calls():
+    doctor_id = uuid4()
+    target_date = date(2026, 3, 31)
+    cache_key = f"doctor:enhanced_schedule:{doctor_id}:{target_date}"
+    expected = {
+        "doctor_id": str(doctor_id),
+        "date": str(target_date),
+        "is_day_off": False,
+        "working_hours": [],
+        "services": [],
+    }
+
+    availability_repo = SimpleNamespace(get_by_doctor_and_day=AsyncMock())
+    day_off_repo = SimpleNamespace(is_day_off=AsyncMock())
+    service_repo = SimpleNamespace(list_by_doctor=AsyncMock())
+    cache = FakeCache(values={cache_key: expected})
+
+    use_case = GetEnhancedScheduleUseCase(availability_repo, day_off_repo, service_repo, cache=cache)
+    result = await use_case.execute(doctor_id=doctor_id, target_date=target_date)
+
+    assert result == expected
+    availability_repo.get_by_doctor_and_day.assert_not_awaited()
+    day_off_repo.is_day_off.assert_not_awaited()
+    service_repo.list_by_doctor.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_enhanced_schedule_cache_miss_sets_cache_with_ttl():
+    doctor_id = uuid4()
+    target_date = date(2026, 4, 1)
+
+    availability_repo = SimpleNamespace(
+        get_by_doctor_and_day=AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    start_time=time(8, 0),
+                    end_time=time(12, 0),
+                    break_start=None,
+                    break_end=None,
+                    max_patients=10,
+                )
+            ]
+        )
+    )
+    day_off_repo = SimpleNamespace(is_day_off=AsyncMock(return_value=False))
+    service_repo = SimpleNamespace(list_by_doctor=AsyncMock(return_value=[]))
+    cache = FakeCache()
+
+    use_case = GetEnhancedScheduleUseCase(availability_repo, day_off_repo, service_repo, cache=cache)
+    _ = await use_case.execute(doctor_id=doctor_id, target_date=target_date)
+
+    assert len(cache.set_calls) == 1
+    key, _value, ttl = cache.set_calls[0]
+    assert key == f"doctor:enhanced_schedule:{doctor_id}:{target_date}"
+    assert ttl == 120
+
+
+@pytest.mark.asyncio
 async def test_set_and_get_availability_calls_repositories():
     doctor_id = uuid4()
     session = SimpleNamespace(commit=AsyncMock())
@@ -113,6 +191,31 @@ async def test_set_and_get_availability_calls_repositories():
     loaded = await get_use_case.execute(doctor_id)
     assert loaded == [{"day_of_week": 1}]
     availability_repo.get_by_doctor.assert_awaited_once_with(doctor_id)
+
+
+@pytest.mark.asyncio
+async def test_set_availability_invalidates_enhanced_schedule_cache():
+    doctor_id = uuid4()
+    session = SimpleNamespace(commit=AsyncMock())
+    availability_repo = SimpleNamespace(
+        upsert=AsyncMock(return_value={"saved": True}),
+        session=session,
+    )
+    cache = FakeCache()
+
+    use_case = SetAvailabilityUseCase(availability_repo, cache=cache)
+    await use_case.execute(
+        doctor_id=doctor_id,
+        day_of_week=1,
+        start_time=time(8, 0),
+        end_time=time(12, 0),
+        break_start=None,
+        break_end=None,
+        max_patients=10,
+    )
+
+    assert cache.delete_calls == [(f"doctor:availability:{doctor_id}",)]
+    assert cache.delete_pattern_calls == [f"doctor:enhanced_schedule:{doctor_id}:*"]
 
 
 @pytest.mark.asyncio
@@ -147,6 +250,29 @@ async def test_manage_service_offerings_add_list_update_deactivate():
     assert await ListServiceOfferingsUseCase(service_repo).execute(doctor_id) == [{"id": service_id}]
     assert await UpdateServiceOfferingUseCase(service_repo).execute(service_id, fee=120000) == {"updated": True}
     assert await DeactivateServiceOfferingUseCase(service_repo).execute(service_id) is True
+
+
+@pytest.mark.asyncio
+async def test_manage_service_offerings_invalidates_enhanced_schedule_cache():
+    doctor_id = uuid4()
+    service_id = uuid4()
+    service_repo = SimpleNamespace(
+        create=AsyncMock(return_value={"id": service_id}),
+        update=AsyncMock(return_value=SimpleNamespace(doctor_id=doctor_id)),
+        deactivate=AsyncMock(return_value=SimpleNamespace(doctor_id=doctor_id)),
+    )
+    cache = FakeCache()
+
+    await AddServiceOfferingUseCase(service_repo, cache=cache).execute(doctor_id, "General", 30, 100000, "desc")
+    await UpdateServiceOfferingUseCase(service_repo, cache=cache).execute(service_id, fee=120000)
+    await DeactivateServiceOfferingUseCase(service_repo, cache=cache).execute(service_id)
+
+    assert (f"doctor:services:{doctor_id}",) in cache.delete_calls
+    assert cache.delete_pattern_calls == [
+        f"doctor:enhanced_schedule:{doctor_id}:*",
+        f"doctor:enhanced_schedule:{doctor_id}:*",
+        f"doctor:enhanced_schedule:{doctor_id}:*",
+    ]
 
 
 @pytest.mark.asyncio

@@ -47,6 +47,20 @@ class FakePublisher:
         self.calls.append(kwargs)
 
 
+class FakeCache:
+    def __init__(self):
+        self.patterns = []
+        self.keys = []
+
+    async def delete_pattern(self, pattern):
+        await asyncio.sleep(0)
+        self.patterns.append(pattern)
+
+    async def delete(self, *keys):
+        await asyncio.sleep(0)
+        self.keys.extend(keys)
+
+
 class FakeAppointment:
     def __init__(self, doctor_id=None, payment_status=PaymentStatus.PAID, can_mark_no_show=True):
         self.id = uuid4()
@@ -75,8 +89,9 @@ async def test_mark_no_show_by_doctor_refunds_if_paid():
     session = FakeSession()
     repo = FakeRepo(appointment)
     publisher = FakePublisher()
+    cache = FakeCache()
 
-    use_case = MarkNoShowUseCase(session=session, appointment_repo=repo, event_publisher=publisher)
+    use_case = MarkNoShowUseCase(session=session, appointment_repo=repo, event_publisher=publisher, cache=cache)
     result = await use_case.execute(appointment_id=appointment.id, doctor_id=doctor_id)
 
     assert result.status == AppointmentStatus.NO_SHOW
@@ -84,10 +99,11 @@ async def test_mark_no_show_by_doctor_refunds_if_paid():
     assert appointment.payment_status == PaymentStatus.REFUNDED
     assert session.commits == 1
     assert len(repo.saved) == 1
-    assert len(publisher.calls) == 3
+    assert len(publisher.calls) == 2
     assert publisher.calls[0]["event_type"] == "appointment.no_show"
-    assert publisher.calls[1]["event_type"] == "cache.invalidate"
-    assert publisher.calls[2]["event_type"] == "payment.refund_requested"
+    assert publisher.calls[1]["event_type"] == "payment.refund_requested"
+    assert cache.patterns == [f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*"]
+    assert cache.keys == [f"queue:{appointment.doctor_id}:{appointment.appointment_date}"]
 
 
 @pytest.mark.asyncio
@@ -107,26 +123,8 @@ async def test_mark_no_show_without_payment_refund_skips_refund_event():
 
     assert appointment.status == AppointmentStatus.NO_SHOW
     assert appointment.payment_status == PaymentStatus.PROCESSING
-    assert len(publisher.calls) == 2
+    assert len(publisher.calls) == 1
     assert publisher.calls[0]["event_type"] == "appointment.no_show"
-    assert publisher.calls[1]["event_type"] == "cache.invalidate"
-
-
-@pytest.mark.asyncio
-async def test_mark_no_show_invalidates_cache():
-    doctor_id = uuid4()
-    appointment = FakeAppointment(doctor_id=doctor_id, can_mark_no_show=True)
-    session = FakeSession()
-    repo = FakeRepo(appointment)
-    publisher = FakePublisher()
-
-    use_case = MarkNoShowUseCase(session=session, appointment_repo=repo, event_publisher=publisher)
-    await use_case.execute(appointment_id=appointment.id, doctor_id=doctor_id)
-
-    cache_invalidation = publisher.calls[1]
-    assert cache_invalidation["event_type"] == "cache.invalidate"
-    assert cache_invalidation["payload"]["patterns"][0] == f"slots:{doctor_id}:{appointment.appointment_date}:*"
-    assert cache_invalidation["payload"]["patterns"][1] == f"queue:{doctor_id}:{appointment.appointment_date}"
 
 
 @pytest.mark.asyncio

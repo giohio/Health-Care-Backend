@@ -38,22 +38,43 @@ from presentation.routes.schedules import router as schedules_router
 from presentation.routes.specialties import router as specialties_router
 
 
+class DummyCache:
+    async def get(self, *_args, **_kwargs):
+        await asyncio.sleep(0)
+        return None
+
+    async def set(self, *_args, **_kwargs):
+        await asyncio.sleep(0)
+
+    async def setex(self, *_args, **_kwargs):
+        await asyncio.sleep(0)
+
+    async def delete(self, *_args, **_kwargs):
+        await asyncio.sleep(0)
+
+    async def delete_pattern(self, *_args, **_kwargs):
+        await asyncio.sleep(0)
+
+
 def _make_async_client(app: FastAPI) -> httpx.AsyncClient:
+    if not hasattr(app.state, "cache"):
+        app.state.cache = DummyCache()
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver")
 
 
 def test_doctor_dependencies_smoke():
     session = object()
+    cache = DummyCache()
     specialty_repo = dependencies.get_specialty_repo(session)
     doctor_repo = dependencies.get_doctor_repo(session)
     schedule_repo = dependencies.get_schedule_repo(session)
     assert specialty_repo is not None
     assert doctor_repo is not None
     assert schedule_repo is not None
-    assert dependencies.get_list_specialties_use_case(specialty_repo) is not None
-    assert dependencies.get_save_specialty_use_case(specialty_repo) is not None
+    assert dependencies.get_list_specialties_use_case(specialty_repo, cache) is not None
+    assert dependencies.get_save_specialty_use_case(specialty_repo, cache) is not None
     assert dependencies.get_register_doctor_use_case(doctor_repo) is not None
-    assert dependencies.get_update_schedule_use_case(schedule_repo, doctor_repo) is not None
+    assert dependencies.get_update_schedule_use_case(schedule_repo, doctor_repo, cache) is not None
 
 
 @pytest.mark.asyncio
