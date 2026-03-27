@@ -42,14 +42,17 @@ class PaymentPaidConsumer(BaseConsumer):
 
         appointment_id = uuid.UUID(str(appointment_id_raw))
 
+        logger.info("Handling payment.paid for appointment %s", appointment_id)
         async with self._session_factory() as session:
             async with session.begin():
                 repo = self._appointment_repo_factory(session)
                 appt = await repo.get_by_id_with_lock(appointment_id)
                 if not appt:
+                    logger.warning("Appointment %s not found for payment.paid", appointment_id)
                     return
 
                 if appt.status != AppointmentStatus.PENDING_PAYMENT:
+                    logger.warning("Appointment %s In wrong status: %s", appointment_id, appt.status)
                     return
 
                 appt.payment_status = PaymentStatus.PAID
@@ -57,6 +60,7 @@ class PaymentPaidConsumer(BaseConsumer):
                 doctor_cfg = None
                 for attempt in range(1, 4):
                     try:
+                        logger.info("Fetching doctor config for %s (attempt %s/3)", appt.doctor_id, attempt)
                         doctor_cfg = await self._doctor_client.get_doctor(str(appt.doctor_id))
                     except Exception as exc:
                         logger.warning(
@@ -131,19 +135,6 @@ class PaymentPaidConsumer(BaseConsumer):
                     )
 
                 await repo.save(appt)
-
-                await OutboxWriter.write(
-                    session,
-                    aggregate_id=appt.id,
-                    aggregate_type="cache_events",
-                    event_type="cache.invalidate",
-                    payload={
-                        "patterns": [
-                            f"slots:{appt.doctor_id}:{appt.appointment_date}:*",
-                            f"queue:{appt.doctor_id}:{appt.appointment_date}",
-                        ]
-                    },
-                )
 
 
 class PaymentFailedConsumer(BaseConsumer):
@@ -243,17 +234,5 @@ async def _cancel_for_payment(
                     "doctor_id": str(appointment.doctor_id),
                     "reason": reason,
                     "cancelled_by": "system",
-                },
-            )
-            await OutboxWriter.write(
-                session,
-                aggregate_id=appointment.id,
-                aggregate_type="cache_events",
-                event_type="cache.invalidate",
-                payload={
-                    "patterns": [
-                        f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*",
-                        f"queue:{appointment.doctor_id}:{appointment.appointment_date}",
-                    ]
                 },
             )

@@ -22,6 +22,10 @@ async def register_patient(http: httpx.AsyncClient, auth_url: str) -> dict:
     email = f"patient_{short_id()}@healthai.dev"
     secret = _new_test_secret("patient")
 
+    # Surgical cookie deletion to prevent role collisions in Kong
+    if "access_token" in http.cookies:
+        del http.cookies["access_token"]
+
     r = await http.post(
         f"{auth_url}/register",
         json={
@@ -61,6 +65,10 @@ async def register_doctor(
 
     email = f"doctor_{short_id()}@healthai.dev"
     secret = _new_test_secret("doctor")
+
+    # Surgical cookie deletion to prevent role collisions in Kong
+    if "access_token" in http.cookies:
+        del http.cookies["access_token"]
 
     # Refresh admin token to avoid stale/expired session-scoped token during long E2E runs.
     admin_email = os.getenv("ADMIN_EMAIL") or "admin@healthai.dev"

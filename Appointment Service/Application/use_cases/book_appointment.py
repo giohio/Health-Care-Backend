@@ -156,18 +156,11 @@ class BookAppointmentSaga(SagaOrchestrator):
                 "amount": amount,
             },
         )
-        await self.event_publisher.publish(
-            session=self.session,
-            aggregate_id=appt.id,
-            aggregate_type="cache_events",
-            event_type="cache.invalidate",
-            payload={
-                "patterns": [
-                    f"slots:{appt.doctor_id}:{appt.appointment_date}:*",
-                    f"queue:{appt.doctor_id}:{appt.appointment_date}",
-                ]
-            },
-        )
+        if self.cache:
+            await self.cache.delete_pattern(
+                f"slots:{appt.doctor_id}:{appt.appointment_date}:*"
+            )
+            await self.cache.delete(f"queue:{appt.doctor_id}:{appt.appointment_date}")
 
     async def execute_release_slot_lock(self, ctx):
         token = ctx.get("lock_token")

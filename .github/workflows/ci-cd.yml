@@ -12,6 +12,14 @@ on:
         required: false
         default: "false"
 
+permissions:
+  contents: read
+  actions: write
+  packages: write
+  pull-requests: write
+  id-token: write
+  checks: write
+
 env:
   PYTHONDONTWRITEBYTECODE: "1"
   PYTHONUNBUFFERED: "1"
@@ -116,7 +124,7 @@ jobs:
           - "Doctor Service"
           - "Patient Service"
           - "Payment Service"
-          - "Notifiaction Service"
+          - "Notification Service"
           - "shared"
     steps:
       - name: Checkout
@@ -138,7 +146,7 @@ jobs:
           pip install -r "Doctor Service/requirements.txt"
           pip install -r "Patient Service/requirements.txt"
           pip install -r "Payment Service/requirements.txt"
-          pip install -r "Notifiaction Service/requirements.txt"
+          pip install -r "Notification Service/requirements.txt"
 
       - name: Run unit tests with coverage gate
         env:
@@ -241,7 +249,7 @@ jobs:
             image: "doctor-service"
           - path: "Patient Service"
             image: "patient-service"
-          - path: "Notifiaction Service"
+          - path: "Notification Service"
             image: "notification-service"
     steps:
       - name: Checkout

@@ -5,23 +5,26 @@ from Domain.entities.doctor_schedule import DoctorSchedule
 from Domain.exceptions.domain_exceptions import DoctorNotFoundException
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from Domain.interfaces.schedule_repository import IScheduleRepository
+from healthai_cache import CacheClient
 from uuid_extension import UUID7
 
 
 class UpdateScheduleUseCase:
-    def __init__(self, schedule_repo: IScheduleRepository, doctor_repo: IDoctorRepository):
+    def __init__(
+        self,
+        schedule_repo: IScheduleRepository,
+        doctor_repo: IDoctorRepository,
+        cache: CacheClient | None = None,
+    ):
         self.schedule_repo = schedule_repo
         self.doctor_repo = doctor_repo
+        self._cache = cache
 
     async def execute(self, doctor_id: UUID7, dtos: List[ScheduleDTO]) -> List[ScheduleDTO]:
         # 1. Verify doctor exists
         doctor = await self.doctor_repo.get_by_id(doctor_id)
         if not doctor:
             raise DoctorNotFoundException(doctor_id)
-
-        # 2. Get existing schedules to clear or update
-        # For simplicity, we'll replace the whole weekly roster for that doctor
-        # in a production app, we might want more granular updates.
 
         existing = await self.schedule_repo.list_by_doctor(doctor_id)
         for s in existing:
@@ -38,7 +41,6 @@ class UpdateScheduleUseCase:
                 slot_duration_minutes=dto.slot_duration_minutes,
             )
             saved = await self.schedule_repo.save(schedule)
-            # UUID7 is not always treated as uuid.UUID by pydantic in CI, normalize to string.
             new_schedules.append(
                 ScheduleDTO.model_validate(
                     {
@@ -51,5 +53,12 @@ class UpdateScheduleUseCase:
                     }
                 )
             )
+
+        if self._cache:
+            await self._cache.delete(
+                f"doctor:schedule:{doctor_id}",
+                f"doctor:availability:{doctor_id}",
+            )
+            await self._cache.delete_pattern(f"doctor:enhanced_schedule:{doctor_id}:*")
 
         return new_schedules

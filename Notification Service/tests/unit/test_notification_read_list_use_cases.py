@@ -25,6 +25,15 @@ class FakeRepo:
         return self.mark_result
 
 
+class FakeCache:
+    def __init__(self):
+        self.deleted = []
+
+    async def delete(self, key):
+        await asyncio.sleep(0)
+        self.deleted.append(key)
+
+
 @pytest.mark.asyncio
 async def test_list_notifications_returns_dto_list():
     user_id = uuid4()
@@ -81,3 +90,26 @@ async def test_mark_notification_read_returns_dto_when_found():
     assert result is not None
     assert result.is_read is True
     assert result.type == "payment"
+
+
+@pytest.mark.asyncio
+async def test_mark_notification_read_invalidates_unread_cache_key():
+    notification_id = uuid4()
+    user_id = uuid4()
+    sample = {
+        "id": notification_id,
+        "user_id": user_id,
+        "title": "Payment refunded",
+        "body": "Refund done",
+        "event_type": "payment.refunded",
+        "is_read": True,
+        "created_at": datetime.now(timezone.utc),
+        "read_at": datetime.now(timezone.utc),
+    }
+    repo = FakeRepo(mark_result=sample)
+    cache = FakeCache()
+    use_case = MarkNotificationReadUseCase(repo=repo, cache=cache)
+
+    _ = await use_case.execute(notification_id=notification_id)
+
+    assert cache.deleted == [f"notif:unread:{user_id}"]

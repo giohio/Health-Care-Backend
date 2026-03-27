@@ -41,9 +41,23 @@ def short_id() -> str:
 @pytest.fixture(scope="session")
 async def http():
     """Shared AsyncClient for all tests."""
-    timeout = httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=10.0)
+    # Extended 120s timeout and Disable Keepalive for maximum stability on Windows 
+    timeout = httpx.Timeout(120.0, connect=30.0)
     limits = httpx.Limits(max_connections=100, max_keepalive_connections=0)
+    
     async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+        # Kong Compatibility: Clear cookies whenever Authorization header is present 
+        # to ensure Bearer token is used instead of a stale cookie role.
+        original_request = client.request
+        
+        async def wrapped_request(*args, **kwargs):
+            headers = kwargs.get("headers") or {}
+            if any(h.lower() == "authorization" for h in headers):
+                if "access_token" in client.cookies:
+                    del client.cookies["access_token"]
+            return await original_request(*args, **kwargs)
+            
+        client.request = wrapped_request
         yield client
 
 
@@ -307,9 +321,10 @@ async def admin_token(http):
     """
     Login as admin. Admin account must exist
     in DB before running tests.
-    Seed: INSERT INTO users (email, role...)
-    or run: python scripts/seed_admin.py
     """
+    # Total cookie clear to resolve 403 role collision in Kong
+    http.cookies.clear()
+        
     email, secret = _admin_env_credentials()
     last_response = await _login_with_optional_seed(http, email, secret)
 
@@ -340,6 +355,10 @@ async def specialty_id(http, admin_token):
     last_body = None
     for _ in range(20):
         try:
+            # Delete stale cookies before admin action
+            if "access_token" in http.cookies:
+                del http.cookies["access_token"]
+                
             r = await http.post(f"{DOCTOR_URL}/specialties", json=payload, headers=headers)
             last_status = r.status_code
             last_body = r.text

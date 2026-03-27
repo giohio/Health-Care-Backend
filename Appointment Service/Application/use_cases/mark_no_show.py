@@ -8,14 +8,22 @@ from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
+from healthai_cache import CacheClient
 from uuid_extension import UUID7
 
 
 class MarkNoShowUseCase:
-    def __init__(self, session, appointment_repo: IAppointmentRepository, event_publisher: IEventPublisher):
+    def __init__(
+        self,
+        session,
+        appointment_repo: IAppointmentRepository,
+        event_publisher: IEventPublisher,
+        cache: CacheClient | None = None,
+    ):
         self.session = session
         self.appointment_repo = appointment_repo
         self.event_publisher = event_publisher
+        self.cache = cache
 
     async def execute(self, appointment_id: UUID7, doctor_id: UUID7) -> AppointmentResponse:
         appointment = await self.appointment_repo.get_by_id_with_lock(appointment_id)
@@ -44,18 +52,6 @@ class MarkNoShowUseCase:
                 "doctor_id": str(appointment.doctor_id),
             },
         )
-        await self.event_publisher.publish(
-            session=self.session,
-            aggregate_id=appointment.id,
-            aggregate_type="cache_events",
-            event_type="cache.invalidate",
-            payload={
-                "patterns": [
-                    f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*",
-                    f"queue:{appointment.doctor_id}:{appointment.appointment_date}",
-                ]
-            },
-        )
         if appointment.payment_status == PaymentStatus.REFUNDED:
             await self.event_publisher.publish(
                 session=self.session,
@@ -69,4 +65,7 @@ class MarkNoShowUseCase:
                 },
             )
         await self.session.commit()
+        if self.cache:
+            await self.cache.delete_pattern(f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*")
+            await self.cache.delete(f"queue:{appointment.doctor_id}:{appointment.appointment_date}")
         return AppointmentResponse.model_validate(appointment)

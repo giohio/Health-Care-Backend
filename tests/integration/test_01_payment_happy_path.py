@@ -37,7 +37,7 @@ class TestPaymentHappyPathIntegration:
         )
         assert book.status_code in (200, 201), book.text
         appointment_id = book.json()["id"]
-        assert book.json()["status"] == "pending_payment"
+        assert book.json()["status"] == "PENDING_PAYMENT"
 
         # Payment record should be created asynchronously by PaymentRequiredConsumer.
         async def _get_payment():
@@ -76,8 +76,8 @@ class TestPaymentHappyPathIntegration:
             http=http,
             appointment_url=APPOINTMENT_URL,
             appointment_id=appointment_id,
-            expected_status="confirmed",
+            expected_status="CONFIRMED",
             token=patient["access_token"],
             timeout=EVENT_TIMEOUT,
         )
-        assert confirmed["status"] == "confirmed"
+        assert confirmed["status"] == "CONFIRMED"

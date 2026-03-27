@@ -81,8 +81,9 @@ def get_cancel_appointment_use_case(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
     event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return CancelAppointmentUseCase(session, repo, event_publisher)
+    return CancelAppointmentUseCase(session, repo, event_publisher, cache)
 
 
 def get_confirm_appointment_use_case(
@@ -115,8 +116,9 @@ def get_reschedule_appointment_use_case(
     doctor_client: Annotated[DoctorServiceClient, Depends(get_doctor_client)],
     lock_manager: Annotated[RedisLockManager, Depends(get_lock_manager)],
     event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return RescheduleAppointmentUseCase(session, lock_manager, repo, doctor_client, event_publisher)
+    return RescheduleAppointmentUseCase(session, lock_manager, repo, doctor_client, event_publisher, cache)
 
 
 def get_complete_appointment_use_case(
@@ -131,22 +133,25 @@ def get_mark_no_show_use_case(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
     event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return MarkNoShowUseCase(session, repo, event_publisher)
+    return MarkNoShowUseCase(session, repo, event_publisher, cache)
 
 
 def get_available_slots_use_case(
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
     doctor_client: Annotated[DoctorServiceClient, Depends(get_doctor_client)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return GetAvailableSlotsUseCase(repo, doctor_client)
+    return GetAvailableSlotsUseCase(repo, doctor_client, cache)
 
 
 def get_doctor_queue_use_case(
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
     doctor_client: Annotated[DoctorServiceClient, Depends(get_doctor_client)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return GetDoctorQueueUseCase(repo, doctor_client)
+    return GetDoctorQueueUseCase(repo, doctor_client, cache)
 
 
 def get_appointment_stats_use_case(repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)]):

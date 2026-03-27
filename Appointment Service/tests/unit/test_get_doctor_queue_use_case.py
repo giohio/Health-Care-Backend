@@ -1,3 +1,4 @@
+import json
 import asyncio
 from datetime import date, time
 from uuid import uuid4
@@ -38,6 +39,21 @@ class FakeDoctorClient:
     async def get_patient_full_context(self, patient_id):
         await asyncio.sleep(0)
         return self.patient_contexts.get(patient_id)
+
+
+class FakeCache:
+    def __init__(self):
+        self.values = {}
+        self.setex_calls = []
+
+    async def get(self, key):
+        await asyncio.sleep(0)
+        return self.values.get(key)
+
+    async def setex(self, key, ttl, value):
+        await asyncio.sleep(0)
+        self.setex_calls.append((key, ttl, value))
+        self.values[key] = json.dumps(value)
 
 
 @pytest.mark.asyncio
@@ -170,3 +186,42 @@ async def test_get_doctor_queue_handles_missing_patient_context():
 
     assert len(result) == 1
     assert result[0]["patient_name"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_doctor_queue_returns_from_cache_without_repo_calls():
+    doctor_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+    key = f"queue:{doctor_id}:{appointment_date}"
+    expected = [{"appointment_id": str(uuid4()), "status": "CONFIRMED"}]
+
+    cache = FakeCache()
+    cache.values[key] = expected
+
+    repo = FakeRepo([])
+    doctor_client = FakeDoctorClient()
+    use_case = GetDoctorQueueUseCase(appointment_repo=repo, doctor_client=doctor_client, cache=cache)
+
+    result = await use_case.execute(doctor_id=doctor_id, appointment_date=appointment_date)
+
+    assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_get_doctor_queue_cache_miss_sets_cache_with_expected_ttl():
+    doctor_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+
+    appt = FakeAppointment(doctor_id=doctor_id, appointment_date=appointment_date)
+    repo = FakeRepo([appt])
+    doctor_client = FakeDoctorClient()
+    cache = FakeCache()
+    use_case = GetDoctorQueueUseCase(appointment_repo=repo, doctor_client=doctor_client, cache=cache)
+
+    _ = await use_case.execute(doctor_id=doctor_id, appointment_date=appointment_date)
+
+    assert len(cache.setex_calls) == 1
+    key, ttl, value = cache.setex_calls[0]
+    assert key == f"queue:{doctor_id}:{appointment_date}"
+    assert ttl == 30
+    assert isinstance(value, list)

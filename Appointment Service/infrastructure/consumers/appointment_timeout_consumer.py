@@ -76,18 +76,6 @@ class AppointmentTimeoutConsumer(BaseConsumer):
                         "cancelled_by": "system",
                     },
                 )
-                await OutboxWriter.write(
-                    session,
-                    aggregate_id=appt.id,
-                    aggregate_type="cache_events",
-                    event_type="cache.invalidate",
-                    payload={
-                        "patterns": [
-                            f"slots:{appt.doctor_id}:{appt.appointment_date}:*",
-                            f"queue:{appt.doctor_id}:{appt.appointment_date}",
-                        ]
-                    },
-                )
                 if paid_before_timeout:
                     await OutboxWriter.write(
                         session,

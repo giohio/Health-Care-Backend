@@ -184,7 +184,7 @@ services:
   notification_service:
     build:
       context: .
-      dockerfile: ./Notifiaction Service/Dockerfile
+      dockerfile: ./Notification Service/Dockerfile
     container_name: notification_service
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/notification_db

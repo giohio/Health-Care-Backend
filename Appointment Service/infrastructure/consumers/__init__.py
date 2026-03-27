@@ -1,5 +1,5 @@
-from .appointment_timeout_consumer import AppointmentTimeoutConsumer
-from .payment_consumers import (
+from infrastructure.consumers.appointment_timeout_consumer import AppointmentTimeoutConsumer
+from infrastructure.consumers.payment_consumers import (
     PaymentExpiredConsumer,
     PaymentFailedConsumer,
     PaymentPaidConsumer,

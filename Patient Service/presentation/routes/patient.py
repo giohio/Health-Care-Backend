@@ -6,7 +6,9 @@ from Application.use_cases.get_health_summary import GetHealthSummaryUseCase
 from Application.use_cases.manage_vitals import GetLatestVitalsUseCase, GetVitalsHistoryUseCase, RecordVitalsUseCase
 from Domain import IEventPublisher, IPatientHealthRepository, IPatientProfileRepository
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from healthai_cache import CacheClient
 from presentation.dependencies import (
+    get_cache_client,
     get_current_user_id,
     get_event_publisher,
     get_health_repo,
@@ -25,17 +27,31 @@ from presentation.schema import (
 
 router = APIRouter(tags=["Patient Profile"])
 
+_PROFILE_CACHE_TTL = 600
+
 
 @router.get("/", response_model=PatientFullContextResponse, responses={404: {"description": "Profile not found"}})
 async def get_my_full_profile(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     profile_repo: Annotated[IPatientProfileRepository, Depends(get_profile_repo)],
     health_repo: Annotated[IPatientHealthRepository, Depends(get_health_repo)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
+    key = f"patient:profile:{user_id}"
+    cached = await cache.get(key)
+    if cached:
+        if isinstance(cached, str):
+            import json
+
+            cached = json.loads(cached)
+        return PatientFullContextResponse.model_validate(cached)
+
     use_case = GetProfileUseCase(profile_repo, health_repo)
     try:
         profile, health = await use_case.execute(user_id)
-        return {"profile": profile, "health_background": health}
+        result = PatientFullContextResponse.model_validate({"profile": profile, "health_background": health})
+        await cache.setex(key, _PROFILE_CACHE_TTL, result.model_dump(mode="json"))
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -46,10 +62,12 @@ async def update_my_profile(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     profile_repo: Annotated[IPatientProfileRepository, Depends(get_profile_repo)],
     event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
     use_case = UpdateProfileUseCase(profile_repo, event_publisher)
     try:
         updated_profile = await use_case.execute(user_id, **data.model_dump(exclude_unset=True))
+        await cache.delete(f"patient:profile:{user_id}")
         return updated_profile
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -65,10 +83,12 @@ async def update_my_health(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     profile_repo: Annotated[IPatientProfileRepository, Depends(get_profile_repo)],
     health_repo: Annotated[IPatientHealthRepository, Depends(get_health_repo)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
     use_case = UpdateHealthBackgroundUseCase(profile_repo, health_repo)
     try:
         updated_health = await use_case.execute(user_id, **data.model_dump(exclude_unset=True))
+        await cache.delete(f"patient:profile:{user_id}")
         return updated_health
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

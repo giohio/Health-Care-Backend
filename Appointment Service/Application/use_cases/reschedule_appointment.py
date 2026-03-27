@@ -9,6 +9,7 @@ from Domain.exceptions.domain_exceptions import (
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
+from healthai_cache import CacheClient
 from uuid_extension import UUID7
 
 
@@ -20,12 +21,14 @@ class RescheduleAppointmentUseCase:
         appointment_repo: IAppointmentRepository,
         doctor_client,
         event_publisher: IEventPublisher,
+        cache: CacheClient | None = None,
     ):
         self.session = session
         self.lock_manager = lock_manager
         self.appointment_repo = appointment_repo
         self.doctor_client = doctor_client
         self.event_publisher = event_publisher
+        self.cache = cache
 
     async def execute(self, appointment_id: UUID7, patient_id: UUID7, new_date, new_time) -> AppointmentResponse:
         appointment = await self.appointment_repo.get_by_id_with_lock(appointment_id)
@@ -98,21 +101,12 @@ class RescheduleAppointmentUseCase:
                     "new_end_time": str(new_end_time),
                 },
             )
-            await self.event_publisher.publish(
-                session=self.session,
-                aggregate_id=appointment.id,
-                aggregate_type="cache_events",
-                event_type="cache.invalidate",
-                payload={
-                    "patterns": [
-                        f"slots:{appointment.doctor_id}:{old_date}:*",
-                        f"slots:{appointment.doctor_id}:{new_date}:*",
-                        f"queue:{appointment.doctor_id}:{old_date}",
-                        f"queue:{appointment.doctor_id}:{new_date}",
-                    ]
-                },
-            )
             await self.session.commit()
+            if self.cache:
+                await self.cache.delete_pattern(f"slots:{appointment.doctor_id}:{old_date}:*")
+                await self.cache.delete(f"queue:{appointment.doctor_id}:{old_date}")
+                await self.cache.delete_pattern(f"slots:{appointment.doctor_id}:{new_date}:*")
+                await self.cache.delete(f"queue:{appointment.doctor_id}:{new_date}")
             return AppointmentResponse.model_validate(appointment)
         finally:
             await self.lock_manager.release_slot(
