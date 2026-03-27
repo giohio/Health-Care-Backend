@@ -10,7 +10,6 @@ from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.realtime_notifier import IRealtimeNotifier
 from fastapi import Depends, Request
 from healthai_cache import CacheClient
-from infrastructure.config import settings
 from infrastructure.database.session import get_db
 from infrastructure.email.email_sender import EmailSender
 from infrastructure.repositories.notification_repository import NotificationRepository

@@ -4,7 +4,6 @@ from uuid import UUID
 from Domain import IEventPublisher
 from fastapi import Depends, Header, HTTPException, Request, status
 from healthai_cache import CacheClient
-from infrastructure.config import settings
 from infrastructure.database.session import get_db
 from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 from infrastructure.repositories.repositories import PatientHealthRepository, PatientProfileRepository
