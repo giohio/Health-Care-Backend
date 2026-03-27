@@ -27,6 +27,10 @@ class AppointmentRepository(IAppointmentRepository):
         )
         model = await self._maybe_await(result.scalar_one_or_none())
         if model:
+            model.appointment_date = appointment.appointment_date
+            model.start_time = appointment.start_time
+            model.end_time = appointment.end_time
+            model.specialty_id = uuid.UUID(str(appointment.specialty_id))
             model.status = appointment.status
             model.payment_status = appointment.payment_status
             model.confirmed_at = appointment.confirmed_at
@@ -208,6 +212,7 @@ class AppointmentRepository(IAppointmentRepository):
                             AppointmentStatus.PENDING_PAYMENT,
                             AppointmentStatus.PENDING,
                             AppointmentStatus.CONFIRMED,
+                            AppointmentStatus.IN_PROGRESS,
                             AppointmentStatus.COMPLETED,
                             AppointmentStatus.NO_SHOW,
                         ]

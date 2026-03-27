@@ -93,9 +93,8 @@ async def test_confirm_appointment_by_assigned_doctor():
     assert appointment.queue_number == 1
     assert session.commits == 1
     assert len(repo.saved) == 1
-    assert len(publisher.calls) == 2
+    assert len(publisher.calls) == 1
     assert publisher.calls[0]["event_type"] == "appointment.confirmed"
-    assert publisher.calls[1]["event_type"] == "cache.invalidate"
 
 
 @pytest.mark.asyncio

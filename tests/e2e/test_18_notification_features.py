@@ -184,6 +184,19 @@ class TestAppointmentStartedNotification:
             # but the endpoint itself must work
             pass
 
+        # Unread count should be non-negative and should drop to 0 after mark-all-read.
+        count_before = await http.get(f"{NOTIFICATION_URL}/notifications/unread-count", headers=p_header)
+        assert count_before.status_code == 200
+        unread_before = count_before.json().get("count", 0)
+        assert isinstance(unread_before, int)
+
+        mark_all = await http.put(f"{NOTIFICATION_URL}/notifications/read-all", headers=p_header)
+        assert mark_all.status_code in (200, 204)
+
+        count_after = await http.get(f"{NOTIFICATION_URL}/notifications/unread-count", headers=p_header)
+        assert count_after.status_code == 200
+        assert count_after.json().get("count") == 0
+
 
 class TestInternalReminderEndpoints:
 

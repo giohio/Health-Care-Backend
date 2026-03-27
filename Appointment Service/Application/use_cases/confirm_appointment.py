@@ -48,16 +48,5 @@ class ConfirmAppointmentUseCase:
                 "queue_number": appointment.queue_number,
             },
         )
-        await self.event_publisher.publish(
-            session=self.session,
-            aggregate_id=appointment.id,
-            aggregate_type="cache_events",
-            event_type="cache.invalidate",
-            payload={
-                "patterns": [
-                    f"queue:{appointment.doctor_id}:{appointment.appointment_date}",
-                ]
-            },
-        )
         await self.session.commit()
         return AppointmentResponse.model_validate(appointment)

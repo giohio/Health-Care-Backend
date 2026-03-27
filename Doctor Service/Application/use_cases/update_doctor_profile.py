@@ -4,14 +4,21 @@ from Application.dtos import DoctorDTO
 from Domain.exceptions.domain_exceptions import DoctorNotFoundException
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from Domain.interfaces.event_publisher import IEventPublisher
+from healthai_cache import CacheClient
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateDoctorProfileUseCase:
-    def __init__(self, doctor_repo: IDoctorRepository, event_publisher: IEventPublisher | None = None):
+    def __init__(
+        self,
+        doctor_repo: IDoctorRepository,
+        event_publisher: IEventPublisher | None = None,
+        cache: CacheClient | None = None,
+    ):
         self.doctor_repo = doctor_repo
         self.event_publisher = event_publisher
+        self._cache = cache
 
     async def execute(self, dto: DoctorDTO) -> DoctorDTO:
         doctor = await self.doctor_repo.get_by_id(dto.user_id)
@@ -26,6 +33,9 @@ class UpdateDoctorProfileUseCase:
         doctor.confirmation_timeout_minutes = dto.confirmation_timeout_minutes
 
         saved = await self.doctor_repo.save(doctor)
+
+        if self._cache:
+            await self._cache.delete(f"doctor:profile:{dto.user_id}")
 
         if saved.specialty_id and saved.experience_years is not None and self.event_publisher:
             try:

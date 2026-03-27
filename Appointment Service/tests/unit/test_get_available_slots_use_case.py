@@ -1,3 +1,4 @@
+import json
 import asyncio
 from datetime import date, datetime, time
 from uuid import uuid4
@@ -37,6 +38,21 @@ class FakeDoctorClient:
     async def get_enhanced_schedule(self, doctor_id, appointment_date):
         await asyncio.sleep(0)
         return self.enhanced_schedule
+
+
+class FakeCache:
+    def __init__(self):
+        self.values = {}
+        self.setex_calls = []
+
+    async def get(self, key):
+        await asyncio.sleep(0)
+        return self.values.get(key)
+
+    async def setex(self, key, ttl, value):
+        await asyncio.sleep(0)
+        self.setex_calls.append((key, ttl, value))
+        self.values[key] = json.dumps(value)
 
 
 @pytest.mark.asyncio
@@ -333,3 +349,72 @@ def test_extract_schedule_window_skips_invalid_and_malformed_items():
     windows = GetAvailableSlotsUseCase._extract_schedule_window(schedule)
 
     assert windows == [(time(11, 0), time(12, 0))]
+
+
+@pytest.mark.asyncio
+async def test_get_available_slots_returns_from_cache_without_doctor_client_calls():
+    doctor_id = uuid4()
+    specialty_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+    cache = FakeCache()
+    key = f"slots:{doctor_id}:{appointment_date}:{specialty_id}:general:"
+    cache.values[key] = {
+        "date": str(appointment_date),
+        "doctor_id": str(doctor_id),
+        "duration_minutes": 30,
+        "slots": [],
+        "error": None,
+    }
+
+    repo = FakeRepo(booked_slots=[])
+
+    class CountingDoctorClient(FakeDoctorClient):
+        def __init__(self):
+            super().__init__()
+            self.enhanced_calls = 0
+
+        async def get_enhanced_schedule(self, doctor_id, appointment_date):
+            self.enhanced_calls += 1
+            return await super().get_enhanced_schedule(doctor_id, appointment_date)
+
+    doctor_client = CountingDoctorClient()
+    use_case = GetAvailableSlotsUseCase(appointment_repo=repo, doctor_client=doctor_client, cache=cache)
+
+    result = await use_case.execute(
+        doctor_id=doctor_id,
+        appointment_date=appointment_date,
+        specialty_id=specialty_id,
+        appointment_type="general",
+    )
+
+    assert result.duration_minutes == 30
+    assert result.slots == []
+    assert doctor_client.enhanced_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_get_available_slots_cache_miss_sets_cache_with_expected_ttl():
+    doctor_id = uuid4()
+    specialty_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+    cache = FakeCache()
+
+    enhanced_schedule = {
+        "working_hours": [{"start_time": "09:00", "end_time": "10:00", "max_patients": 10}],
+        "services": [],
+    }
+    repo = FakeRepo(booked_slots=[], confirmed_count=0)
+    doctor_client = FakeDoctorClient(enhanced_schedule=enhanced_schedule)
+
+    use_case = GetAvailableSlotsUseCase(appointment_repo=repo, doctor_client=doctor_client, cache=cache)
+    await use_case.execute(
+        doctor_id=doctor_id,
+        appointment_date=appointment_date,
+        specialty_id=specialty_id,
+        appointment_type="general",
+    )
+
+    assert len(cache.setex_calls) == 1
+    key, ttl, _value = cache.setex_calls[0]
+    assert key == f"slots:{doctor_id}:{appointment_date}:{specialty_id}:general:"
+    assert ttl == 120

@@ -8,7 +8,7 @@ from Application.use_cases.mark_all_read import MarkAllReadUseCase
 from Application.use_cases.mark_notification_read import MarkNotificationReadUseCase
 from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.realtime_notifier import IRealtimeNotifier
-from fastapi import Depends
+from fastapi import Depends, Request
 from healthai_cache import CacheClient
 from infrastructure.config import settings
 from infrastructure.database.session import get_db
@@ -18,9 +18,8 @@ from infrastructure.websocket.manager import NotificationConnectionManager, noti
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@lru_cache()
-def get_cache_client() -> CacheClient:
-    return CacheClient.from_url(settings.REDIS_URL)
+def get_cache_client(request: Request) -> CacheClient:
+    return request.app.state.cache
 
 
 def get_ws_manager() -> NotificationConnectionManager:
@@ -44,8 +43,9 @@ def get_create_notification_use_case(
     repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
     ws_manager: Annotated[IRealtimeNotifier, Depends(get_ws_manager)],
     email_sender: Annotated[IEmailSender, Depends(get_email_sender)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return CreateNotificationUseCase(repo, ws_manager, email_sender)
+    return CreateNotificationUseCase(repo, ws_manager, email_sender, cache)
 
 
 def get_list_notifications_use_case(
@@ -56,17 +56,20 @@ def get_list_notifications_use_case(
 
 def get_mark_notification_read_use_case(
     repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return MarkNotificationReadUseCase(repo)
+    return MarkNotificationReadUseCase(repo, cache)
 
 
 def get_unread_count_use_case(
     repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return GetUnreadCountUseCase(repo)
+    return GetUnreadCountUseCase(repo, cache)
 
 
 def get_mark_all_read_use_case(
     repo: Annotated[NotificationRepository, Depends(get_notification_repo)],
+    cache: Annotated[CacheClient, Depends(get_cache_client)],
 ):
-    return MarkAllReadUseCase(repo)
+    return MarkAllReadUseCase(repo, cache)

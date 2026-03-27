@@ -55,6 +55,25 @@ router = APIRouter(tags=["Appointments"])
 MISSING_USER_ID_ERROR = "X-User-Id header is missing"
 
 
+def _verify_user_id(x_user_id: UUID | None) -> UUID:
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
+    return x_user_id
+
+
+async def _handle_domain_exceptions(coro):
+    try:
+        return await coro
+    except AppointmentNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except UnauthorizedActionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except InvalidStatusTransitionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except SlotNotAvailableError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
 @router.post(
     "/",
     response_model=AppointmentResponse,
@@ -155,21 +174,10 @@ async def cancel_appointment(
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
     x_user_role: str | None = Header(default=None, alias="X-User-Role"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
-    try:
-        return await use_case.execute(
-            appointment_id,
-            x_user_id,
-            x_user_role,
-            request.reason,
-        )
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    uid = _verify_user_id(x_user_id)
+    return await _handle_domain_exceptions(
+        use_case.execute(appointment_id, uid, x_user_role, request.reason)
+    )
 
 
 @router.put(
@@ -186,16 +194,8 @@ async def confirm_appointment(
     use_case: Annotated[ConfirmAppointmentUseCase, Depends(get_confirm_appointment_use_case)],
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
-    try:
-        return await use_case.execute(appointment_id, x_user_id)
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    uid = _verify_user_id(x_user_id)
+    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
 
 
 @router.put(
@@ -213,18 +213,10 @@ async def start_appointment(
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
     x_user_role: str | None = Header(default=None, alias="X-User-Role"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
+    uid = _verify_user_id(x_user_id)
     if x_user_role != "doctor":
         raise HTTPException(status_code=403, detail="Only doctors can start appointments")
-    try:
-        return await use_case.execute(appointment_id, x_user_id)
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
 
 
 @router.put(
@@ -242,16 +234,8 @@ async def decline_appointment(
     use_case: Annotated[DeclineAppointmentUseCase, Depends(get_decline_appointment_use_case)],
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
-    try:
-        return await use_case.execute(appointment_id, x_user_id, request.reason)
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    uid = _verify_user_id(x_user_id)
+    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid, request.reason))
 
 
 @router.put(
@@ -270,23 +254,15 @@ async def reschedule_appointment(
     use_case: Annotated[RescheduleAppointmentUseCase, Depends(get_reschedule_appointment_use_case)],
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
-    try:
-        return await use_case.execute(
+    uid = _verify_user_id(x_user_id)
+    return await _handle_domain_exceptions(
+        use_case.execute(
             appointment_id,
-            x_user_id,
+            uid,
             request.new_date,
             request.new_time,
         )
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except SlotNotAvailableError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    )
 
 
 @router.put(
@@ -303,16 +279,8 @@ async def complete_appointment(
     use_case: Annotated[CompleteAppointmentUseCase, Depends(get_complete_appointment_use_case)],
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
-    try:
-        return await use_case.execute(appointment_id, x_user_id)
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    uid = _verify_user_id(x_user_id)
+    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
 
 
 @router.put(
@@ -329,16 +297,8 @@ async def mark_no_show(
     use_case: Annotated[MarkNoShowUseCase, Depends(get_mark_no_show_use_case)],
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
-    try:
-        return await use_case.execute(appointment_id, x_user_id)
-    except AppointmentNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except UnauthorizedActionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except InvalidStatusTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    uid = _verify_user_id(x_user_id)
+    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
 
 
 @router.get("/doctor/{doctor_id}/slots", response_model=AvailableSlotsResponse)

@@ -64,8 +64,8 @@ class TestPaymentFailedPathIntegration:
             http=http,
             appointment_url=APPOINTMENT_URL,
             appointment_id=appointment_id,
-            expected_status="cancelled",
+            expected_status="CANCELLED",
             token=patient["access_token"],
             timeout=EVENT_TIMEOUT,
         )
-        assert cancelled["status"] == "cancelled"
+        assert cancelled["status"] == "CANCELLED"

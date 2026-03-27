@@ -2,12 +2,16 @@ from Application.dtos import SpecialtyDTO
 from Domain.entities.specialty import Specialty
 from Domain.exceptions.domain_exceptions import SpecialtyAlreadyExistsException
 from Domain.interfaces.specialty_repository import ISpecialtyRepository
+from healthai_cache import CacheClient
 from uuid_extension import UUID7
+
+_CACHE_KEY = "doctor:specialties:all"
 
 
 class SaveSpecialtyUseCase:
-    def __init__(self, specialty_repo: ISpecialtyRepository):
+    def __init__(self, specialty_repo: ISpecialtyRepository, cache: CacheClient | None = None):
         self.specialty_repo = specialty_repo
+        self._cache = cache
 
     async def execute(self, dto: SpecialtyDTO) -> SpecialtyDTO:
         # If ID is provided, it's an update, otherwise create new
@@ -21,7 +25,10 @@ class SaveSpecialtyUseCase:
         specialty = Specialty(id=specialty_id, name=dto.name, description=dto.description)
 
         saved = await self.specialty_repo.save(specialty)
-        # UUID7 is not always treated as uuid.UUID by pydantic in CI, normalize to string.
+
+        if self._cache:
+            await self._cache.delete(_CACHE_KEY)
+
         return SpecialtyDTO(
             id=str(saved.id),
             name=saved.name,

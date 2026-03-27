@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, time, timedelta
 
@@ -7,14 +8,26 @@ from Application.use_cases._helpers import add_minutes
 logger = logging.getLogger(__name__)
 
 
+def _normalize_cached_payload(cached):
+    if isinstance(cached, str):
+        return json.loads(cached)
+    return cached
+
+
 class GetAvailableSlotsUseCase:
-    def __init__(self, appointment_repo, doctor_client):
+    def __init__(self, appointment_repo, doctor_client, cache=None):
         self.appointment_repo = appointment_repo
         self.doctor_client = doctor_client
+        self.cache = cache
 
     async def execute(
         self, doctor_id, appointment_date, specialty_id, appointment_type: str, service_id: str = None
     ) -> AvailableSlotsResponse:
+        if self.cache:
+            key = f"slots:{doctor_id}:{appointment_date}:{specialty_id}:{appointment_type}:{service_id or ''}"
+            cached = await self.cache.get(key)
+            if cached:
+                return AvailableSlotsResponse.model_validate(_normalize_cached_payload(cached))
         enhanced = await self.doctor_client.get_enhanced_schedule(str(doctor_id), str(appointment_date))
 
         if not enhanced or not enhanced.get("working_hours"):
@@ -45,11 +58,18 @@ class GetAvailableSlotsUseCase:
             )
 
         booked = await self.appointment_repo.get_booked_slots(doctor_id, appointment_date)
-        items = self._generate_slots(appointment_date, enhanced["working_hours"], duration, buffer, booked)
+        windows = []
+        for wh in enhanced["working_hours"]:
+            windows.extend(self._extract_working_windows(wh))
 
-        return AvailableSlotsResponse(
+        items = self._generate_slots(appointment_date, windows, duration, duration + buffer, booked)
+
+        result = AvailableSlotsResponse(
             date=appointment_date, doctor_id=doctor_id, duration_minutes=duration, slots=items
         )
+        if self.cache:
+            await self.cache.setex(key, 120, result.model_dump(mode="json"))
+        return result
 
     async def _get_duration_and_buffer(self, specialty_id, appointment_type, service_id, enhanced):
         if service_id and enhanced.get("services"):
@@ -62,27 +82,24 @@ class GetAvailableSlotsUseCase:
         buffer = 5
         return duration, buffer
 
-    def _generate_slots(self, appointment_date, working_hours, duration, buffer, booked):
+    def _generate_slots(self, appointment_date, windows, duration, step, booked):
         items = []
-        step = duration + buffer
-        for wh in working_hours:
-            windows = self._extract_working_windows(wh)
-            for start_t, end_t in windows:
-                cursor = datetime.combine(appointment_date, start_t)
-                window_end = datetime.combine(appointment_date, end_t)
-                while cursor + timedelta(minutes=duration) <= window_end:
-                    slot_start = cursor.time()
-                    slot_end = add_minutes(slot_start, duration)
-                    overlap = any(b_start < slot_end and b_end > slot_start for b_start, b_end in booked)
-                    items.append(
-                        AvailableSlotItem(
-                            start_time=slot_start,
-                            end_time=slot_end,
-                            is_available=not overlap,
-                            reason="booked" if overlap else None,
-                        )
+        for start_t, end_t in windows:
+            cursor = datetime.combine(appointment_date, start_t)
+            window_end = datetime.combine(appointment_date, end_t)
+            while cursor + timedelta(minutes=duration) <= window_end:
+                slot_start = cursor.time()
+                slot_end = add_minutes(slot_start, duration)
+                overlap = any(b_start < slot_end and b_end > slot_start for b_start, b_end in booked)
+                items.append(
+                    AvailableSlotItem(
+                        start_time=slot_start,
+                        end_time=slot_end,
+                        is_available=not overlap,
+                        reason="booked" if overlap else None,
                     )
-                    cursor += timedelta(minutes=step)
+                )
+                cursor += timedelta(minutes=step)
         return items
 
     def _extract_working_windows(self, working_hours: dict) -> list[tuple[time, time]]:
@@ -102,8 +119,8 @@ class GetAvailableSlotsUseCase:
         duration = (config or {}).get("duration_minutes", 30)
         buffer_minutes = (config or {}).get("buffer_minutes", 5)
 
-        day_slots = self._extract_schedule_window(schedule)
-        if not day_slots:
+        windows = self._extract_schedule_window(schedule)
+        if not windows:
             return AvailableSlotsResponse(
                 date=appointment_date,
                 doctor_id=doctor_id,
@@ -113,25 +130,8 @@ class GetAvailableSlotsUseCase:
             )
 
         booked = await self.appointment_repo.get_booked_slots(doctor_id, appointment_date)
-        items = []
         step = duration + buffer_minutes
-
-        for start_t, end_t in day_slots:
-            cursor = datetime.combine(appointment_date, start_t)
-            window_end = datetime.combine(appointment_date, end_t)
-            while cursor + timedelta(minutes=duration) <= window_end:
-                slot_start = cursor.time()
-                slot_end = add_minutes(slot_start, duration)
-                overlap = any(b_start < slot_end and b_end > slot_start for b_start, b_end in booked)
-                items.append(
-                    AvailableSlotItem(
-                        start_time=slot_start,
-                        end_time=slot_end,
-                        is_available=not overlap,
-                        reason="booked" if overlap else None,
-                    )
-                )
-                cursor += timedelta(minutes=step)
+        items = self._generate_slots(appointment_date, windows, duration, step, booked)
 
         return AvailableSlotsResponse(
             date=appointment_date,

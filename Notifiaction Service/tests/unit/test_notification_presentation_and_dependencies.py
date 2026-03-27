@@ -44,7 +44,9 @@ def _notification(is_read=False):
 
 def test_notification_dependencies_smoke():
     session = object()
-    assert dependencies.get_cache_client() is dependencies.get_cache_client()
+    cache = object()
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(cache=cache)))
+    assert dependencies.get_cache_client(request) is cache
     assert dependencies.get_db_session(session) is session
     repo = dependencies.get_notification_repo(session)
     assert repo is not None
@@ -52,12 +54,12 @@ def test_notification_dependencies_smoke():
     assert dependencies.get_email_sender() is dependencies.get_email_sender()
     assert (
         dependencies.get_create_notification_use_case(
-            repo, dependencies.get_ws_manager(), dependencies.get_email_sender()
+            repo, dependencies.get_ws_manager(), dependencies.get_email_sender(), cache
         )
         is not None
     )
     assert dependencies.get_list_notifications_use_case(repo) is not None
-    assert dependencies.get_mark_notification_read_use_case(repo) is not None
+    assert dependencies.get_mark_notification_read_use_case(repo, cache) is not None
 
 
 @pytest.mark.asyncio

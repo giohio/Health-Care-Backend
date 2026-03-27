@@ -1,9 +1,11 @@
+from healthai_cache import CacheClient
 from uuid_extension import UUID7
 
 
 class SetAvailabilityUseCase:
-    def __init__(self, availability_repo):
+    def __init__(self, availability_repo, cache: CacheClient | None = None):
         self.availability_repo = availability_repo
+        self._cache = cache
 
     async def execute(
         self,
@@ -20,4 +22,9 @@ class SetAvailabilityUseCase:
         )
         if hasattr(self.availability_repo, "session"):
             await self.availability_repo.session.commit()
+
+        if self._cache:
+            await self._cache.delete(f"doctor:availability:{doctor_id}")
+            await self._cache.delete_pattern(f"doctor:enhanced_schedule:{doctor_id}:*")
+
         return result

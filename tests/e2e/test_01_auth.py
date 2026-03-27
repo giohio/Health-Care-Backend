@@ -56,7 +56,7 @@ class TestAuthRegistration:
             json={"email": f"dr_{short_id()}@healthai.dev", SECRET_FIELD: "Doctor123!", "role": "doctor"},
             headers={"Authorization": f"Bearer {admin_token}"},
         )
-        assert r.status_code in (200, 201)
+        assert r.status_code in (200, 201), f"Status {r.status_code}: {r.text}"
         assert r.json()["role"] == "doctor"
 
     async def test_non_admin_cannot_register_staff(self, http):

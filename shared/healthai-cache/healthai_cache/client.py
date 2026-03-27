@@ -60,5 +60,21 @@ class CacheClient:
         if keys:
             await self._redis.delete(*keys)
 
+    async def exists(self, key: str) -> bool:
+        return bool(await self._redis.exists(key))
+
+    async def setex(self, key: str, ttl: int, value) -> None:
+        await self.set(key, value, ttl=ttl)
+
+    async def delete_pattern(self, pattern: str) -> None:
+        """Delete all keys matching pattern using SCAN to avoid blocking."""
+        cursor = 0
+        while True:
+            cursor, keys = await self._redis.scan(cursor, match=pattern, count=100)
+            if keys:
+                await self._redis.delete(*keys)
+            if cursor == 0:
+                break
+
     async def close(self):
         await self._redis.aclose()

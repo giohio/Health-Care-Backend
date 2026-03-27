@@ -8,15 +8,23 @@ from Domain.exceptions.domain_exceptions import (
 from Domain.interfaces.appointment_repository import IAppointmentRepository
 from Domain.interfaces.event_publisher import IEventPublisher
 from Domain.value_objects.appointment_status import AppointmentStatus
+from healthai_cache import CacheClient
 from Domain.value_objects.payment_status import PaymentStatus
 from uuid_extension import UUID7
 
 
 class CancelAppointmentUseCase:
-    def __init__(self, session, appointment_repo: IAppointmentRepository, event_publisher: IEventPublisher):
+    def __init__(
+        self,
+        session,
+        appointment_repo: IAppointmentRepository,
+        event_publisher: IEventPublisher,
+        cache: CacheClient | None = None,
+    ):
         self.session = session
         self.appointment_repo = appointment_repo
         self.event_publisher = event_publisher
+        self.cache = cache
 
     async def execute(
         self,
@@ -58,18 +66,6 @@ class CancelAppointmentUseCase:
                 "reason": reason,
             },
         )
-        await self.event_publisher.publish(
-            session=self.session,
-            aggregate_id=appointment.id,
-            aggregate_type="cache_events",
-            event_type="cache.invalidate",
-            payload={
-                "patterns": [
-                    f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*",
-                    f"queue:{appointment.doctor_id}:{appointment.appointment_date}",
-                ]
-            },
-        )
         if appointment.payment_status == PaymentStatus.REFUNDED:
             await self.event_publisher.publish(
                 session=self.session,
@@ -83,4 +79,7 @@ class CancelAppointmentUseCase:
                 },
             )
         await self.session.commit()
+        if self.cache:
+            await self.cache.delete_pattern(f"slots:{appointment.doctor_id}:{appointment.appointment_date}:*")
+            await self.cache.delete(f"queue:{appointment.doctor_id}:{appointment.appointment_date}")
         return AppointmentResponse.model_validate(appointment)

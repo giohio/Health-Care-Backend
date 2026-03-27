@@ -108,6 +108,20 @@ class FakePublisher:
         self.calls.append(kwargs)
 
 
+class FakeCache:
+    def __init__(self):
+        self.delete_calls = []
+        self.delete_pattern_calls = []
+
+    async def delete(self, *keys):
+        await asyncio.sleep(0)
+        self.delete_calls.append(keys)
+
+    async def delete_pattern(self, pattern):
+        await asyncio.sleep(0)
+        self.delete_pattern_calls.append(pattern)
+
+
 # ============================================================================
 # LIST SPECIALTIES USE CASE TESTS
 # ============================================================================
@@ -553,3 +567,32 @@ async def test_update_schedule_clears_existing_before_adding_new():
     result_days = {r.day_of_week for r in result}
     assert DayOfWeek.THURSDAY in result_days or DayOfWeek.THURSDAY.value in result_days or 3 in result_days
     assert DayOfWeek.FRIDAY in result_days or DayOfWeek.FRIDAY.value in result_days or 4 in result_days
+
+
+@pytest.mark.asyncio
+async def test_update_schedule_invalidates_enhanced_schedule_cache():
+    doctor_id = uuid4()
+    doctor = Doctor(user_id=doctor_id, full_name="Dr. A", specialty_id=None)
+
+    doctor_repo = FakeDoctorRepo(doctors={doctor_id: doctor})
+    schedule_repo = FakeScheduleRepo()
+    cache = FakeCache()
+
+    use_case = UpdateScheduleUseCase(
+        schedule_repo=schedule_repo,
+        doctor_repo=doctor_repo,
+        cache=cache,
+    )
+
+    dto = ScheduleDTO(
+        doctor_id=doctor_id,
+        day_of_week=DayOfWeek.MONDAY,
+        start_time=time(9, 0),
+        end_time=time(17, 0),
+        slot_duration_minutes=30,
+    )
+
+    await use_case.execute(doctor_id, [dto])
+
+    assert cache.delete_calls == [(f"doctor:schedule:{doctor_id}", f"doctor:availability:{doctor_id}")]
+    assert cache.delete_pattern_calls == [f"doctor:enhanced_schedule:{doctor_id}:*"]
