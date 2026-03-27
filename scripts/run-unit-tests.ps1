@@ -65,7 +65,7 @@ if ($PaymentOnly) {
 }
 
 if ($NotificationOnly) {
-    Run-ServiceTests -ServicePath "$PSScriptRoot\..\Notifiaction Service" -Target "tests/unit"
+    Run-ServiceTests -ServicePath "$PSScriptRoot\..\Notification Service" -Target "tests/unit"
     exit 0
 }
 
@@ -96,7 +96,7 @@ if ($NewFeaturesOnly) {
     Run-ServiceTests -ServicePath "$PSScriptRoot\..\Patient Service" -Target "tests/unit/test_vitals_and_health_summary_use_cases.py"
     Run-ServiceTests -ServicePath "$PSScriptRoot\..\Doctor Service" -Target "tests/unit/test_new_schedule_dayoff_service_rating_use_cases.py"
     Run-ServiceTests -ServicePath "$PSScriptRoot\..\Appointment Service" -Target "tests/unit/test_new_start_stats_internal_use_cases.py"
-    Run-ServiceTests -ServicePath "$PSScriptRoot\..\Notifiaction Service" -Target "tests/unit/test_new_unread_consumer_scheduler_use_cases.py"
+    Run-ServiceTests -ServicePath "$PSScriptRoot\..\Notification Service" -Target "tests/unit/test_new_unread_consumer_scheduler_use_cases.py"
     
     exit 0
 }
@@ -104,7 +104,7 @@ if ($NewFeaturesOnly) {
 if ($Coverage) {
     Write-Host "Running coverage report for all services..." -ForegroundColor Green
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Payment Service" -ServiceName "Payment Service"
-    Run-CoverageReport -ServicePath "$PSScriptRoot\..\Notifiaction Service" -ServiceName "Notification Service"
+    Run-CoverageReport -ServicePath "$PSScriptRoot\..\Notification Service" -ServiceName "Notification Service"
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Appointment Service" -ServiceName "Appointment Service"
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Auth service" -ServiceName "Auth Service"
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Doctor Service" -ServiceName "Doctor Service"
@@ -113,7 +113,7 @@ if ($Coverage) {
 }
 
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Payment Service" -Target "tests/unit"
-Run-ServiceTests -ServicePath "$PSScriptRoot\..\Notifiaction Service" -Target "tests/unit"
+Run-ServiceTests -ServicePath "$PSScriptRoot\..\Notification Service" -Target "tests/unit"
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Appointment Service" -Target "tests/unit"
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Auth service" -Target "tests/unit"
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Doctor Service" -Target "tests/unit"

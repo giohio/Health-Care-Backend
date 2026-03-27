@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir uv
 
-COPY ["Notifiaction Service/requirements.txt", "."]
+COPY ["Notification Service/requirements.txt", "."]
 RUN uv pip install --system --no-cache -r requirements.txt
 
 COPY shared /tmp/shared
@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-COPY ["Notifiaction Service/", "."]
+COPY ["Notification Service/", "."]
 COPY shared/healthai-tracing /shared/healthai-tracing
 RUN chmod +x /app/scripts/entrypoint.sh && chown -R appuser:appuser /app
 
