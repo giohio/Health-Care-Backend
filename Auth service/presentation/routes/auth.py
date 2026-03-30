@@ -59,7 +59,7 @@ async def register_staff(
     user_data: RegisterStaffRequest,
     register_service: Annotated[RegisterService, Depends(get_register_service)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if x_user_role != UserRole.ADMIN.value:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
@@ -123,7 +123,7 @@ async def logout(
     logout_use_case: Annotated[LogOutUseCase, Depends(get_logout_use_case)],
     db: Annotated[AsyncSession, Depends(get_db)],
     refresh_token: str | None = Cookie(default=None),
-    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: str | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     try:
         token_to_use = logout_data.refresh_token or refresh_token
@@ -182,7 +182,7 @@ async def refresh_token(
 
 @router.get("/me", response_model=MeResponse)
 async def get_me(
-    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: str | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     if not x_user_id:
@@ -200,6 +200,27 @@ async def get_me(
             is_active=user.is_active,
             created_at=user.created_at.isoformat(),
         )
+    except HTTPException:
+        raise
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=INTERNAL_SERVER_ERROR_MSG)
+
+
+@router.get("/internal/users/{user_id}")
+async def get_user_internal(
+    user_id: str,
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    """Internal endpoint for service-to-service email lookup. Not exposed via Kong."""
+    try:
+        from uuid import UUID
+
+        user = await user_repo.get_by_id(UUID(user_id))
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        return {"id": str(user.id), "email": user.email}
     except HTTPException:
         raise
     except ValueError:

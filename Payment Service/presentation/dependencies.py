@@ -1,7 +1,9 @@
 from typing import Annotated, AsyncGenerator
 
 from Application.use_cases.create_payment import CreatePaymentFromEventUseCase
+from Application.use_cases.generate_payment_url import GeneratePaymentUrlUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
+from Application.use_cases.list_patient_payments import ListPatientPaymentsUseCase
 from Application.use_cases.process_vnpay_ipn import GetPaymentUseCase
 from Domain.interfaces import IEventPublisher, IPaymentProvider
 from fastapi import Depends
@@ -33,6 +35,20 @@ def get_get_payment_use_case(
     repo: Annotated[PaymentRepository, Depends(get_payment_repo)],
 ) -> GetPaymentUseCase:
     return GetPaymentUseCase(repo)
+
+
+def get_list_patient_payments_use_case(
+    repo: Annotated[PaymentRepository, Depends(get_payment_repo)],
+) -> ListPatientPaymentsUseCase:
+    return ListPatientPaymentsUseCase(repo)
+
+
+def get_generate_payment_url_use_case(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    repo: Annotated[PaymentRepository, Depends(get_payment_repo)],
+    vnpay: Annotated[IPaymentProvider, Depends(get_vnpay_provider)],
+) -> GeneratePaymentUrlUseCase:
+    return GeneratePaymentUrlUseCase(session, repo, vnpay)
 
 
 def get_create_payment_use_case(

@@ -86,18 +86,12 @@ async def _handle_domain_exceptions(coro):
 async def book_appointment(
     request: CreateAppointmentRequest,
     use_case: Annotated[BookAppointmentUseCase, Depends(get_book_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
     try:
-        if request.patient_id and request.patient_id != x_user_id:
-            raise HTTPException(status_code=403, detail="Cannot create appointment for another patient")
-
-        effective_request = request
-        if request.patient_id is None:
-            effective_request = request.model_copy(update={"patient_id": x_user_id})
-
+        effective_request = request.model_copy(update={"patient_id": x_user_id})
         return await use_case.execute(effective_request)
     except SlotNotAvailableError as e:
         raise HTTPException(status_code=409, detail=str(e))
@@ -107,6 +101,17 @@ async def book_appointment(
         if "Slot is being booked" in estr or "Slot is no longer available" in estr or "Slot" in cause_str:
             raise HTTPException(status_code=409, detail="Slot no longer available")
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/my", response_model=List[AppointmentResponse], summary="List my appointments")
+async def list_my_appointments(
+    use_case: Annotated[ListPatientAppointmentsUseCase, Depends(get_list_appointments_use_case)],
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+):
+    """List all appointments for the currently logged-in patient (patient_id from Kong X-User-Id)."""
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
+    return await use_case.execute(x_user_id)
 
 
 @router.get("/patient/{patient_id}", response_model=List[AppointmentResponse])
@@ -143,8 +148,8 @@ async def get_appointment_stats(
 async def get_appointment_by_id(
     appointment_id: UUID,
     repo: Annotated[AppointmentRepository, Depends(get_appointment_repo)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail=MISSING_USER_ID_ERROR)
@@ -171,8 +176,8 @@ async def cancel_appointment(
     appointment_id: UUID,
     request: CancelAppointmentRequest,
     use_case: Annotated[CancelAppointmentUseCase, Depends(get_cancel_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(
@@ -192,7 +197,7 @@ async def cancel_appointment(
 async def confirm_appointment(
     appointment_id: UUID,
     use_case: Annotated[ConfirmAppointmentUseCase, Depends(get_confirm_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
@@ -210,8 +215,8 @@ async def confirm_appointment(
 async def start_appointment(
     appointment_id: UUID,
     use_case: Annotated[StartAppointmentUseCase, Depends(get_start_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     if x_user_role != "doctor":
@@ -232,7 +237,7 @@ async def decline_appointment(
     appointment_id: UUID,
     request: DeclineAppointmentRequest,
     use_case: Annotated[DeclineAppointmentUseCase, Depends(get_decline_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(use_case.execute(appointment_id, uid, request.reason))
@@ -252,7 +257,7 @@ async def reschedule_appointment(
     appointment_id: UUID,
     request: RescheduleAppointmentRequest,
     use_case: Annotated[RescheduleAppointmentUseCase, Depends(get_reschedule_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(
@@ -277,7 +282,7 @@ async def reschedule_appointment(
 async def complete_appointment(
     appointment_id: UUID,
     use_case: Annotated[CompleteAppointmentUseCase, Depends(get_complete_appointment_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
@@ -295,7 +300,7 @@ async def complete_appointment(
 async def mark_no_show(
     appointment_id: UUID,
     use_case: Annotated[MarkNoShowUseCase, Depends(get_mark_no_show_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))

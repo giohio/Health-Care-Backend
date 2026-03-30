@@ -40,5 +40,9 @@ class IPaymentRepository(ABC):
         """Append one immutable payment transaction ledger row"""
 
     @abstractmethod
+    async def list_by_patient_id(self, patient_id: UUID) -> list[Payment]:
+        """List all payments for a patient ordered by created_at desc"""
+
+    @abstractmethod
     async def list_transactions(self, payment_id: UUID) -> list[PaymentTransaction]:
         """List all payment transactions ordered by created_at"""

@@ -11,6 +11,7 @@ from infrastructure.consumers.appointment_events_consumers import (
     AppointmentNoShowConsumer,
     AppointmentReminderConsumer,
     AppointmentRescheduledConsumer,
+    AppointmentStartedConsumer,
     PaymentCreatedConsumer,
     PaymentExpiredConsumer,
     PaymentFailedConsumer,
@@ -66,6 +67,7 @@ def _factory(sink):
         (AppointmentRescheduledConsumer, {"doctor_id": "d2"}, "appointment.rescheduled"),
         (AppointmentNoShowConsumer, {"patient_id": "u4"}, "appointment.no_show"),
         (AppointmentCompletedConsumer, {"patient_id": "u5"}, "appointment.completed"),
+        (AppointmentStartedConsumer, {"patient_id": "u12"}, "appointment.started"),
         (PaymentFailedConsumer, {"patient_id": "u6"}, "payment.failed"),
         (PaymentCreatedConsumer, {"patient_id": "u7"}, "payment.created"),
         (PaymentPaidConsumer, {"patient_id": "u8"}, "payment.paid"),
@@ -88,6 +90,7 @@ async def test_consumers_create_notification_and_commit(consumer_cls, payload, e
 
     assert len(sink) == 1
     assert sink[0]["event_type"] == expected_event
+    assert sink[0]["send_email"] is True
     assert sf.session.commits == 1
 
 
@@ -102,12 +105,39 @@ async def test_appointment_cancelled_branches_and_missing_target():
         create_notification_use_case_factory=_factory(sink),
     )
 
-    await consumer.handle({"cancelled_by": "patient", "doctor_id": "d1"})
-    assert sink[-1]["user_id"] == "d1"
+    # Patient cancels → patient gets confirmation + doctor gets notification (2 notifications)
+    await consumer.handle({"cancelled_by": "patient", "patient_id": "p1", "doctor_id": "d1"})
+    assert len(sink) == 2
+    user_ids = {n["user_id"] for n in sink}
+    assert "p1" in user_ids
+    assert "d1" in user_ids
+    # patient message is confirmation, doctor message is schedule change
+    patient_notif = next(n for n in sink if n["user_id"] == "p1")
+    assert "confirmed" in patient_notif["body"].lower()
 
-    await consumer.handle({"cancelled_by": "doctor", "patient_id": "p1"})
-    assert sink[-1]["user_id"] == "p1"
+    sink.clear()
 
-    before = len(sink)
-    await consumer.handle({"cancelled_by": "patient"})
-    assert len(sink) == before
+    # Doctor cancels → only patient notified
+    await consumer.handle({"cancelled_by": "doctor", "patient_id": "p2", "doctor_id": "d2"})
+    assert len(sink) == 1
+    assert sink[0]["user_id"] == "p2"
+
+    sink.clear()
+
+    # System cancels → only patient notified
+    await consumer.handle({"cancelled_by": "system", "patient_id": "p3"})
+    assert len(sink) == 1
+    assert sink[0]["user_id"] == "p3"
+
+    sink.clear()
+
+    # Missing patient_id → no notification
+    await consumer.handle({"cancelled_by": "patient", "doctor_id": "d3"})
+    assert len(sink) == 1  # only the doctor notification since patient_id is missing
+    assert sink[0]["user_id"] == "d3"
+
+    sink.clear()
+
+    # Missing both → no notification
+    await consumer.handle({"cancelled_by": "doctor"})
+    assert len(sink) == 0

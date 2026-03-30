@@ -72,21 +72,34 @@ async def test_get_appointment_by_id_not_found():
 
 
 @pytest.mark.asyncio
-async def test_book_appointment_for_other_patient_forbidden():
+async def test_book_appointment_uses_user_id_from_header():
+    """patient_id in body is ignored; route always uses X-User-Id from Kong."""
     app = FastAPI()
     app.include_router(router)
 
+    captured = {}
+
     class DummyBookUC:
-        async def execute(self, *_args, **_kwargs):
+        async def execute(self, req, *_args, **_kwargs):
             await asyncio.sleep(0)
-            return SimpleNamespace()
+            captured["patient_id"] = req.patient_id
+            from types import SimpleNamespace
+            return SimpleNamespace(
+                id=uuid4(), patient_id=req.patient_id, doctor_id=req.doctor_id,
+                specialty_id=req.specialty_id, appointment_date=date.today(),
+                start_time=time(8, 0), end_time=time(8, 30), appointment_type="general",
+                chief_complaint=None, note_for_doctor=None,
+                status="PENDING", payment_status="UNPAID",
+                created_at=None, updated_at=None, confirmed_at=None,
+                started_at=None, completed_at=None, cancelled_at=None, cancellation_reason=None,
+            )
 
     from presentation.dependencies import get_book_appointment_use_case
 
     app.dependency_overrides[get_book_appointment_use_case] = lambda: DummyBookUC()
 
+    user_id = uuid4()
     payload = {
-        "patient_id": str(uuid4()),
         "doctor_id": str(uuid4()),
         "specialty_id": str(uuid4()),
         "appointment_date": str(date.today()),
@@ -95,8 +108,9 @@ async def test_book_appointment_for_other_patient_forbidden():
     }
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-        r = await client.post("/", json=payload, headers={"X-User-Id": str(uuid4())})
-    assert r.status_code == 403
+        r = await client.post("/", json=payload, headers={"X-User-Id": str(user_id)})
+    assert r.status_code == 200
+    assert captured["patient_id"] == user_id
 
 
 @pytest.mark.asyncio
@@ -336,3 +350,97 @@ async def test_get_appointment_authorization_and_slots_endpoint():
             },
         )
     assert slots_ok.status_code == 200
+
+
+# ──────────────────────────────────────────────
+# GET /my — list appointments for authenticated patient
+# ──────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_get_my_appointments_returns_list():
+    """GET /my uses X-User-Id to list the patient's own appointments."""
+    from presentation.dependencies import get_list_appointments_use_case
+
+    app = FastAPI()
+    app.include_router(router)
+
+    appt_id = uuid4()
+    user_id = uuid4()
+
+    class FakeListUC:
+        async def execute(self, patient_id):
+            await asyncio.sleep(0)
+            return [
+                SimpleNamespace(
+                    id=appt_id,
+                    patient_id=patient_id,
+                    doctor_id=uuid4(),
+                    specialty_id=uuid4(),
+                    appointment_date=date.today(),
+                    start_time=time(9, 0),
+                    end_time=time(9, 30),
+                    appointment_type="general",
+                    chief_complaint=None,
+                    note_for_doctor=None,
+                    status=AppointmentStatus.PENDING,
+                    payment_status=PaymentStatus.PROCESSING,
+                    queue_number=1,
+                )
+            ]
+
+    app.dependency_overrides[get_list_appointments_use_case] = lambda: FakeListUC()
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/my", headers={"X-User-Id": str(user_id)})
+
+    assert r.status_code == 200
+    body = r.json()
+    assert isinstance(body, list)
+    assert len(body) == 1
+    assert body[0]["id"] == str(appt_id)
+
+
+@pytest.mark.asyncio
+async def test_get_my_appointments_missing_user_id_returns_401():
+    """GET /my without X-User-Id header → 401 Unauthorized."""
+    from presentation.dependencies import get_list_appointments_use_case
+
+    app = FastAPI()
+    app.include_router(router)
+
+    class FakeListUC:
+        async def execute(self, patient_id):
+            return []
+
+    app.dependency_overrides[get_list_appointments_use_case] = lambda: FakeListUC()
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/my")
+
+    assert r.status_code == 401
+    assert "User-Id" in r.json()["detail"] or "user" in r.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_my_appointments_empty_list():
+    """GET /my returns empty list when patient has no appointments."""
+    from presentation.dependencies import get_list_appointments_use_case
+
+    app = FastAPI()
+    app.include_router(router)
+
+    class FakeListUC:
+        async def execute(self, patient_id):
+            await asyncio.sleep(0)
+            return []
+
+    app.dependency_overrides[get_list_appointments_use_case] = lambda: FakeListUC()
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/my", headers={"X-User-Id": str(uuid4())})
+
+    assert r.status_code == 200
+    assert r.json() == []

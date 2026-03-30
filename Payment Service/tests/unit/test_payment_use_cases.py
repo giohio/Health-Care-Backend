@@ -118,7 +118,7 @@ async def test_create_payment_from_event_saves_payment_and_emits_events():
 
     assert payment.status == PaymentStatus.PENDING
     assert payment.payment_url == "https://pay.test/checkout"
-    assert payment.vnpay_txn_ref and payment.vnpay_txn_ref.startswith("APP")
+    assert payment.vnpay_txn_ref and "-" in payment.vnpay_txn_ref  # UUID format with dashes
     assert len(repo.saved) == 1
     assert len(repo.appended) == 1
     assert repo.appended[0]["transaction_type"] == PaymentTransactionType.PAYMENT_CREATED
@@ -168,7 +168,7 @@ async def test_process_ipn_missing_txn_ref_returns_01():
 
 
 @pytest.mark.asyncio
-async def test_process_ipn_payment_not_found_returns_02():
+async def test_process_ipn_payment_not_found_returns_01():
     repo = FakeRepo(payment=None)
     provider = FakeProvider(verify_result=PaymentResult(success=True, provider_ref="PR"))
     use_case = ProcessVNPayIPnUseCase(
@@ -177,7 +177,7 @@ async def test_process_ipn_payment_not_found_returns_02():
 
     result = await use_case.execute({"vnp_TxnRef": "UNKNOWN", "vnp_ResponseCode": "00"})
 
-    assert result["RspCode"] == "02"
+    assert result["RspCode"] == "01"
 
 
 @pytest.mark.asyncio

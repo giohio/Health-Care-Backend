@@ -4,7 +4,8 @@ from uuid import UUID
 
 from Domain.value_objects.appointment_status import AppointmentStatus
 from Domain.value_objects.payment_status import PaymentStatus
-from pydantic import BaseModel, BeforeValidator, ConfigDict, field_serializer
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_serializer
+from pydantic.json_schema import SkipJsonSchema
 
 
 # Convert UUID7 to string
@@ -18,7 +19,7 @@ SafeUUID = Annotated[UUID, BeforeValidator(coerce_to_uuid_str)]
 
 
 class CreateAppointmentRequest(BaseModel):
-    patient_id: SafeUUID | None = None
+    patient_id: SkipJsonSchema[SafeUUID | None] = None  # injected by Kong, hidden from Swagger
     doctor_id: SafeUUID
     specialty_id: SafeUUID
     appointment_date: date
