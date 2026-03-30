@@ -142,8 +142,8 @@ async def record_vitals(
 async def get_latest_vitals(
     patient_id: UUID,
     use_case: Annotated[GetLatestVitalsUseCase, Depends(get_latest_vitals_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Authentication required")

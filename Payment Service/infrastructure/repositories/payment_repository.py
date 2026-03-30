@@ -85,6 +85,16 @@ class PaymentRepository(IPaymentRepository):
         await self.session.flush()
         return self._to_transaction_entity(model)
 
+    async def list_by_patient_id(self, patient_id: UUID) -> list[Payment]:
+        """List all payments for a patient ordered by created_at desc"""
+        stmt = (
+            select(PaymentModel)
+            .where(PaymentModel.patient_id == patient_id)
+            .order_by(PaymentModel.created_at.desc())
+        )
+        result = await self.session.execute(stmt)
+        return [self._to_entity(m) for m in result.scalars().all()]
+
     async def list_transactions(self, payment_id: UUID) -> list[PaymentTransaction]:
         stmt = (
             select(PaymentTransactionModel)

@@ -8,6 +8,7 @@ from Domain.interfaces import IEventPublisher, IPaymentProvider, PaymentRequest
 from Domain.interfaces.payment_repository import IPaymentRepository
 from Domain.value_objects.payment_status import PaymentStatus
 from Domain.value_objects.payment_transaction_type import PaymentTransactionType
+from infrastructure.config import settings
 
 
 class CreatePaymentFromEventUseCase:
@@ -48,15 +49,15 @@ class CreatePaymentFromEventUseCase:
             created_at=datetime.now(timezone.utc),
         )
 
-        # Generate VNPAY transaction reference
-        payment.vnpay_txn_ref = f"APP{appointment_id.hex.upper()}"
+        # Generate VNPAY transaction reference — must match vnp_TxnRef sent to VNPay
+        payment.vnpay_txn_ref = str(appointment_id)
 
         # Generate payment URL via VNPAY
         vnpay_request = PaymentRequest(
             order_id=appointment_id,
             amount=amount,
             order_desc=f"Appointment {appointment_id}",
-            return_url="http://localhost:3000/payment-return",
+            return_url=settings.VNPAY_GATEWAY_RETURN_URL,
             client_ip="127.0.0.1",
         )
         payment.payment_url = await self.payment_provider.create_payment_url(vnpay_request)

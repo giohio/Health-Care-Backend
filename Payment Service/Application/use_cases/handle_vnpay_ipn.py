@@ -42,10 +42,15 @@ class ProcessVNPayIPnUseCase:
         # Find payment by transaction reference
         payment = await self.payment_repo.get_by_vnpay_txn_ref(txn_ref)
         if not payment:
-            return {"RspCode": "02", "Message": "Payment not found"}
+            return {"RspCode": "01", "Message": "Payment not found"}
 
         response_code = str(params.get("vnp_ResponseCode", ""))
         provider_ref = verify_result.provider_ref or params.get("vnp_TransactionNo")
+
+        # Idempotency: already processed (IPN may have run before Return URL)
+        from Domain.value_objects.payment_status import PaymentStatus
+        if payment.status in (PaymentStatus.PAID, PaymentStatus.FAILED, PaymentStatus.EXPIRED):
+            return {"RspCode": "02", "Message": "Order already confirmed"}
 
         if response_code == "00":
             payment.mark_as_paid(

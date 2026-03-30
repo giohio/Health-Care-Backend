@@ -52,7 +52,7 @@ async def doctor_health_check():
 async def provision_doctor(
     dto: DoctorDTO,
     use_case: Annotated[RegisterDoctorUseCase, Depends(get_register_doctor_use_case)],
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if x_user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
@@ -73,8 +73,8 @@ async def provision_doctor(
 async def set_my_auto_confirm_settings(
     payload: DoctorAutoConfirmSettingsRequest,
     use_case: Annotated[SetAutoConfirmSettingsUseCase, Depends(get_set_auto_confirm_settings_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail="X-User-Id header is missing")
@@ -166,7 +166,7 @@ async def submit_rating(
     appointment_id: UUID | None = Query(default=None),
     comment: str | None = Query(default=None),
     use_case: Annotated[SubmitRatingUseCase, Depends(get_submit_rating_use_case)] = None,
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail="X-User-Id header is missing")

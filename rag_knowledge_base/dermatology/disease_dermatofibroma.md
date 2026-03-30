@@ -1,0 +1,196 @@
+---
+source_url: https://dermnetnz.org/topics/dermatofibroma
+department: dermatology
+chunk_type: DISEASE
+severity: ROUTINE
+slug: disease_dermatofibroma
+note: Dermatofibroma (DF) — firm papule, dimple sign
+fetched_at: 2026-03-31 04:50 UTC
+---
+
+Title: Dermatofibroma (histiocytoma)
+
+URL Source: https://dermnetnz.org/topics/dermatofibroma
+
+Published Time: 2023-10-26T03:14:00+00:00
+
+Markdown Content:
+##### Dermatofibroma — extra information
+
+Synonyms:
+
+Fibrous histiocytoma, Histiocytoma cutis, Cutaneous fibrous histiocytoma, Sclerosing haemangioma, Dermatofibroma lenticulare, Subepidermal nodular fibrosis, Sclerosing angioma, Fibroma simplex, Dermal dendrocytoma
+
+Categories:
+
+Lesions (benign)
+
+ICD-10:
+
+D23.9
+
+ICD-11:
+
+2F23.0
+
+SNOMED CT:
+
+427186000
+
+**[Lesions (benign)](https://dermnetnz.org/topics?category=Lesions%20(benign))**
+
+Author: Dr Amanda Oakley, Dermatologist, Hamilton, New Zealand, 1997. Updated January 2016. Revised September 2020
+
+[Introduction](https://dermnetnz.org/topics/dermatofibroma#Introduction)[Demographics](https://dermnetnz.org/topics/dermatofibroma#Demographics)[Causes](https://dermnetnz.org/topics/dermatofibroma#Causes)[Clinical features](https://dermnetnz.org/topics/dermatofibroma#Clinical%20features)[Complications](https://dermnetnz.org/topics/dermatofibroma#Complications)[Diagnosis](https://dermnetnz.org/topics/dermatofibroma#Diagnosis)[Treatment](https://dermnetnz.org/topics/dermatofibroma#Treatment)
+
+## What is a dermatofibroma?
+
+A dermatofibroma is a common benign fibrous nodule usually found on the skin of the lower legs.
+
+A dermatofibroma is also called a cutaneous fibrous histiocytoma.
+
+## Who gets a dermatofibroma?
+
+Dermatofibromas are mostly seen in adults. People of every ethnicity can develop dermatofibromas. Ordinary dermatofibromas are more common in women than in men, although some histologic variants are more commonly identified in males.
+
+## What causes dermatofibroma?
+
+It is not clear if dermatofibroma is a reactive process or a true neoplasm. The lesions are composed of proliferating fibroblasts.Histiocytes may also be involved.
+
+They are sometimes attributed to minor trauma including insect bites, injections, or a rose thorn injury, but not consistently. Multiple dermatofibromas can develop in patients with altered immunity such as HIV, immunosuppression, or autoimmune conditions.
+
+## What are the clinical features of dermatofibroma?
+
+A dermatofibroma usually presents as a solitary firm papule or nodule on a limb.
+
+*   A dermatofibroma can occur anywhere on the skin.
+*   Dermatofibroma size varies from 0.5–1.5 cm diameter; most lesions are 7–10 mm diameter.
+*   A dermatofibroma is tethered to the skin surface and mobile over subcutaneous tissue.
+*   The overlying skin dimples on pinching the lesion – the dimple or pinch sign.
+*   Colour may be pink to light brown in white skin, and dark brown to black in dark skin; some appear paler in the centre.
+*   Dermatofibromas do not usually cause symptoms, but they are sometimes painful, tender, or itchy.
+
+Clinical variants include giant, eruptive, and multiple forms.
+
+![Image 1: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/dermfib3.jpg)
+
+Dermatofibroma
+
+![Image 2: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/dermfib1.jpg)
+
+Dermatofibroma
+
+![Image 3: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/s/df6.jpg)
+
+Dermatofibroma
+
+![Image 4: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/df5.jpg)
+
+Dermatofibroma
+
+![Image 5: Pinch sign of dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/df4.jpg)
+
+Pinch sign of dermatofibroma
+
+![Image 6: Dermoscopy of dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/dermfib2.jpg)
+
+Dermoscopy of dermatofibroma
+
+[See more images of dermatofibroma](https://dermnetnz.org/topics/dermatofibroma-images).
+
+## What are the complications of dermatofibroma?
+
+Because dermatofibromas are often raised lesions, they may be traumatised, for example by a razor.
+
+Occasionally dozens may erupt within a few months, usually in the setting of immunosuppression.
+
+Dermatofibroma does not give rise to cancer. However, occasionally, it may be mistaken for [dermatofibrosarcoma protuberans](https://dermnetnz.org/topics/dermatofibrosarcoma-protuberans) or [desmoplastic melanoma](https://dermnetnz.org/topics/desmoplastic-melanoma).
+
+## How is a dermatofibroma diagnosed?
+
+Dermatofibroma is usually easy to diagnose clinically, supported by [dermoscopy](https://dermnetnz.org/topics/dermoscopy). The most common dermoscopic pattern is a central white area surrounded by a faint pigment network. However different patterns may be seen in skin of colour.
+
+Diagnostic [excision](https://dermnetnz.org/topics/excision-of-skin-lesions) or [skin biopsy](https://dermnetnz.org/topics/skin-biopsy) is undertaken if there is an atypical feature such as recent enlargement, ulceration, or asymmetrical structures and colours on dermoscopy.
+
+The [pathology of dermatofibroma](https://dermnetnz.org/topics/dermatofibroma-fibrous-histiocytoma-pathology) shows whirling fascicles of spindle cell proliferation with excessive collagen deposition in the dermis. There are many pathological variants including:
+
+*   cellular
+*   aneurysmal
+*   epithelioid
+*   atypical
+*   lipidized ankle-type
+*   palisading
+*   cholesterotic
+
+In case of doubt, [immunohistochemical staining](https://dermnetnz.org/topics/immunohistochemistry-stains) is used to confirm the diagnosis.
+
+## What is the treatment for dermatofibroma?
+
+A dermatofibroma is harmless and seldom causes any symptoms. Usually, only reassurance is needed. If it is nuisance or causing concern, the lesion can be removed surgically. Recurrence is common as the lesion often extends beyond the clinical margin.
+
+[Cryotherapy](https://dermnetnz.org/topics/cryotherapy), shave biopsy and [laser](https://dermnetnz.org/topics/lasers-in-dermatology) treatments are rarely completely successful.
+
+### Bibliography
+
+*   Beatrous SV, Riahi RR, Grisoli SB, Cohen PR. Associated conditions in patients with multiple dermatofibromas: case reports and literature review.Dermatol Online J. 2017;23(9):13030/qt8zv852d8. [PubMed](https://pubmed.ncbi.nlm.nih.gov/29469716/)
+*   Alves JV, Matos DM, Barreiros HF, Bártolo EA. Variants of dermatofibroma--a histopathological study.An Bras Dermatol. 2014;89(3):472–7. doi:10.1590/abd1806-4841.20142629. [PubMed](https://pubmed.ncbi.nlm.nih.gov/24937822/)
+*   Kelati A, Aqil N, Baybay H, Gallouj S, Mernissi FZ. Beyond classic dermoscopic patterns of dermatofibromas: a prospective research study.J Med Case Rep. 2017;11(1):266. doi:10.1186/s13256-017-1429-6. [PubMed](https://pubmed.ncbi.nlm.nih.gov/28927449/)
+*   Juliandri J, Wang XY, Liu ZJ, Zhang JW, Xu Y. Dermoscopic patterns of dermatofibroma in 72 Chinese patients.Chin Med J (Engl). 2019;132(17):2121–2. doi:10.1097/CM9.0000000000000406. [PubMed](https://pubmed.ncbi.nlm.nih.gov/31425360/)
+*   Calonje E. Soft-tissue tumours and tumour-like conditions. In: Griffiths C, Barker J, Bleiker T, Chalmers R, Creamer D (eds). Rook's Textbook of Dermatology [4 volumes], 9th edn, Wiley Blackwell, 2016:137.19–22.
+
+### On DermNet
+
+*   [Common benign skin lesions](https://dermnetnz.org/topics/benign-skin-lesions)
+*   [Dermatofibroma – pathology](https://dermnetnz.org/topics/dermatofibroma-fibrous-histiocytoma-pathology)
+*   [Epithelioid histiocytoma – pathology](https://dermnetnz.org/topics/epithelioid-histiocytoma-pathology)
+*   [Dermatofibrosarcoma protuberans](https://dermnetnz.org/topics/dermatofibrosarcoma-protuberans)
+*   [Basal cell carcinoma](https://dermnetnz.org/topics/basal-cell-carcinoma)
+*   [Squamous cell carcinoma](https://dermnetnz.org/topics/cutaneous-squamous-cell-carcinoma)
+*   [Melanoma](https://dermnetnz.org/topics/melanoma)
+*   [Fibromatosis](https://dermnetnz.org/topics/fibromatosis)
+*   [Fibrous papule of the nose](https://dermnetnz.org/topics/fibrous-papule-of-the-nose)
+*   [Dermal and subcutaneous tumours](https://dermnetnz.org/cme/lesions/dermal-and-subcutaneous-lesions) – common skin lesions course
+
+### Other websites
+
+*   [Dermatofibroma](http://emedicine.medscape.com/article/1056742-overview)— Medscape Reference
+*   [Dermatofibroma](https://www.bad.org.uk/pils/dermatofibroma-also-known-as-histiocytoma/)— British Association of Dermatologists
+
+### Books about skin diseases
+
+*   [Books about the skin](https://dermnetnz.org/topics/books-about-the-skin/)
+*   [_Dermatology Made Easy_- second edition](https://www.amazon.com/Dermatology-Made-second-Amanda-Oakley-dp-1914961161/dp/1914961161/ref=dp_ob_title_bk?&_encoding=UTF8&tag=nzdermnet-20&linkCode=ur2&linkId=2addc7901a76f7726fa42eeeea7a28ea&camp=1789&creative=9325)
+
+### Other recommended articles
+
+## Around the web
+
+*   [Angiomatoid Fibrous Histiocytoma With Paraneoplastic Platelet Storage Pool Deficiency](https://rev.trendmd.com/open/bhKRqi2BIA3ny6T_2BcRN5fhdr36NfYsZbMZqBR2apzXHtOMjQOVSusxvCEJB6lv7_edmzkfuDZVGfLqucwplrQmsEVMqjJyc9_e-00mBH2OQEjBfodumZVU4hYAMQsRE_qdQAVH1DNnYFfkuNYqpjs_3sWgCUxubASMqpu5MYmV-RZfUqaF_Lct3R175mfWGRkhF03PK9Ituo1n9C31iYdQPZk7c0W5Ze8SF6myPjski6A5Zs2gslUqU3_i-EzjX7fLklAM6vhGt3MnEEPp8dmIj7q05Iy0kgrTDZG8TwdgyuR3_HTtl_nHFbL6kf0zfprPaGYOYyuVceZOH8GyWWxi2q1rccIikj66gDfUs0GUiNFMJuunZ3nYIW2XY8V0OLLjB_2xfI7pP2giOcazfv01goF6PhMnSSyqGlHLvdg6XR-WBRa1RRnE0FcBcLtRp7oXTr2wWbkFnZMavQivlYAX_AYBdYV0IeahJeM17q2gaE4RnkYNEEEq-L9vfk6h9pd0Q55GrObgKdIRJ0AN6mqniZ8dWUtKQ5Yknqmm8wHNvJID-VoKofIhz-J6B96dGgE1JD4uI5EU6TmWqe7Tha_PB_S1fUF-vammwoR3hsTJJKPVInLZkGP23i9hK8oIZ1PKeUGh4uDEMtEdYyYydkAYZDQHYAQjbamLo7SXjvEmH22FmMbzFuyeFNS-gMMV2M_93gE06WV8nVsy8U0Drg91TuufTmajTUQObTNI09fpn9xT-aPf43iDTONtaBfyxekPCTgn6robw141ylwCaKqRAJYOqD0sK2Yc6GQ6uL7yR6LKH7_vyRDEmX-X7eULTzsTBmuyhLeaLoHnYM9PlLK90QY8aUqp68qG-ujQT-oIlkzv1HBiIif4pmOO7Jpc3bvkOnG3e1T7151RYppb7sonGSk6GQZqh0fLF8xFhkR1wzYHCWBc5vdbuJLflGhn6ie0ej7H_BCewdHoZ81cJR4xlj2urCKBYBp9RkdT2Uyuk_MrEoZifzQfnJ1E375oRwwxSH1cvQJw8JzwsjNUslv9Ov06jnjFRY9Gog6ZdIFfHDLSpnhTzIjJL3EQo2uMHEWmcX0Ny0p1bsF-DqcnQuPp2kh7yBXV82KY89XWNSxcne6B-3ThJuB0SJKwIbnc75cDnxv5kRZMolPgd7wzYhc5HRJjlGKbSVshC9m9_HL5ib7dXaX90s5V_uDvISiuBhyAkYkXjfVWOhL0EkvHAhG4EWBb7CWmM2k__PXEV5U0kVIKusfgz2Vrv7k2KFdYuzz90xwE2MdEmMlx4RINfrZ3hnVC2i0JHApsvJ89intdSwZa_StqqHn1Ks__SLWHPeBzuYucEpbwU_xCR4daAN6RNeuysY_FlPesH4zi1gH1sAxptM3lAfHtuBxjdIYGojEHREKZFGjgNcADDAL28iv5owCBUbP9KwdtzTkGE0Fpxbx6Wp-B2i1ekfsOmldfPUo3C3Oq1-RYqHjXQjToRcoWqw92AgRLDydUcW-DJYU9nMUVVWQ)
+Lerraughn M. Morgan, Pediatrics, 2018
+
+*   [Commentary](https://rev.trendmd.com/open/YqFnekZ-W0fL5Y9fsrxIbIGGMESMA04K0KE2prJL8FsfwggNRZ86OcHzd_YQlA2UbmQhrehmb1KhwStteOyLqpTHRRNhrvXAnwOTBmB9Qbp05_UUxLcGev5PoJtDq1pbb-NWVCHRjUovSprqh6uQaILjNBjsHxXi7zu_ZFKuy_GkmNo8T0bxp9y62270Bd0WSZyYydoFrgMMLI7vbQMiSvEFASEIS-AmzEmF9VFycjuDzMRCZXvUUsdxWXnb-MvC5yTfMvieDc2Ib86WjMTC436FOf5KPOKsILPXsWUJggkBeeAU1ZTVGR0fIEmAqE_PI5KkNATbeffjUQ2twaP_wB0_I1oG4Do9G9P_LxLfd2FhESROaNSKf6OLWOPCUH1gc3ywayRlnkKVH9FhmwfqzMyov6Mp0H8qVRxMxLhZgg91B5yfRILpFxa85gsaZlOBI__GB9E5HOiYNZzG5XzfiNtiPp_oTBBxV0VIlt-pr6-n_JWNt8rusZWowpCaEo6Pefi4P1_DE07sphic5NZ10JG06nnqO5dm4tA-Hk3rc-HucfE7FVjx6F6c7xP39T-SoE3hyMHpAy9AuE_DD93bOGC5xaqRTUne50tsdPCvWZVJuXx2zaw0EYhAJEFjaPLzoeIYKHQO9WHQHC4udR98fv5YHEPmEncxbgVy7DFf4P89byuMUO-a9W28EJOwZi4voWAUcRXa4-5C-Tpa0y8MPhu36-yMbgeggwXhvR8X58FzvR11pQCIgz7zbqoGGrUJrf4pExkJVycnasa6boIr3lktNPA98JK6iIFbwk-GEgLlmp16sj66QPA4yauoT-b7BHeRP04UgXT5ufEy89kp-sHUs6U7seb0P4s9BGOIlB7H5EKAVNYuPbFFy1yeVfrZIQ1nVsBp_feQnulDZqn1ezR3K_kzdpRca4JXIo3Dnt0G5_LPSM41_8cMj8TtONGpVtVkdpan6PCLiqJGJsiHoXCKXhxgEGrPe2EdF2Y6UqGCGllKyzFcKg6wZz4rgRrDTNWKcBFutM7Dg9mh0rq3nLqoS_KK33Qnst3tmFztUNfGaOso8AS50R_vNeyscrjQqmJ2VRh_HFNQVbhWZ1TZ2Ekw2fZy2E1nzCYmAssCxaqUDqsy6xHiWkJYKCM6soMzrTQfGBi_hiPSFh1by2z6vy-BwNwnkIDRX6Ly1tJg2h4QG9f8lE5Wn32nQmZY_aNQIdo9gXhvBm6-41bHY8-zbNx3-7LI8tlHu2eUOaGXUAJVwIZDFArVxGb4f3OwIUxaalh7bJJAO4DVxlL5H2_qbMmNLZsLpw5YRM-lw7hH5QFVIWzx46M-RU0q3Ga62HQmZF6MZ-yeDBYXm1d6CimWOj3nOJx99uq3GXhC5KjnE4jeB9pEEWimQAVceYVx76JPFuFHpaCYywwB)
+Shruti M Gandhi, Clinical Chemistry, 2015
+
+*   [Neurofibromatosis I Report advises on examination, anticipatory guidance by age group](https://rev.trendmd.com/open/zy3CDi_CyR3Aze8JvtmyAoBnPNv3wlczwF10pqmZ8IlrOXCvy9BGYaMarFMH3o3021rxgLf40ZEXZtwcpNPjxG8_ZNViI0LLtJXgyDRvrOs3JHyXK3OK37GLdf1Qa7qx7ia6Gp0rzMv8hFWyBeSLT5Kbn1ctstmjK39TRABMqLCPZnoYkyDZtUsObRtrPQjja1d0uV6JVPFDodpwvWGggM-2tVkJnbC0TybL03tmfbZCwYSr9SnoZtOG6oTawaSCZCXfjIJsDWwvj73B6sW_LGER30zI-tUQ2sg4f70vLu3UtG3UGWasZ9sVRjRsQCMJrY3mnJFsyrCK0TM7Pvc8wDm6GdI0CKS-xwbmNpbUi1BJqnj5iyF1s_8MY_WY1nX4iiksPUwndZrIGeazaIgjuWL1e3SuMTcjWqdFYEGeaAShb8ABMDReMGWbbFRcxJTZe4ygA0gJ6Y9npoYbbpTnXRknZP4MNTwajHhiIPQhxO8Xu6EEKfCFVhWJvuBac0oPWcFxTs6_1iT5TMwIEMpZrU84xNjazq4bZKx1HV4wOXFidD77Q6Bztz3EDnA7ItK0VVcNdYKjWFuiCk-hQnHj3TJNA-iGQq7uFE3UbX_V_Ta7SrCJUl68r9WF-uEXdpb92_Qc24csbZOEfH4xx2l7lpLkZrF2LTO7haSaujcIGoYDed_YTvryzNG1jkyz7RrOVeMGLabb2Lhl4Oii1S7Kt9Nzo9HPVHlqtD0oLl_JseOEiOu9Z9SnFi8DbxqxklisiCsf1SM1luqtu4CAiiZy3FE8fY2e__ucAWZ4uG6s8pqHcHCbaSNpJDHVCEGo-ssZDLuPkEkzFtdouqCAxiXqx5EdO-MWxFuTA1JN8usm_5RiVzI4zW6tUd0yrZZY4tggzyo_otZ851MaJgWbYlnj8y8gTZxnwP-9JxBb_9jQAVGZ962Z_VYLm-P9iCC5X_XFm4sCEBozI_VKMY73a-wDAu9wC_cAzOxgQj0t7tJFzXpCtZZ7NFgY1TQVJ866GrSUotL17w9Atlx2SsY2PfL1Xs_N_zyJ51AwFITl9cbhwE1cRdiyuT6FMmGkFHwNI1VTB11rFjrzSL-1T53JNH3Lv2gla_ArU-NMFPY8XcMdsA_PM_sjR5Iww5IVnGjxR9EiWEUyZV7ySONhs9MIAzzVMJCXQb9bQZ23wcsNgS9FXjzYxMyq3wi07GjroWXSQ3NrQ3Rmcj_LiIlibCbQ66PSgZgZwkiQXnAWU2bldqg1dCenLZKndUUI_fbFwP3tDvd1myDytpUzWiCjjkP4Y-uuYsvIDCNPGGBRoHgFtQ_hgfgq8pCUch1fq5HG9JYCldP4WCqYB6m3xo9R6uY7iUxQz1WyWbLu9SRU1uK1zc5ms7iI7zGUzctqZbwPN9nnrHIgPV9nO1x10wON_XOGobMp9gBOax-pVFic3rLN9OLitw03eTZ93FcvWdM1RLA7hsRBQ4mNulVk-FPHG5fZeaxQdpZNJaD_rB7IT4xliQfBE5GWfxILwOm6)
+AAP News, 2008
+
+*   [Differential Diagnosis of Seborrheic Dermatitis](https://rev.trendmd.com/open/LIOFDFT-Bo7UNDC_AJAgeXXL4WySxJWZJCq-Vc5xL_lKpBX8iS-tA-KqLGeAZ_a67lzQqwuBY-gIRCtZ1J-YPAkDzd2Qxw-5docGJVytL29DYt3amMws1-lEsIqD_ATVP5r3MiCR4pxvDIJaBUf70k_7FbMT_WkzTSlrJ6x62LBMzUim7qcvxbabDzCBoQfARN9lR3GFSHPBZw3dAKCceBpAMD8NgLkaaV4Loo5a6kktH2swJvdgep7zSluDF3XJw7NRKm-DxuY_nIl13Er3E9Md2hpy3GZNwDLbVUHVkKNsd4ZRPTHN9yUyTjl1k5fl9K-GgAoPnrSsg5DzF7o0coXqN2HjwxhKHh4qOm4cwB8oVzgnzzi2QAGeyYc_dhyrRZZFUYnK7miy0FZDkILOxCRSDtsog18PvnhJzCG-PGTOV7zpdjjjWKspkN_aZtwIsN43wz_AErTZXMTtJWD9a_AE9TyL1VKE-qj-Vd-Y32BaQ7ZNjboG2B1WYVeLve0vzWp1MqY2XaCJ8u7DALKMQLBOJhlA82VppyaD_mpAFydBkyUB6_2XFdt8PVhypE3hLXHpswWL6z2umuLTNHrJVIhENL1GrKimEdfKW2P9oKh17ER324ev7mD-NPBWjNOGxIX2mFZ7tGfXBKqrQWiSf2AJl18s2TE6cOFyOqSkf2F49iKyub_uaaAqHp_KFyfvKjOPHqIwfQPPfz_q9i6as99EdQyDpxW6JUElH7V_yjdWJBlPeEX18GwUMLKdZselpuTAcolf2Rh43TI5twvDEq88zsyZR1xX78VTOw5wAC9bxelTPnox90Eb2C4RXRpW8msM4Vz8F-UnUw3SHYbjpjx88GOMclsgxm2wQ1FvVgLhVrmwMTpzuMDz7f1EE7CR6YZm13thjJsyUNOB08gyNA6H6QvqdWxshypx63DlE2KPyqJ6Gj9WCmg4bZIa2i89kJXFP3H8XXzo6U9rgZIzcYi2XSM9E0-CmN0XC2WMFoKZSEz-kL0ZX3G4vxSoGVLgpJZepc_1DQtGJ8qxxAqZbwlK9676UUQm1Fr4f3m4H4Q0HJTKZYzIrUn9DVHoqP6OFggfWByyHVG1aQn7B1v9jC9Kd8qIArRkWoCmG_q9RmNByVc2btiXEtWlvZEHutN-kAFX-aU4LMp4SzSz5JrBS9EawPYZXvxiT9oN97ch6dTiK9ynz24RmJuaCzt231IF0MGjLujQOCrD2WwlpEJ5lhdES2QtqI1gIarGqh46LSfpQXHfQ2RGapF4b0DrjYQKSwRrqv6X8AXAP31kDB3khFODmzqC9itvneVdxH7qK1pxNnLaCluWQSjqdpLb8shLhcmtaeEgN5s-p2AarGUIU_XAL2DDsMcq0o1KtpwN0DC3DL87oj9SOm8mc0UtPMwTEPTr8UuSHE6aDbXKFGNOdvmpbwS-lxGWyurR4VViJy9yINJI4v8mqLH-8FoRGcuueLGlIrkkvH-swyVHpDIxZhDSQKHo1ImqvpdB1iYX41hs9bDsIVKGcxxzXSDmGhdm)
+Mary L. Williams, Pediatr Rev, 1986
+
+*   [Is There an Association Between Hemangioma and Syndromes With Dysmorphic Features?](https://rev.trendmd.com/open/sGNbn068is3TReEvhBE2hZtVqnIoXnc-68-fgJXBkvVckYyMYrKGaahrfefhjC0Feu1lgA9rsZo6j8Cf5icuZvrd7sLf-nRuGm91XWnL6VBP912rCUVnN0l468A_PBq47a3mfugSVVMa_2kKIJDquU7bXZ060uYIAS4I98O2qsNn1h0foYrxRVn5etHWOYZflrf5Roxqyb7R6Irdt1zllTM9kqivL1pRcsZam3kbPLRS4eg8K5xP4wEEWxlSpXggBbwP3Rva57T54bdlzIhz8iQQ-S8RBGys1L2CoCkGgXhIBBWuODIBFYxgb33dOQT0XlovmDRJJu_QA3XCk_oj_6G6R6Y3A6vQAZmP48oaXQQ4rTbtSKUKRycZfrwx8NMI02Qh0C1WWPcpu1cnDK9VkvpJJR3TVddE1FTNsdp1-RTeofrmMq0XFSbKzHEfnfj4vb6vTOCQDIV9NdrryWMINNDzV5FB8dFt3XlY1HDojlqiqSt_8znR2L4YA-iJb-DjMq_4p7Mcu-32FH4qoTL2v0_9HA-3KG6XHwPMk5W2y-lGSdVqZHCUsCxANkvEpsBszhKSYV8ZlTWxgpqO0XMgAAiwmfz_76pB-E_qe86vrarcoVJ2gHC689JA5ckysn78XOtUtBRGSuVX9waFnZjKRSSOPlLKVkGITNGv6nXmUVAIBGSzC38Lg2wwpyrBgiN24qwPd3wjBz4P64SfSwLaASuASNwiZOitwXhUWDHDqjbbqP6U-Y2--Sl0lbzjdyZA6cl86MfeITiLdsY2TD8NQM66izhUO0zkYoBCQs-LTacV4CtVUZ97-qgY2J5GJV4FaVgjBFYQw2l291uqNC-xYewErIfVTSya9LftyVePnnpIhKsdeLyD2Bq5CmaXgvZwDa1IyDQSMUP-n5_7tbnJG7REEmHD9cPnVbdxDbqKPxE2hQkGWrrineRLLjoJ_hadsUdErkCOYNqr9tSHNQu6Ti8HEwVBjf_FHF5iVn9QEPtpWT9-55DfB3WW4yHzQNsLNt09HIwgVra8kfbuT8mN7w_vobEV1wAk4TM3pvCVnhXUq9iLFODROKPyQjHCKnefTL0LdXDhM9_OXMgxgzJekGT9uNEKUwkndxOZb1f82RbL9Iz6MYqw7c6y03dAgQUZKrK9GgqcMnoQR7W5Bc_vga1URGJgFbQPsvnWGwNF3Wo8pyJI04urDwQPSEnaDjj2pqIJ0Ap5xfNi6s1YwhgrF6jxND08ntdhtZpiXI19lUKynw3d73PWIUThj5kaL1zJxtl2VJeZjjZCH74aNkvdCpY-btH18eznR1Zh-jSdlv_N09H02RKBmgQlFhvc0GvCSlxV5GCGRzsTNJYC-LICzWDUur5nExiH0CAWk2khK4jXvD75EU54REWo0fjuwGAY6yxDVfvJP05Nd9cgtwlQlHhv3nyeb70QeE9l72ISjxh3I0uBskqUfuofOyUW05B18YOSMUjrqq1wo6zEr7Bf5LtP3gQWklRzFr4oJBZx9Mif1HBgBzbKeQ36GSuBy4q1YY4FidpMZRXw9w)
+A. Jay Burns, Pediatrics, 1991
+
+*   [Neonatal Cutaneous Vascular Anomalies](https://rev.trendmd.com/open/VmyQvh5UCGvOvuTEmFwOmDYbNg7UnmRuT0vGSmBRphPrZ4y14caeTRbEBXdCRFN3GjX8HTipU5mRJWORlionIlp7nWLpVYCiQUtPTfCcWl0PWEYxYGmgyqmj4gtLALiF1t6BZOJpJD7NQsP5r1ZK52BC-GjG5LLT6HFUVP_mpK3IEAbzBY-eBnmBHZNHIDDxP4XOFjtLbaHbCo4_ieFXnrent9EOfYzBxBhmLOLg2hMk3ICdHzx7DmiOVX4JvkpAI-E70CT-xZoQVuYb5wvJyoOZDVds9GdnoMeJztyLhmZ2CvbnMXiWQEREDD8eeynSIvPfTUS6mctxppizjG_Hg8wZHewPrCPy2vvvXZmFYXpfZwDzNlx19Ny9MrsLIJVY5hVuDOUWWArErpI7g_dK7MmGYOuj-mbTRuz-Ow6luHWDLpzsrWM-bcr9ymovUuS7JZ2nRKJIcHR-Z6vJotzgK_9EywDzMzILUsFenqrxUVO-Ivhvk2xdD6-ygG48r9TOUwQ3SsaDY8N9z8MdcJ8QN3PpQPtbOqj4EPH7RVFxsjn6sYw8D1bOM-h0oT6k-1ZMdQqPU7iaHSkyBTt3At5IlPWdROK0vfhfOqv6l7Sy9v-o-cgAQzKQQzNgtavpPGAtnTs2Z1_ZcOW6CwsByJHvIGiAwGCYSQJDEFETlZAWGKEptRDdZCmEBXlKRGjrPKrjUj9IPOxxT4daEKkxwHYWcj5Kf9EaSOKlEGkfzn1UU3S7HzTtrcWZCI3XgiBak-n70j28GPWlbhpVFmrt7tghJxZ1TeMlfWLzMoPQgmyUjk7bNE8pnjgRFGkaSkNV84_veXn_KP-K47iYf6j1iVfn8pstxD-plj68lUkZjnmSrKtm-wjPB8MlPWWbedJHQ6uiRdiOAuXgnfOyOE_GIAj6tapsgC85nwKldJ7cE5dFAn18GafHCWOyjodg3v-pLRFx4uxvcPjs9c52HoTKSN1FlZ1-sVIjbp_nBAEcCpE--Imr6HYHqUPA0b4EDjacaMlqs6UXleOeIZM3ug4yxBM8ndItNnkk_8UdCt8OCPAakNzo_1Bckor7Cv3r0GLd--GhQKzxRM5j_0vSknmWakvfuqtUyBVKRcNFo0s_xGrxxLEd1yBjU0E7CfAy8Qd1AbaiuivoT5XAsazKOBEYc8_M7HMEEx-UF1grsRv8VhYgKmR16n6b2QY610b70rdwZQjTS_tfm2koKnxeLn2W78KqJNnCB1k6BrVQjycC4W5NALQr_h4cOM6X9iHh6evYSoravofMvoRfOh11TCI9OGu7cPfvt9I03N9qru1Lui8VzXml4AR8i_F0TnoGlBujyzMh4l7jUYFxbiuPZ-A40VHtmFDPxsdDILvFUP6ZIJLuzPWAkuDaCZSHvGBalmuZyMsYlmfaU8F66RPXKZMyZNpcK4pppfCEQFcaVQnnQv8PM689VT0cz_2RqA0X8dUA2Ew)
+Lauren L. Evans, Lauren R. S. Hill, Ann M. Kulungowski, Neoreviews, 2024
+
+*   [Health Supervision for Children With Neurofibromatosis](https://rev.trendmd.com/open/M9awxZC6T3ubr4s5hrZ7MaMbhhz5URfPbOAt8ziyM7QU0XdTq2MsgFwHoiWsx2g3LypT9uRoCm-SXW8oVJwsAB5EOwnKhsRO9t4cez4LtNT5BRCRRXmHSkKuqwapf_YZxxPI_-f948Wdjpf7cxvgzzI_37BESK6M-vqqJJpYNNiGgLK9uyxVL73kFuqMZkuITcymMgvRTXvLHzA6glqPz_TkncPN77NWoPlZVbZmZOL-ZYj5cvsAolc1SRxiYpEvJfo-9LtkJfkAVfW0kurBCwtHTsjIXyp_BpLpxLIQZJe4p8_h__JE2ztkWX7_R6_qk8kQoGtx3WGWxhw5R5vDnJ9ilPmNskmi9L8TnxpKl7VqjpsnYoECUNkRJo1DNGYS3yF3nwOS-P5GzN68zO-mdFS_cOV3vv--t1DPNr4LX6UH47gSwKzNicHDQYnCqosOY9BgVVSPMOwml6HxKOgBPEHuhIN7Go9QUQWzkweHySRwQxYYGdg35CNwU7Fx_gdqMu0dFJX4NE3w_heMFwqtFFCxmeK_8UhJM65eQYpRHef8foBC6KM_taZHszfnpRB-IVojUqpY_Z9gkmjhS1dfem9s2grs5Gx5ApSaXbpqAd4zzoV3GChTLrRkXxmbBPnHvlpnHeQY0ACEuXVxRuF54FtjhSMEXHm2dN6CiejWHUkq4NcMWRoFvvldzMHruFQzOSSdylba-4oI4La6ALikDf9WyI1VJWH6M1QLul-lF_uvxS42kmDnlpHr6cKZJMn47LRcIlwea217pkQo269hqLNW-vS6DdQpRHI16uBzyxFUjfaDPtcCuM5mNi75lEwHXaYQsHkqPH6qq7-lW97sKPcrCavy9WQvIKSiSyKAVpAA56KmWTo-K2RxNisxpgYbGL6nnv_SJksUq3eMRx7vExin67xr7LftQPen-ocg0-r7IMCAfFX56S6bDsEIrgHWjS8wEi9lrXmZwGDMslNHhjQqKniP3jQTRzcau-Xyq7IUjY7zvGkZyUEFrjrXyF5MqZTSNudI1xJGXJxPBQJlNOWu6zB5nDbSQaECxEvyxhb6UnBn4EkZnpUiGYgFeu1wqlH3al8GvNVkH7DZFkyMNxOQTW1L6y0f69GkduXOhHN8aUg3ttATEtaVrSI9ROKjUBoGW5RXzqO_GppCFt0VrbJG81sBD02zgdA1-YRpPEVQO21at5RPhaNCZaba5LxNr1eE2cBuwlCqVr90QSKm--rrYzCIqljbgtKjKdIcLxzegUEM5M_jLXml85NYmCY_EHVgt_BSypnGU-H95QQ2dytGXqzCbTmcmAnBUbV7gyKOxUPEPLFnj248ko-2Sn2V6zAFXQpCf2_Ow-8pFj5pQWtNm0bmqBuQo87RT4taTeP4Xc80DdstnHASRLiZAir4k_zbEI3S7fi_VpCluHJhbq12BE2AbD3yf33XfNC4XlPgQ9l0G1PSa4QLraNRTg)
+Pediatrics, 2008
+
+*   [Visual Diagnosis: 8-year-old Male with a Skin Mass and Inguinal Lymphadenopathy](https://rev.trendmd.com/open/U2VRyoMK-R4C-svCLHmOSnZo6zPApzJmHA7PCdzUUXZVD7M0_ihrQtjASLREzCaMoGbdMDE2211iPg7TDdA7TLJIKjuJO9yq2l4s-XAK-cblrZl9qtoRwWRx6_zla9qz1fR17W-yRyNNd7GMCTxszzoe0Tq1dLMeRri_4Y8EZOuepdPeiC1HYTl0eRHSmzdNVraHQzxX6Z6CRA9RusPV3bHGioD2vViuYG6dP6xiqDOplSHGtbF12VQvdMD_jDLuTfDyLr1MrFY-IRM_0VxY-SKBQROjp-pqZ2H3zWUc-XTM1htWm9Ob0XRGT6spCKxGGBTrzHM_HfFneJQNz0gjG3uvX5HGz30Xw1NIdC-UEBV5u9q1ekeYA1wSGtTLGk7Dz2jRNRyHv1yvFAE3w7UUte4QX8U5EIBuWIHi9M8iUTT6qGznsg7n5rWdByCA6VrFpPztMsEeJ2rVz1wS14g7vfZj1NLXWwKsaNOJYuIDwlcmJ_BAhyNG_9Le3xsLh1TMGW4S3cyft0D31lj33dOaCuvfJNNAFn6swWbjSPaocK1jEbJd8NOg4ENCyCne8SPq5FKaV131gYWiRMTakAB15uckhCe4i8F4EVi9apLuspfxCfH2g-LnObxXWIjiNkg4xv6o4N7iMO1SdgpmR1UNw8qvmfpRbQT6YUXZ9RVflk2O4nmVd2OOmAdlvBjwDpWBIbVG5il_agXjYZTQ8iURIXaKh8oF3s_j9DWYZWK1DoVpAHN-5rL3qDpioufflvrcKbeYArnw2vwMkOt2C8u8clBTmkOyT7jZ0LcY0_-ddiVf-n2I6_AYPMk0Em5zAhuWP3r4DFsX7j3UzjlqPZj1Nu9F3fAQcMPiVUK_nNyeJ0vaUVKvUJUqdg1MOygikuOhlF2dkz9HYLbTbVpZA8a8BhxhOWSVCEuCJ6XxCJBAPWdmlpa5n7ROq3X9_s6Uqu_ZpgLnHqzSEQongyaAUY86lJovTmHIYfNpH5z0_rYvMH2PK4eeqkZ34fQbne7fyKtyVLx7qXr8bOefwWLQyUfl5DdbPGffNmQodrXptE0T_KxpBjcpSju_jSSiUvfD_2QiJo5c5fFZrOWMg4NncpIWA3tzyxwAJug-GvO7mz1XNxfgkLysAQt_VcYR6zJ3tKLqTYLbJ9uh88XSWWI6QiCnQpvu3lzuAsHe_7ighh1Ts5daPuiVBHyZmY7NDg8fEDQUoqEUVQC5kSzvv3eBXARVkr0oPQkh4EOmJ8jP1Wap_3veXEJ3TWxvsLIItvV5Ti5Ls5M6zFlD6i0Y26BDPN2Xh4Hb9C1ntr7PAMUejFjUBhk3xqYpBaJJ37pwV8RLoVV1GFIPzFMEg6TfUruGUuvitsXDz0ynpX0qEGiONffpER_CyR6hNP4exiNfX8HtplTBn6DNXso11NzQoRJK2kVGHdVjejRMALYGynMkM7CfIoG4ATgqVWmTK9CTkFJD2rdKSf1bh-XvFJbaWRSAnGwuvwILFAnRzh1kc3wnfNAfug)
+Lauren Hittson, Pediatr Rev, 2015
+
+*   [Lumps and Bumps in Children](https://rev.trendmd.com/open/MD9q_g_beCquleBc_gKo_2fKMmKkCiQXITMjF23WILGUnfFjTNmlQkUXBZ3opzQZYRcaPXup8fyEgWwvEoLSOG3ku_oUC9Q1VI5aUP9P8OOg69VnuOL5jvcHRGLG0sLaKcmQ8RrizxmAXCIOMy8tjsw2OeVkABHHjiRIU4Yrnj3fbs3LH-Sg6aZk32M1M0O0hHrTMSZ4nb9IE6EwXG4EGuYVg7hAvfNMy29sZMu8swfqx3JJl4Zi8ZuClj1yuM9YIYiWQU4-Tzo0I6M0Q2Wkc7-IIJb51AWl4KD5ZsQfvj0eA3sIS1dUhUOTobuWTyx5Sxw7yoOMwwoejXPlaSl7mNJqSu9xTK92LecOn8JEmTCzq8zmdY-YA2jZL-dWNrPpbJZhc5RyTuqxcibX9Jk7wzBUMG_jOtwFt1sUXXSkxVIJU5gAu5pDtOHofT1YFCPVkTB9kbq_xHj6iyD0jCJuVxBWgfxdpySi83v8fl_N9Mfv97jZ7qoPWtrfpiyFk7GtYMtD8QXFsnuM8TarS-nNzbGQnZDQKk8QhKWd8kRzVj2V7k6rDWUl7Jtqaf1gPixkF_cn0LDadG9mBmJzB56J6Zc_nESHpq5Iq5AIiwmm8R72EPrNXhPKsXm0cX2vJJNJ8RYsRO-FgVGyD-KXKtvohg98rFznbFY-GC6e_8MN4TlK9zor9TCCEeuJ5oIAimCqD6N1tqM135GA8CrDHowMz3GjWvvfDpdbUlN2vBZU-2PXTuiYaAMomDhQEV8J9nRELuD3dVhSR_lRuMUpjUwEb-VrvPW8lrrupLLBpmStz72ux5p80LC3BKmIHoprPwj4vdtD2Drtee-3LAElIf768p1LKzSglQ5s_VlLMFqMqSZiacSQEb2qnURAu0XPTJOORCOI3E0-J1cbDNc6U9VFzpk-2GKiMKLR6AxQx4suOx1xxliHMhctGDrHArW8axi2zC8habyyjiareA-T4mD7xjWiO8rnkm1tNtUWW0ciYQKdNE0nJGeWcdbBNPUsNKrIb-PdUr0tBmpgFmYuHa4Nvg__3whKQLLKlDj5dxW9IcCVJ19y4XkWHC28_LG4eAF9imf4CkuMaZbYjBlMkdPtqDXJbIp_DP99-POEMOejsBDTrGYeKSzrTPGm4I8PpXFRmHBdnUMcDapEIGMeQ81L0tY6LYl60E14ACGAK_UY6VKC8hMIEZf3GW5shbcBuShtWzEKnpvt3_e1ne4I1uK4INCre4i2_lkzz4KkJec0yfY46QOsUIIyrZsSB1IEvZpV_eL8nnb9vsNnB76DN5zY7oEjMRJ7aHelNnwPknHmvP8oXHXCisRpK2OnQO9iD2r8Nr0FxQDWI3XS0GDFC4gbcgA8NFSotm0QGewC7qdreXXZIJ_g24JxXbaxKyU0mMZaIx0vf6yPML2rndzR-SpCzxukWKjw6pjYpIUxhb5uUnyBSjVLGvboR0-RowJysl5Jv7IP5VIbTT0hPPmanC485cMA_eQbHA36vg)
+Thomas C. Putnam, Pediatr Rev, 1992
+
+*   [Association of Lower Body Cutaneous Hemangiomas & Anomalies](https://rev.trendmd.com/open/hvCs8sB_7o1GnIvUnywZ28Mcw8yEd0Fg_QJUAtTJT9wn9SdaJGz-5OGxRWN76qszd9dy8BiN8MlABrWxXzLqSSPYHtfEq27lqxh34Ux_J3CFmwgPnVEMDaASlYC4gUQqzymmyPJ2USjYmqBRrBbVgserDGIB9uV_3m-qrgO7E-WogN1gl_8ENPFL1cleje8x1SdgC0GqGlcZy2iH0y9ngTYy1jNvtkH0sgpJiuFrWpC9XE_DDvBUDjbqfsNAieBhFwtF2jrFaJOZUxcocu0g556aqHU1ijt8Wx_nid6Gk8svJw-yV7_wPh_fNnlXNu-SUCqS0UsNjK2YLLiTLLDZqxYrHr__z9tOWsDTyeFJGbDo4dDkmF7W6-rJp_chCqIPkCyJKaV-we00hkxXBIiJLxIdZDXsUkkHsjYBT3AuBz_P4O6dCv7lN9jqad8aHx3u5MhF8K99ZPQevXqTiaWha4O2s-dBesPU48ZRNMQ-I-Nw_Bfa6luRG8idfZO1NgrUcsVDOq8rpKCCTCZdOJGlKc6j9rY44OyKqM17nWGRc04Ws0mv1V1J7X9BZsW7V6rJOZsfTyhhzHpHlx8bbM74vIdpff4p1n_mLHdJeAfxDoypn_UUUuSjadBLzNQV1l9HvlpL8tWOl2gBYTWPbWgJ-spwFfNSOjH5O455L9cTwIiTOH8JiVtJ1N1glbvwOnJrn-Rr9Kzm_RwcgecPoIZv9ifFPLwbyvf-T4d_J7XF1m9f1q06MLre3lQEa8bKipIxPXxPmnjdEFIfW7fJrHeCNilZJSbYTeepdJVg3wbgRDhBc_hFE4IrARrZEH3WUWRlWCU4ZxVJ4CY25CdCBW_EuV_ockB5HpVNVV43i3nklUvdaL9OfaKMja4iskpRc8bafeAiUayVqN2Dn75TYPEbv49lHD-MWpCeaCAErhcutn6gc3c0OjCVast2MG9D4Jsr9f6QH4BTQ_z1B0qaxEtx9qRpT2pQoQHS6QygU2hbd_0VhJ6MdfU_Ki74XbngCemCCu64nDplRmBchQERM03mCDwZwP6RsVj-iZ0ZKdiacdZTWLRLg6OPwDayGoREhERUDSBmJDGMcBqM3QR4WKzmS2WtIpX18LzXd4CHGEzsp627WK84gYh0F5Ae_S4l3z7MbuOB7ONq0jMqpBH36scqsr6Y6lQzWE7oZU0GPC8cwFaMhcM98Z-EUoeyTb72LQRhhVBgejYzXp8HPNzGZc6dSWcXNtUYMtncKdeRdDOstai0PBKTKQyeUZbpvojUNgHwJBdyxJpLqPGBTyKg3s-t6upVMI15xO7kKRgOULsbBOYl8GZSOe1crY9BVBsoFCl-zxzMd_MIN12UuzRWlApyoeLXvcYwM4DA19UMW1mCpsvtJDAMFXilL5UOYrgEIYMNp0FSumVhZVibkoka6ZbVNHTTpm6pTMRjJsgM04tCmVQqn96PVWQ859fh1kIhEo5aQeV5xp03wS_KlapzRONyUq1gk8iyuLnO88ZTiCOndiAQ26xxpKcU)
+AAP Grand Rounds, 2011

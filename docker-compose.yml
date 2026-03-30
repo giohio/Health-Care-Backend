@@ -169,7 +169,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-TV1BKXSO}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-9W8MLHMKMYTSO7DN1JGI1H9XEQOYXPWH}
-      VNPAY_URL: https://sandbox.vnpayment.vn/paygate
+      VNPAY_URL: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      VNPAY_GATEWAY_RETURN_URL: http://localhost:8000/payments/vnpay/return
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
       - healthcare_net

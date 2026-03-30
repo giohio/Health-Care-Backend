@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from infrastructure.clients.appointment_service_client import AppointmentServiceClient
+from infrastructure.clients.auth_service_client import AuthServiceClient
 from infrastructure.config import settings
 from infrastructure.consumers import (
     AppointmentAutoConfirmedConsumer,
@@ -20,6 +21,7 @@ from infrastructure.consumers import (
     AppointmentNoShowConsumer,
     AppointmentReminderConsumer,
     AppointmentRescheduledConsumer,
+    AppointmentStartedConsumer,
     PaymentCreatedConsumer,
     PaymentExpiredConsumer,
     PaymentFailedConsumer,
@@ -85,26 +87,28 @@ async def startup_event():
     app.state.rabbit_connection = connection
     ws_manager = get_ws_manager()
     email_sender = EmailSender()
+    auth_client = AuthServiceClient(base_url=settings.AUTH_SERVICE_URL)
 
     def use_case_factory(session):
         repo = NotificationRepository(session)
         return CreateNotificationUseCase(repo, ws_manager, email_sender)
 
     consumers = [
-        AppointmentConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentDeclinedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentRescheduledConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentNoShowConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentCompletedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        PaymentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        PaymentPaidConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        PaymentFailedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        PaymentExpiredConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        PaymentRefundedConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
-        AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, use_case_factory),
+        AppointmentConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentDeclinedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentRescheduledConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentNoShowConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentCompletedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentStartedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        PaymentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        PaymentPaidConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        PaymentFailedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        PaymentExpiredConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        PaymentRefundedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
     ]
 
     for consumer in consumers:
