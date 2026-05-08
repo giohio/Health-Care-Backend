@@ -11,7 +11,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade build tools to fix security vulnerabilities
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel jaraco.context
+RUN pip install --no-cache-dir --upgrade pip "setuptools>=70.0.0" "wheel>=0.46.2" "jaraco.context>=6.1.0"
 
 # Copy requirements and install
 COPY ["Payment Service/requirements.txt", "./"]

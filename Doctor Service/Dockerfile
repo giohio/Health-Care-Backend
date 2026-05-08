@@ -13,7 +13,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for fast dependency installation
-RUN pip install --no-cache-dir --upgrade uv wheel jaraco.context
+RUN pip install --no-cache-dir --upgrade "setuptools>=70.0.0" "wheel>=0.46.2" "jaraco.context>=6.1.0" uv
 
 # Copy only dependency files first
 COPY ["Doctor Service/requirements.txt", "."]
@@ -67,4 +67,5 @@ ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 
 # Default command
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
