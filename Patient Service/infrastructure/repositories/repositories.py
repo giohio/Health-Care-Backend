@@ -1,8 +1,70 @@
-from Domain import IPatientHealthRepository, IPatientProfileRepository, PatientHealthBackground, PatientProfile
+from Domain import (
+    EmergencyContact,
+    IPatientHealthRepository,
+    IPatientProfileRepository,
+    InsuranceInfo,
+    InsuranceType,
+    PatientHealthBackground,
+    PatientProfile,
+    VitalSigns,
+)
 from infrastructure.database.models import PatientHealthBackgroundModel, PatientProfileModel
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_extension import UUID7
+
+
+def _serialize_vital_signs(value: VitalSigns | dict | None) -> dict | None:
+    vital_signs = VitalSigns.from_value(value)
+    if not vital_signs:
+        return None
+    return {
+        "height_cm": vital_signs.height_cm,
+        "weight_kg": vital_signs.weight_kg,
+        "blood_pressure": vital_signs.blood_pressure,
+        "heart_rate_bpm": vital_signs.heart_rate_bpm,
+    }
+
+
+def _serialize_emergency_contact(value: EmergencyContact | dict | None) -> dict | None:
+    contact = EmergencyContact.from_value(value)
+    if not contact:
+        return None
+    return {
+        "name": contact.name,
+        "relationship": contact.relationship,
+        "phone": contact.phone,
+        "email": contact.email,
+    }
+
+
+def _serialize_insurance(value: InsuranceInfo | dict | None) -> dict | None:
+    insurance = InsuranceInfo.from_value(value)
+    if not insurance:
+        return None
+    return {
+        "type": insurance.type.value,
+        "provider": insurance.provider,
+        "policy_id": insurance.policy_id,
+        "expiry_date": insurance.expiry_date.isoformat() if insurance.expiry_date else None,
+        "card_number": insurance.card_number,
+        "registered_hospital": insurance.registered_hospital,
+    }
+
+
+def _prepare_profile_fields(fields: dict) -> dict:
+    prepared = dict(fields)
+    if "profile_photo_url" in prepared and "avatar_url" not in prepared:
+        prepared["avatar_url"] = prepared["profile_photo_url"]
+    if "avatar_url" in prepared and "profile_photo_url" not in prepared:
+        prepared["profile_photo_url"] = prepared["avatar_url"]
+    if "vital_signs" in prepared:
+        prepared["vital_signs"] = _serialize_vital_signs(prepared["vital_signs"])
+    if "emergency_contact" in prepared:
+        prepared["emergency_contact"] = _serialize_emergency_contact(prepared["emergency_contact"])
+    if "insurance" in prepared:
+        prepared["insurance"] = _serialize_insurance(prepared["insurance"])
+    return prepared
 
 
 class PatientProfileRepository(IPatientProfileRepository):
@@ -10,18 +72,22 @@ class PatientProfileRepository(IPatientProfileRepository):
         self.session = session
 
     async def create(self, profile: PatientProfile) -> PatientProfile:
-        model = PatientProfileModel(
-            id=profile.id,
-            user_id=profile.user_id,
-            full_name=profile.full_name,
-            date_of_birth=profile.date_of_birth,
-            gender=profile.gender,
-            phone_number=profile.phone_number,
-            address=profile.address,
-            avatar_url=profile.avatar_url,
-            created_at=profile.created_at,
-            updated_at=profile.updated_at,
-        )
+        model = PatientProfileModel(**_prepare_profile_fields({
+            "id": profile.id,
+            "user_id": profile.user_id,
+            "full_name": profile.full_name,
+            "date_of_birth": profile.date_of_birth,
+            "gender": profile.gender,
+            "phone_number": profile.phone_number,
+            "address": profile.address,
+            "avatar_url": profile.avatar_url,
+            "profile_photo_url": profile.profile_photo_url,
+            "vital_signs": profile.vital_signs,
+            "emergency_contact": profile.emergency_contact,
+            "insurance": profile.insurance,
+            "created_at": profile.created_at,
+            "updated_at": profile.updated_at,
+        }))
         self.session.add(model)
         await self.session.flush()
         return self._to_entity(model)
@@ -37,6 +103,7 @@ class PatientProfileRepository(IPatientProfileRepository):
         return self._to_entity(model) if model else None
 
     async def update(self, profile_id: UUID7, **fields) -> PatientProfile:
+        fields = _prepare_profile_fields(fields)
         result = await self.session.execute(
             update(PatientProfileModel)
             .where(PatientProfileModel.id == profile_id)
@@ -60,6 +127,17 @@ class PatientProfileRepository(IPatientProfileRepository):
             phone_number=model.phone_number,
             address=model.address,
             avatar_url=model.avatar_url,
+            profile_photo_url=model.profile_photo_url,
+            vital_signs=VitalSigns.from_value(model.vital_signs),
+            emergency_contact=EmergencyContact.from_value(model.emergency_contact),
+            insurance=InsuranceInfo.from_value(
+                {
+                    **(model.insurance or {}),
+                    "type": (model.insurance or {}).get("type", InsuranceType.NONE.value),
+                }
+            )
+            if model.insurance
+            else None,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

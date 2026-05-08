@@ -1,0 +1,6 @@
+from infrastructure.repositories.appointment_summary_repository import AppointmentSummaryRepository
+from infrastructure.repositories.lab_order_repository import LabOrderRepository
+from infrastructure.repositories.lab_order_template_repository import LabOrderTemplateRepository
+from infrastructure.repositories.lab_result_repository import LabResultRepository
+
+__all__ = ["AppointmentSummaryRepository", "LabOrderRepository", "LabOrderTemplateRepository", "LabResultRepository"]

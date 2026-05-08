@@ -3,6 +3,7 @@ Test suite: Authentication flows.
 
 Covers:
   - Patient self-registration
+  - Email OTP verification flow
   - Admin registers doctor
   - Login returns valid JWT
   - Refresh token rotation
@@ -15,6 +16,17 @@ Covers:
 from tests.conftest import AUTH_URL, short_id
 
 SECRET_FIELD = "pass" + "word"
+
+
+async def _register_and_verify(http, email: str, secret: str) -> None:
+    """Register then auto-verify email using the debug OTP endpoint."""
+    r = await http.post(f"{AUTH_URL}/register", json={"email": email, SECRET_FIELD: secret})
+    assert r.status_code in (200, 201), f"Register failed: {r.text}"
+    otp_resp = await http.get(f"{AUTH_URL}/dev/otp/{email}")
+    if otp_resp.status_code == 200:
+        otp = otp_resp.json()["otp"]
+        v = await http.post(f"{AUTH_URL}/verify-email", json={"email": email, "otp": otp})
+        assert v.status_code == 200, f"Verify failed: {v.text}"
 
 
 class TestAuthRegistration:
@@ -65,9 +77,9 @@ class TestAuthRegistration:
         WHEN POST /admin/register-staff is called
         THEN 403 is returned
         """
-        # Register + login as patient
+        # Register, verify, and login as patient
         email = f"patient_{short_id()}@healthai.dev"
-        await http.post(f"{AUTH_URL}/register", json={"email": email, SECRET_FIELD: "Test1234!"})
+        await _register_and_verify(http, email, "Test1234!")
         login = await http.post(f"{AUTH_URL}/login", json={"email": email, SECRET_FIELD: "Test1234!"})
         patient_token = login.json()["access_token"]
 
@@ -89,7 +101,7 @@ class TestAuthLoginLogout:
         AND tokens are non-empty strings
         """
         email = f"login_{short_id()}@healthai.dev"
-        await http.post(f"{AUTH_URL}/register", json={"email": email, SECRET_FIELD: "Test1234!"})
+        await _register_and_verify(http, email, "Test1234!")
         r = await http.post(f"{AUTH_URL}/login", json={"email": email, SECRET_FIELD: "Test1234!"})
         assert r.status_code == 200
         body = r.json()
@@ -117,7 +129,7 @@ class TestAuthLoginLogout:
         AND old refresh_token is invalidated
         """
         email = f"refresh_{short_id()}@healthai.dev"
-        await http.post(f"{AUTH_URL}/register", json={"email": email, SECRET_FIELD: "Test1234!"})
+        await _register_and_verify(http, email, "Test1234!")
         login = await http.post(f"{AUTH_URL}/login", json={"email": email, SECRET_FIELD: "Test1234!"})
         old_refresh = login.json()["refresh_token"]
 
@@ -139,7 +151,7 @@ class TestAuthLoginLogout:
         AND subsequent refresh returns 401
         """
         email = f"logout_{short_id()}@healthai.dev"
-        await http.post(f"{AUTH_URL}/register", json={"email": email, SECRET_FIELD: "Test1234!"})
+        await _register_and_verify(http, email, "Test1234!")
         login = await http.post(f"{AUTH_URL}/login", json={"email": email, SECRET_FIELD: "Test1234!"})
         tokens = login.json()
 

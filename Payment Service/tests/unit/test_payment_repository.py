@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -22,11 +23,15 @@ class FakeScalars:
 
 
 class FakeExecuteResult:
-    def __init__(self, items):
+    def __init__(self, items=None, scalar_value=None):
         self._items = items
+        self._scalar_value = scalar_value
 
     def scalars(self):
         return FakeScalars(self._items)
+
+    def scalar_one(self):
+        return self._scalar_value
 
 
 class FakeSession:
@@ -75,6 +80,7 @@ def _make_payment_model(payment: Payment):
         amount=payment.amount,
         currency=payment.currency,
         status=payment.status,
+        appointment_status=payment.appointment_status,
         vnpay_txn_ref=payment.vnpay_txn_ref,
         vnpay_provider_ref=payment.vnpay_provider_ref,
         payment_url=payment.payment_url,
@@ -249,3 +255,80 @@ async def test_append_transaction_and_list_transactions():
     assert len(items) == 1
     assert items[0].transaction_type == PaymentTransactionType.PAYMENT_PAID
     assert items[0].metadata == {"ipn": True}
+
+
+@pytest.mark.asyncio
+async def test_list_history_by_patient_id_returns_items_and_total():
+    session = FakeSession()
+    repo = PaymentRepository(session)
+
+    payment = _make_payment()
+    model = _make_payment_model(payment)
+    session.execute_results = [
+        FakeExecuteResult([model]),
+        FakeExecuteResult(scalar_value=1),
+    ]
+
+    items, total = await repo.list_history_by_patient_id(
+        payment.patient_id,
+        from_date=date(2026, 4, 1),
+        to_date=date(2026, 4, 5),
+        status=PaymentStatus.PENDING,
+        offset=10,
+        limit=5,
+    )
+
+    assert total == 1
+    assert len(items) == 1
+    assert items[0].id == payment.id
+    assert len(session.executed_statements) == 2
+
+
+@pytest.mark.asyncio
+async def test_list_history_applies_filters_to_query_statements():
+    session = FakeSession()
+    repo = PaymentRepository(session)
+
+    patient_id = uuid4()
+    doctor_id = uuid4()
+    session.execute_results = [
+        FakeExecuteResult([]),
+        FakeExecuteResult(scalar_value=0),
+    ]
+
+    await repo.list_history(
+        from_date=date(2026, 4, 1),
+        to_date=date(2026, 4, 5),
+        status=PaymentStatus.PAID,
+        patient_id=patient_id,
+        doctor_id=doctor_id,
+        offset=0,
+        limit=25,
+    )
+
+    history_stmt = str(session.executed_statements[0])
+    count_stmt = str(session.executed_statements[1])
+
+    assert "payments.patient_id" in history_stmt
+    assert "payments.doctor_id" in history_stmt
+    assert "payments.status" in history_stmt
+    assert "payments.created_at" in history_stmt
+    assert "ORDER BY payments.created_at DESC" in history_stmt
+    assert "count" in count_stmt.lower()
+
+
+@pytest.mark.asyncio
+async def test_update_appointment_status_executes_update_statement():
+    session = FakeSession()
+    repo = PaymentRepository(session)
+    appointment_id = uuid4()
+
+    # update_appointment_status uses session.execute directly (not get)
+    session.execute_results = [FakeExecuteResult([])]
+
+    await repo.update_appointment_status(appointment_id, "cancelled")
+
+    assert session.flush_count == 1
+    assert len(session.executed_statements) == 1
+    stmt_text = str(session.executed_statements[0])
+    assert "appointment_status" in stmt_text

@@ -1,0 +1,9 @@
+[project]
+name = "uuid-extension"
+version = "0.1.0"
+description = "Local UUID7 compatibility helpers"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"

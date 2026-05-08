@@ -106,6 +106,15 @@ class BookAppointmentSaga(SagaOrchestrator):
         start_time = self._as_time(ctx["start_time"])
         end_time = self._as_time(ctx["end_time"])
 
+        cfg = ctx.get("type_config") or {}
+        raw_fee = cfg.get("amount", cfg.get("price", self.pricing_policy.default_amount_vnd()))
+        try:
+            consultation_fee = int(raw_fee)
+        except (TypeError, ValueError):
+            consultation_fee = self.pricing_policy.default_amount_vnd()
+        if consultation_fee <= 0:
+            consultation_fee = self.pricing_policy.default_amount_vnd()
+
         appt = Appointment(
             id=uuid7(),
             patient_id=patient_id,
@@ -119,9 +128,16 @@ class BookAppointmentSaga(SagaOrchestrator):
             note_for_doctor=ctx.get("note_for_doctor"),
             status=AppointmentStatus.PENDING_PAYMENT,
             payment_status=PaymentStatus.PROCESSING,
+            consultation_fee=consultation_fee,
+            # AI Triage referral fields
+            triage_session_id=ctx.get("triage_session_id"),
+            ai_referred=ctx.get("ai_referred", False),
+            urgency_level=ctx.get("urgency_level"),
+            referred_by_doctor_id=ctx.get("referred_by_doctor_id"),
         )
         await self.appointment_repo.save(appt)
         ctx["appointment_id"] = str(appt.id)
+        ctx["consultation_fee"] = consultation_fee
         return appt
 
     async def execute_write_outbox(self, ctx):
@@ -130,14 +146,7 @@ class BookAppointmentSaga(SagaOrchestrator):
         if not appt:
             raise NonRetryableError("Appointment not found while writing outbox")
 
-        cfg = ctx.get("type_config") or {}
-        raw_amount = cfg.get("amount", cfg.get("price", self.pricing_policy.default_amount_vnd()))
-        try:
-            amount = int(raw_amount)
-        except (TypeError, ValueError):
-            amount = self.pricing_policy.default_amount_vnd()
-        if amount <= 0:
-            amount = self.pricing_policy.default_amount_vnd()
+        amount = ctx.get("consultation_fee") or appt.consultation_fee or self.pricing_policy.default_amount_vnd()
 
         await self.event_publisher.publish(
             session=self.session,
@@ -154,6 +163,11 @@ class BookAppointmentSaga(SagaOrchestrator):
                 "appointment_type": appt.appointment_type,
                 "chief_complaint": appt.chief_complaint,
                 "amount": amount,
+                # AI Triage referral fields
+                "triage_session_id": str(appt.triage_session_id) if appt.triage_session_id else None,
+                "ai_referred": appt.ai_referred,
+                "urgency_level": appt.urgency_level,
+                "referred_by_doctor_id": str(appt.referred_by_doctor_id) if appt.referred_by_doctor_id else None,
             },
         )
         if self.cache:

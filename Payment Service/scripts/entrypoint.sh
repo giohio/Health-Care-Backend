@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-ASYNC_DIALECT_REPLACE='s/postgresql+asyncpg/postgresql/'
+ASYNC_DIALECT_REPLACE='s|postgresql+asyncpg|postgresql|'
 
 # Wait for database
 echo "Waiting for database..."

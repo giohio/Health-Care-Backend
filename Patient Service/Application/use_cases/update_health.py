@@ -17,8 +17,10 @@ class UpdateHealthBackgroundUseCase:
 
         health_bg.update_background(**fields)
 
-        updated_bg = await self.health_repo.update(
-            profile.id, **{k: v for k, v in fields.items() if hasattr(health_bg, k)}
-        )
+        update_fields = {k: v for k, v in fields.items() if hasattr(health_bg, k)}
+        if not update_fields:
+            return health_bg
+
+        updated_bg = await self.health_repo.update(profile.id, **update_fields)
 
         return updated_bg

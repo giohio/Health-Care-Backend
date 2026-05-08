@@ -7,6 +7,15 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 @pytest.fixture(scope="session", autouse=True)
 def patch_jwt_private_key_path(tmp_path_factory):
     """Patch jwt_handler.private_key_path to a temp RSA key so JWTHandler can be instantiated in unit tests."""
+    try:
+        import infrastructure.security.jwt_handler as jwt_handler_module
+        from presentation.dependencies import get_jwt_handler
+    except (ImportError, ModuleNotFoundError):
+        # infrastructure.security is not available in unit test context (e.g. when
+        # Auth service is tested in isolation without full workspace). Skip patching.
+        yield
+        return
+
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -20,9 +29,6 @@ def patch_jwt_private_key_path(tmp_path_factory):
 
     key_path = tmp_path_factory.mktemp("keys") / "private.pem"
     key_path.write_bytes(private_pem)
-
-    import infrastructure.security.jwt_handler as jwt_handler_module
-    from presentation.dependencies import get_jwt_handler
 
     original_path = jwt_handler_module.private_key_path
     jwt_handler_module.private_key_path = str(key_path)

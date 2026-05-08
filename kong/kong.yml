@@ -9,6 +9,13 @@ services:
         paths:
           - /auth
         strip_path: true
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 300
+              hour: 3000
+              limit_by: ip
+              policy: local
       - name: global-health
         paths:
           - /health
@@ -49,6 +56,13 @@ services:
               claims_to_verify:
                 - exp
               anonymous: anonymous-user
+          - name: proxy-cache
+            config:
+              response_code: [200, 404]
+              request_method: [GET, HEAD]
+              content_type: [application/json, application/json; charset=utf-8]
+              cache_ttl: 30
+              strategy: memory
 
   - name: appointment-service
     url: http://appointment_service:8000
@@ -98,6 +112,125 @@ services:
                 - exp
               anonymous: anonymous-user
 
+  - name: notification-ws
+    url: http://notification_service:8000
+    routes:
+      - name: notification-ws-routes
+        paths:
+          - /ws
+        strip_path: false
+
+  - name: clinical-service
+    url: http://clinical_service:8000
+    routes:
+      - name: clinical-routes
+        paths:
+          - /clinical
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: emr-result-service
+    url: http://emr_result_service:8000
+    routes:
+      - name: emr-lab-orders-routes
+        paths:
+          - /lab-orders
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+      - name: emr-lab-results-routes
+        paths:
+          - /lab-results
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+      - name: emr-upload-routes
+        paths:
+          - /upload
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+      - name: emr-appointments-routes
+        paths:
+          - ~/appointments/[^/]+/lab-summary$
+        regex_priority: 100
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+      - name: emr-appointments-trigger-routes
+        paths:
+          - ~/appointments/[^/]+/lab-summary/trigger$
+        regex_priority: 120
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+      - name: emr-appointments-review-routes
+        paths:
+          - ~/appointments/[^/]+/lab-summary/review$
+        regex_priority: 110
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
+  - name: ai-service
+    url: http://ai_service:8000
+    routes:
+      - name: ai-routes
+        paths:
+          - /ai
+        strip_path: true
+        plugins:
+          - name: jwt
+            config:
+              cookie_names:
+                - access_token
+              claims_to_verify:
+                - exp
+              anonymous: anonymous-user
+
   - name: docs-hub
     url: http://static_docs:80
     routes:
@@ -117,6 +250,7 @@ plugins:
         - PUT
         - PATCH
         - DELETE
+        - OPTIONS
       headers:
         - Accept
         - Accept-Version
@@ -125,6 +259,8 @@ plugins:
         - Content-Type
         - Date
         - Authorization
+        - X-User-Id
+        - X-User-Role
       exposed_headers:
         - X-Auth-Token
       max_age: 3600

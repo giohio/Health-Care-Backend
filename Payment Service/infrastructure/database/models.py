@@ -17,13 +17,18 @@ class PaymentModel(Base):
     __tablename__ = "payments"
 
     id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    appointment_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    appointment_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True, index=True)
     patient_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
     doctor_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+
+    payment_type: Mapped[str] = mapped_column(String(20), nullable=False, default="APPOINTMENT", server_default="APPOINTMENT")
+    reference_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True, index=True)
 
     amount: Mapped[int] = mapped_column(Integer, nullable=False)  # in VND
     currency: Mapped[str] = mapped_column(String(3), default="VND", nullable=False)
     status: Mapped[PaymentStatus] = mapped_column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False)
+
+    appointment_status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending_payment", server_default="pending_payment")
 
     vnpay_txn_ref: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
     vnpay_provider_ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -45,7 +50,7 @@ class PaymentModel(Base):
         Index("idx_payment_patient", "patient_id"),
         Index("idx_payment_status", "status"),
         Index("idx_payment_created", "created_at"),
-        UniqueConstraint("appointment_id", name="uq_appointment_payment"),
+        Index("idx_payment_reference", "reference_id"),
     )
 
 
@@ -54,7 +59,7 @@ class PaymentTransactionModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     payment_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
-    appointment_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+    appointment_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True, index=True)
     transaction_type: Mapped[PaymentTransactionType] = mapped_column(
         SQLEnum(PaymentTransactionType),
         nullable=False,
@@ -93,3 +98,26 @@ class OutboxEventModel(Base, UUIDMixin, TimestampMixin):
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class LabFeeConfigModel(Base):
+    __tablename__ = "lab_fee_configs"
+
+    id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    test_id: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    test_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    fee: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # VNĐ
+    currency: Mapped[str] = mapped_column(String(10), nullable=False, default="VND", server_default="VND")
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
+    )
+
+    __table_args__ = (Index("idx_lab_fee_test_id", "test_id"),)

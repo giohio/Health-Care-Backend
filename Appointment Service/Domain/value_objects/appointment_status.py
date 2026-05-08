@@ -10,6 +10,7 @@ class AppointmentStatus(str, Enum):
     CANCELLED = "CANCELLED"
     COMPLETED = "COMPLETED"
     NO_SHOW = "NO_SHOW"
+    OVERDUE = "OVERDUE"
 
 
 class CancelledBy(str, Enum):
@@ -35,10 +36,15 @@ VALID_TRANSITIONS = {
         AppointmentStatus.COMPLETED,
         AppointmentStatus.CANCELLED,
         AppointmentStatus.NO_SHOW,
+        AppointmentStatus.OVERDUE,
     ],
     AppointmentStatus.IN_PROGRESS: [
         AppointmentStatus.COMPLETED,
         AppointmentStatus.NO_SHOW,
+    ],
+    AppointmentStatus.OVERDUE: [
+        AppointmentStatus.NO_SHOW,
+        AppointmentStatus.CANCELLED,
     ],
 }
 

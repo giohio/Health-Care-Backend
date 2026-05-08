@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
     REDIS_URL: str = "redis://localhost:6379/0"
     JWT_PUBLIC_KEY_PATH: str = "/keys/jwt_public.pem"
+    UPLOAD_DIR: str = "uploads"
+    UPLOAD_BASE_URL: str = "/uploads"
+    MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
 
     DEBUG: bool = False
 

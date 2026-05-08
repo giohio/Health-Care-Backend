@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -22,6 +22,14 @@ class AppointmentReminderScheduler:
             trigger=IntervalTrigger(minutes=10),
             id="appointment_reminder_check",
             replace_existing=True,
+            next_run_time=datetime.now(),
+        )
+        self.scheduler.add_job(
+            self._check_overdue,
+            trigger=IntervalTrigger(minutes=10),
+            id="appointment_overdue_check",
+            replace_existing=True,
+            next_run_time=datetime.now(),
         )
         self.scheduler.start()
         await asyncio.sleep(0)
@@ -59,6 +67,16 @@ class AppointmentReminderScheduler:
 
         except Exception as e:
             logger.error(f"Error checking reminders: {e}")
+
+    async def _check_overdue(self):
+        """Mark CONFIRMED appointments past their end_time as OVERDUE."""
+        try:
+            result = await self.appointment_client.check_overdue()
+            processed = result.get("processed", 0)
+            if processed > 0:
+                logger.info("Marked %s appointments as OVERDUE", processed)
+        except Exception as e:
+            logger.warning("Failed to check overdue appointments: %s", e)
 
     async def _send_reminder(self, appointment: dict, reminder_type: str):
         appt_id = appointment["id"]

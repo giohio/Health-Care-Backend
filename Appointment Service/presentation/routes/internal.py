@@ -4,7 +4,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from infrastructure.repositories.appointment_repository import AppointmentRepository
-from presentation.dependencies import get_appointment_repo
+from presentation.dependencies import (
+    get_appointment_repo,
+    get_event_publisher,
+    get_cache_client,
+)
+from Domain.interfaces.event_publisher import IEventPublisher
+from infrastructure.database.session import AsyncSessionLocal
+from healthai_cache import CacheClient
+from Application.use_cases.mark_overdue_appointment import MarkOverdueAppointmentUseCase
 
 router = APIRouter(tags=["Internal"])
 
@@ -56,3 +64,38 @@ async def get_appointment(appointment_id: UUID, repo: Annotated[AppointmentRepos
         "doctor_id": str(appointment.doctor_id),
         "status": appointment.status,
     }
+
+
+@router.post("/internal/overdue-check")
+async def check_overdue_appointments(
+    event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+    cache: Annotated[CacheClient | None, Depends(get_cache_client)] = None,
+):
+    """
+    Scan all CONFIRMED appointments whose scheduled end_time has passed and
+    mark them as OVERDUE. Called periodically by Notification Service scheduler.
+    """
+    async with AsyncSessionLocal() as session:
+        repo = AppointmentRepository(session)
+        now = datetime.now()
+        overdue_appts = await repo.get_confirmed_past_end_time(now)
+
+    processed = 0
+    errors = []
+
+    for appt in overdue_appts:
+        try:
+            async with AsyncSessionLocal() as session:
+                repo_for_use_case = AppointmentRepository(session)
+                use_case = MarkOverdueAppointmentUseCase(
+                    session=session,
+                    appointment_repo=repo_for_use_case,
+                    event_publisher=event_publisher,
+                    cache=cache,
+                )
+                await use_case.execute(appt.id, reason="system_overdue")
+            processed += 1
+        except Exception as exc:
+            errors.append({"appointment_id": str(appt.id), "error": str(exc)})
+
+    return {"processed": processed, "errors": errors}

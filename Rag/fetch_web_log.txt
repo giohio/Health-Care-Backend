@@ -1,0 +1,245 @@
+
+============================================================
+  HealthAI v2 ΓÇö Knowledge Base Ingestion Pipeline
+============================================================
+  Clinical web articles : 58
+  Clinical PDF guidelines: 12
+  Patient MedlinePlus   : 43
+  Collection: clinical | Mode: web
+============================================================
+[INFO] Output: rag_knowledge_base/
+
+============================================================
+  CLINICAL ΓÇö Web Articles (Jina Reader)
+============================================================
+
+ΓöÇΓöÇ RESPIRATORY (13 articles) ΓöÇΓöÇ
+
+  [1/13] dept_overview_pulmonary
+     Γ£à Saved (41,404 chars)
+
+  [2/13] disease_pneumonia_radiology
+     Γ£à Saved (222,479 chars)
+
+  [3/13] disease_lobar_pneumonia
+     Γ£à Saved (39,909 chars)
+
+  [4/13] disease_bronchopneumonia
+     Γ£à Saved (37,240 chars)
+
+  [5/13] normal_chest_xray_anatomy
+     Γ£à Saved (39,415 chars)
+
+  [6/13] statpearls_pneumonia
+     Γ£à Saved (11,717 chars)
+
+  [7/13] statpearls_asthma
+     Already exists ΓÇö skip
+
+  [8/13] statpearls_copd
+     Already exists ΓÇö skip
+
+  [9/13] statpearls_bronchitis
+     Already exists ΓÇö skip
+
+  [10/13] cxr_systematic_approach
+     Γ£à Saved (3,580 chars)
+
+  [11/13] differential_pulmonary_opacity
+     Γ£à Saved (48,763 chars)
+
+  [12/13] nice_pneumonia_guidelines
+     Already exists ΓÇö skip
+
+  [13/13] statpearls_curb65
+     Already exists ΓÇö skip
+
+ΓöÇΓöÇ DERMATOLOGY (10 articles) ΓöÇΓöÇ
+
+  [1/10] dept_overview_dermoscopy
+     Already exists ΓÇö skip
+
+  [2/10] disease_melanoma
+     Already exists ΓÇö skip
+
+  [3/10] disease_melanocytic_naevus
+     Already exists ΓÇö skip
+
+  [4/10] disease_bcc
+     Already exists ΓÇö skip
+
+  [5/10] disease_actinic_keratosis
+     Already exists ΓÇö skip
+
+  [6/10] disease_seborrhoeic_keratosis
+     Already exists ΓÇö skip
+
+  [7/10] disease_dermatofibroma
+     Already exists ΓÇö skip
+
+  [8/10] disease_vascular_lesion
+     Already exists ΓÇö skip
+
+  [9/10] differential_skin_lesion_diagnosis
+     Already exists ΓÇö skip
+
+  [10/10] statpearls_melanoma
+     Already exists ΓÇö skip
+
+ΓöÇΓöÇ NEUROLOGY (7 articles) ΓöÇΓöÇ
+
+  [1/7] dept_overview_brain_mri
+     Γ£à Saved (37,709 chars)
+
+  [2/7] disease_glioma
+     Γ£à Saved (144,248 chars)
+
+  [3/7] disease_glioblastoma
+     Γ£à Saved (192,702 chars)
+
+  [4/7] disease_meningioma
+     Γ£à Saved (99,124 chars)
+
+  [5/7] disease_pituitary_adenoma
+     Γ£à Saved (127,729 chars)
+
+  [6/7] statpearls_brain_tumor
+     Already exists ΓÇö skip
+
+  [7/7] statpearls_meningioma
+     Already exists ΓÇö skip
+
+ΓöÇΓöÇ OPHTHALMOLOGY (4 articles) ΓöÇΓöÇ
+
+  [1/4] dept_overview_diabetic_retinopathy
+     Already exists ΓÇö skip
+
+  [2/4] disease_proliferative_dr
+     Γ£à Saved (154,587 chars)
+
+  [3/4] aao_eyewiki_dr_classification
+     Already exists ΓÇö skip
+
+  [4/4] fundus_photography_reading
+     Γ£à Saved (37,445 chars)
+
+ΓöÇΓöÇ CARDIOLOGY (9 articles) ΓöÇΓöÇ
+
+  [1/9] dept_overview_ecg_basics
+     Already exists ΓÇö skip
+
+  [2/9] disease_atrial_fibrillation
+     Already exists ΓÇö skip
+
+  [3/9] disease_ventricular_tachycardia
+     Already exists ΓÇö skip
+
+  [4/9] disease_pvc
+     Γ£à Saved (12,879 chars)
+
+  [5/9] differential_st_elevation
+     Γ£à Saved (3,604 chars)
+
+  [6/9] statpearls_arrhythmia_overview
+     Already exists ΓÇö skip
+
+  [7/9] statpearls_heart_failure
+     Already exists ΓÇö skip
+
+  [8/9] statpearls_hypertension
+     Already exists ΓÇö skip
+
+  [9/9] chads_vasc_score
+     Γ£à Saved (9,708 chars)
+
+ΓöÇΓöÇ NEPHROLOGY_ENDOCRINOLOGY (7 articles) ΓöÇΓöÇ
+
+  [1/7] dept_overview_ckd
+     Already exists ΓÇö skip
+
+  [2/7] disease_ckd_staging
+     Already exists ΓÇö skip
+
+  [3/7] lab_creatinine_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [4/7] lab_egfr_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [5/7] disease_diabetes_type2
+     Already exists ΓÇö skip
+
+  [6/7] lab_hba1c_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [7/7] lab_glucose_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+ΓöÇΓöÇ HEMATOLOGY_INTERNAL (8 articles) ΓöÇΓöÇ
+
+  [1/8] dept_overview_hematology
+     Γ£à Saved (95,599 chars)
+
+  [2/8] lab_wbc_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [3/8] lab_hemoglobin_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [4/8] lab_mcv_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [5/8] lab_platelet_range
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+  [6/8] disease_iron_deficiency_anemia
+     Already exists ΓÇö skip
+
+  [7/8] disease_leukemia_cbc_pattern
+     Already exists ΓÇö skip
+
+  [8/8] cbc_interpretation_guide
+     ΓÜá∩╕Å  HTTP 422 (attempt 1)
+     ΓÜá∩╕Å  HTTP 422 (attempt 2)
+     ΓÜá∩╕Å  HTTP 422 (attempt 3)
+     Γ¥î Failed
+
+============================================================
+  PIPELINE COMPLETE
+============================================================
+  Γ£à Success : 19
+  ΓÅ¡∩╕Å  Skipped : 30 (already exists)
+  Γ¥î Failed  : 9
+
+  Output: ./rag_knowledge_base/
+  Cß║Ñu tr├║c:
+    clinical/guidelines_pdf/   ΓåÉ PDF lß╗¢n (ESC, ADA, KDIGO)
+    clinical/<dept>/           ΓåÉ Web articles (Jina)
+    patient/medlineplus/<dept>/ΓåÉ Plain language (NIH API)
+
+  Next: chß║íy chunker.py ─æß╗â split th├ánh RAG-ready chunks
+

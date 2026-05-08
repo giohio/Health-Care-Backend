@@ -15,16 +15,17 @@ async def test_send_email_no_recipient_returns_early(monkeypatch):
     monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
 
     sender = EmailSender()
-    await sender.send_email("", "sub", "body")
+    sent = await sender.send_email("", "sub", "body")
 
     assert called["to_thread"] == 0
+    assert sent is False
 
 
 def test_send_blocking_success(monkeypatch):
     calls = []
 
     class FakeSMTP:
-        def __init__(self, host, port):
+        def __init__(self, host, port, timeout=None):
             calls.append(("init", host, port))
 
         def __enter__(self):
@@ -47,14 +48,15 @@ def test_send_blocking_success(monkeypatch):
     monkeypatch.setattr(module.smtplib, "SMTP", FakeSMTP)
 
     sender = EmailSender()
-    sender._send_blocking("to@example.com", "Subject", "Body")
+    ok = sender._send_blocking("to@example.com", "Subject", "Body")
 
     assert any(c[0] == "sendmail" for c in calls)
+    assert ok is True
 
 
 def test_send_blocking_handles_smtp_error(monkeypatch):
     class BadSMTP:
-        def __init__(self, *_args):
+        def __init__(self, *_args, **_kwargs):
             # Intentionally empty for the SMTP stub used by this test.
             self._unused = None
 
@@ -72,4 +74,5 @@ def test_send_blocking_handles_smtp_error(monkeypatch):
     monkeypatch.setattr(module.smtplib, "SMTP", BadSMTP)
 
     sender = EmailSender()
-    sender._send_blocking("to@example.com", "Subject", "Body")
+    ok = sender._send_blocking("to@example.com", "Subject", "Body")
+    assert ok is False

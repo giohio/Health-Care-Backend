@@ -17,8 +17,11 @@ class Settings(BaseSettings):
     # VNPAY
     VNPAY_TMN_CODE: str = Field(default="TV1BKXSO")
     VNPAY_HASH_SECRET: str = Field(default="9W8MLHMKMYTSO7DN1JGI1H9XEQOYXPWH")
-    VNPAY_URL: str = Field(default="https://sandbox.vnpayment.vn/paygate")
-    VNPAY_RETURN_URL: str = Field(default="http://localhost:3000/payment-return")
+    VNPAY_URL: str = Field(default="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
+    # URL Kong gateway → payment service /vnpay/return (VNPay redirects here after payment)
+    VNPAY_GATEWAY_RETURN_URL: str = Field(default="http://localhost:8000/payments/vnpay/return")
+    # Final frontend URL (backend redirects here after processing VNPay return)
+    VNPAY_RETURN_URL: str = Field(default="http://localhost:5173/payment-return")
 
     # App
     APP_ROOT_PATH: str = Field(default="/payments")

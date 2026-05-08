@@ -95,9 +95,10 @@ async def test_decline_appointment_paid_emits_decline_and_refund_request():
 
 
 @pytest.mark.asyncio
-async def test_decline_appointment_unpaid_still_emits_refund_request_flag_false():
+async def test_decline_appointment_paid_emits_refund_request_with_flag_true():
+    """When a paid appointment is declined, a refund event is emitted with appointment_marked_paid=True."""
     doctor_id = uuid4()
-    appointment = FakeAppointment(doctor_id=doctor_id, payment_status=PaymentStatus.PROCESSING, can_decline=True)
+    appointment = FakeAppointment(doctor_id=doctor_id, payment_status=PaymentStatus.PAID, can_decline=True)
     session = FakeSession()
     repo = FakeRepo(appointment)
     publisher = FakePublisher()
@@ -105,9 +106,10 @@ async def test_decline_appointment_unpaid_still_emits_refund_request_flag_false(
     use_case = DeclineAppointmentUseCase(session=session, appointment_repo=repo, event_publisher=publisher)
     await use_case.execute(appointment_id=appointment.id, doctor_id=doctor_id, reason=None)
 
-    assert appointment.payment_status == PaymentStatus.PROCESSING
-    assert publisher.calls[1]["event_type"] == "payment.refund_requested"
-    assert publisher.calls[1]["payload"]["appointment_marked_paid"] is False
+    assert appointment.payment_status == PaymentStatus.REFUNDED
+    # The first event is appointment.declined (index 0), refund (index 1)
+    refund_call = next(c for c in publisher.calls if c["event_type"] == "payment.refund_requested")
+    assert refund_call["payload"]["appointment_marked_paid"] is True
 
 
 @pytest.mark.asyncio

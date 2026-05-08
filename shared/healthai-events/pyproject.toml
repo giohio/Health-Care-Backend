@@ -1,19 +1,14 @@
-[tool.poetry]
+[project]
 name = "healthai-events"
 version = "0.1.0"
 description = "Event publishing and consuming layer with outbox pattern"
-authors = ["HealthAI Team"]
-
-[tool.poetry.dependencies]
-python = "^3.11"
-aio-pika = "^9.0"
-healthai-db = {path = "../healthai-db"}
-healthai-cache = {path = "../healthai-cache"}
-
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-pytest-asyncio = "*"
+requires-python = ">=3.11"
+dependencies = [
+	"aio-pika>=9.0",
+	"healthai-db",
+	"healthai-cache",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"

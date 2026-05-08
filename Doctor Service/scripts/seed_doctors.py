@@ -32,8 +32,8 @@ SPECIALTIES = [
     {"id": str(uuid.uuid4()), "name": "Pediatrics", "description": "Healthcare for children aged 0-16 years"},
     {
         "id": str(uuid.uuid4()),
-        "name": "Internal Medicine",
-        "description": "General internal medicine and chronic disease management",
+        "name": "General Medicine",
+        "description": "General medicine and chronic disease management",
     },
     {"id": str(uuid.uuid4()), "name": "General Surgery", "description": "Surgical procedures and post-operative care"},
     {"id": str(uuid.uuid4()), "name": "Dermatology", "description": "Diagnosis and treatment of skin conditions"},
@@ -81,7 +81,7 @@ DOCTORS = [
         "user_id": str(uuid.uuid4()),
         "full_name": "Dr. Robert Pham",
         "title": "MD, Prof.",
-        "specialty": "Internal Medicine",
+        "specialty": "General Medicine",
         "experience_years": 25,
         "schedules": [
             {"day": "TUESDAY", "start": time(8, 0), "end": time(12, 0)},

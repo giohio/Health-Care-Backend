@@ -1,0 +1,10 @@
+from enum import Enum
+
+
+class LabResultStatus(str, Enum):
+    PENDING = "PENDING"
+    AI_PROCESSING = "AI_PROCESSING"
+    AI_DRAFT = "AI_DRAFT"
+    DOCTOR_REVIEW = "DOCTOR_REVIEW"
+    NEEDS_MANUAL_REVIEW = "NEEDS_MANUAL_REVIEW"
+    PUBLISHED = "PUBLISHED"

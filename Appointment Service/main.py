@@ -1,4 +1,5 @@
 import asyncio
+import importlib.util
 import logging
 import os
 import sys
@@ -14,6 +15,7 @@ from infrastructure.clients.doctor_service_client import DoctorServiceClient
 from infrastructure.config import settings
 from infrastructure.consumers import (
     AppointmentTimeoutConsumer,
+    LabResultReadyConsumer,
     PaymentExpiredConsumer,
     PaymentFailedConsumer,
     PaymentPaidConsumer,
@@ -22,14 +24,32 @@ from infrastructure.consumers import (
 from infrastructure.database import models as _db_models  # noqa: F401
 from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.repositories.appointment_repository import AppointmentRepository
-from presentation.routes import appointments_router
+from presentation.routes import appointments_router, admin_appointments_router
 from presentation.routes.internal import router as internal_router
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
-if str(TRACING_DIR) not in sys.path:
-    sys.path.append(str(TRACING_DIR))
+TELEMETRY_PATH = TRACING_DIR / "telemetry.py"
 
-from telemetry import setup_logging, setup_telemetry  # noqa: E402
+if TELEMETRY_PATH.exists():
+    spec = importlib.util.spec_from_file_location("healthai_tracing_telemetry", TELEMETRY_PATH)
+    telemetry_module = importlib.util.module_from_spec(spec) if spec and spec.loader else None
+    if spec and spec.loader and telemetry_module:
+        try:
+            spec.loader.exec_module(telemetry_module)
+            setup_logging = telemetry_module.setup_logging
+            setup_telemetry = telemetry_module.setup_telemetry
+        except Exception:
+            telemetry_module = None
+    else:
+        telemetry_module = None
+
+if not TELEMETRY_PATH.exists() or telemetry_module is None:
+
+    def setup_logging(*_args, **_kwargs):
+        return None
+
+    def setup_telemetry(*_args, **_kwargs):
+        return None
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -62,6 +82,7 @@ async def health_check():
 
 # Routes
 app.include_router(appointments_router)
+app.include_router(admin_appointments_router)
 app.include_router(internal_router)
 
 background_tasks = set()
@@ -142,6 +163,12 @@ async def startup_event():
         session_factory=AsyncSessionLocal,
         appointment_repo_factory=appointment_repo_factory,
     )
+    lab_result_consumer = LabResultReadyConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+        appointment_repo_factory=appointment_repo_factory,
+    )
 
     # Keep strong references to consumers so robust subscriptions survive after startup and broker restarts.
     app.state.consumers = [
@@ -150,6 +177,7 @@ async def startup_event():
         payment_failed_consumer,
         payment_expired_consumer,
         payment_timeout_consumer,
+        lab_result_consumer,
     ]
 
     async def run_consumers():

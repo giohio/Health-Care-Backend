@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = "HealthCare Notification <noreply@healthcare.local>"
+    AUTH_SERVICE_URL: str = "http://auth_service:8000"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

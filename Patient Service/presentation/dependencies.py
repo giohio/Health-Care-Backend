@@ -4,9 +4,11 @@ from uuid import UUID
 from Domain import IEventPublisher
 from fastapi import Depends, Header, HTTPException, Request, status
 from healthai_cache import CacheClient
+from infrastructure.config import settings
 from infrastructure.database.session import get_db
 from infrastructure.publishers.outbox_event_publisher import OutboxEventPublisher
 from infrastructure.repositories.repositories import PatientHealthRepository, PatientProfileRepository
+from infrastructure.storage import LocalFileStorage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -24,6 +26,10 @@ def get_health_repo(session: Annotated[AsyncSession, Depends(get_db)]):
 
 def get_event_publisher(session: Annotated[AsyncSession, Depends(get_db)]) -> IEventPublisher:
     return OutboxEventPublisher(session)
+
+
+def get_file_storage():
+    return LocalFileStorage(settings.UPLOAD_DIR, settings.UPLOAD_BASE_URL)
 
 
 def get_current_user_id(
@@ -83,3 +89,21 @@ def get_vitals_history_use_case(
     from Application.use_cases.manage_vitals import GetVitalsHistoryUseCase
 
     return GetVitalsHistoryUseCase(repo, initialize_use_case)
+
+
+def get_upload_profile_photo_use_case(
+    profile_repo: Annotated[PatientProfileRepository, Depends(get_profile_repo)],
+    file_storage=Depends(get_file_storage),
+):
+    from Application.use_cases.upload_profile_photo import UploadProfilePhotoUseCase
+
+    return UploadProfilePhotoUseCase(profile_repo, file_storage)
+
+
+def get_patient_summary_use_case(
+    profile_repo: Annotated[PatientProfileRepository, Depends(get_profile_repo)],
+    health_repo: Annotated[PatientHealthRepository, Depends(get_health_repo)],
+):
+    from Application.use_cases.get_patient_summary import GetPatientSummaryUseCase
+
+    return GetPatientSummaryUseCase(profile_repo, health_repo)

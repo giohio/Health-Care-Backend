@@ -39,7 +39,7 @@ class TestPaymentFailedPathIntegration:
 
         payment_resp = None
         for _ in range(20):
-            payment_resp = await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            payment_resp = await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
             if payment_resp.status_code == 200:
                 break
             import asyncio

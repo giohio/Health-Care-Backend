@@ -42,8 +42,19 @@ class AppointmentModel(Base):
     cancelled_by_user_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
     queue_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    consultation_fee: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
     reminder_24h_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     reminder_1h_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # AI Triage referral fields
+    triage_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), nullable=True, index=True
+    )
+    ai_referred: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+    urgency_level: Mapped[str | None] = mapped_column(String(50), nullable=True, server_default=None)
+    referred_by_doctor_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), nullable=True, server_default=None
+    )
 
     # Indexes for performance and uniqueness constraints
     __table_args__ = (

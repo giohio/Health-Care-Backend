@@ -1,4 +1,5 @@
 import asyncio
+import importlib.util
 import logging
 import os
 import sys
@@ -11,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from healthai_cache import CacheClient
 from healthai_events import OutboxRelay, RabbitMQPublisher
 from infrastructure.config import settings
-from infrastructure.consumers import PaymentExpiryConsumer, PaymentRefundRequestedConsumer, PaymentRequiredConsumer
+from infrastructure.consumers import LabOrderPaymentRequiredConsumer, LabOrderCancelledConsumer, PaymentExpiryConsumer, PaymentRefundRequestedConsumer, PaymentRequiredConsumer, create_appointment_status_consumers
 from infrastructure.database import models as _db_models  # noqa: F401
 from infrastructure.database.session import AsyncSessionLocal, engine
 from infrastructure.providers.vnpay_provider import VnpayProvider
@@ -20,12 +21,19 @@ from infrastructure.repositories.payment_repository import PaymentRepository
 from presentation.routes.payments import router as payments_router
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
-if str(TRACING_DIR) not in sys.path:
-    sys.path.append(str(TRACING_DIR))
+TELEMETRY_PATH = TRACING_DIR / "telemetry.py"
 
-try:
-    from telemetry import setup_logging, setup_telemetry  # noqa: E402
-except ModuleNotFoundError:
+if TELEMETRY_PATH.exists():
+    spec = importlib.util.spec_from_file_location("healthai_tracing_telemetry", TELEMETRY_PATH)
+    telemetry_module = importlib.util.module_from_spec(spec) if spec and spec.loader else None
+    if spec and spec.loader and telemetry_module:
+        spec.loader.exec_module(telemetry_module)
+        setup_logging = telemetry_module.setup_logging
+        setup_telemetry = telemetry_module.setup_telemetry
+    else:
+        telemetry_module = None
+
+if not TELEMETRY_PATH.exists() or telemetry_module is None:
 
     def setup_logging(*_args, **_kwargs):
         return None
@@ -45,6 +53,10 @@ app = FastAPI(
     version="1.0.0",
     root_path=os.getenv("APP_ROOT_PATH", ""),
 )
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "payment-service"}
 
 setup_logging("payment-service")
 setup_telemetry(app, "payment-service", db_engine=engine)
@@ -134,8 +146,32 @@ async def startup_event():
         event_publisher=event_publisher,
     )
 
+    appt_status_consumers = create_appointment_status_consumers(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+        payment_repo_factory=payment_repo_factory,
+    )
+
+    lab_order_payment_consumer = LabOrderPaymentRequiredConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+        payment_repo_factory=payment_repo_factory,
+        payment_provider=payment_provider,
+        event_publisher=event_publisher,
+    )
+
+    lab_order_cancelled_consumer = LabOrderCancelledConsumer(
+        connection=connection,
+        cache=cache,
+        session_factory=AsyncSessionLocal,
+        payment_repo_factory=payment_repo_factory,
+        event_publisher=publisher,
+    )
+
     # Keep strong references to consumers so robust subscriptions can recover after broker restarts.
-    app.state.consumers = [required_consumer, expiry_consumer, refund_consumer]
+    app.state.consumers = [required_consumer, expiry_consumer, refund_consumer, lab_order_payment_consumer, lab_order_cancelled_consumer, *appt_status_consumers]
 
     async def run_consumers():
         try:
@@ -170,12 +206,6 @@ async def shutdown_event():
         await app.state.rabbit_connection.close()
     if app.state.publisher:
         await app.state.publisher.close()
-
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "payment-service"}
-
 
 if __name__ == "__main__":
     import uvicorn

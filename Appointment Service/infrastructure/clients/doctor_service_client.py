@@ -18,9 +18,12 @@ class DoctorServiceClient(IDoctorServiceClient):
         self,
         cache: CacheClient,
         base_url: str = settings.DOCTOR_SERVICE_URL,
+        patient_base_url: str = settings.PATIENT_SERVICE_URL,
     ):
         self.base_url = base_url
+        self.patient_base_url = patient_base_url
         self._client = httpx.AsyncClient(base_url=base_url, timeout=3.0)
+        self._patient_client = httpx.AsyncClient(base_url=patient_base_url, timeout=3.0)
         self._cb = CircuitBreaker(
             name="doctor_service",
             cache=cache,
@@ -83,7 +86,7 @@ class DoctorServiceClient(IDoctorServiceClient):
 
     async def get_patient_full_context(self, patient_id: str) -> dict | None:
         async def _fetch():
-            response = await self._client.get(f"/patients/internal/patients/{patient_id}/full-context")
+            response = await self._patient_client.get(f"/internal/patients/{patient_id}/full-context")
             response.raise_for_status()
             return response.json()
 
@@ -114,5 +117,17 @@ class DoctorServiceClient(IDoctorServiceClient):
         async def _fallback(*_args, **_kwargs):
             await asyncio.sleep(0)
             return None
+
+        return await self._cb.call(_fetch, fallback=_fallback)
+
+    async def get_specialties(self) -> list[dict]:
+        async def _fetch():
+            response = await self._client.get("/specialties")
+            response.raise_for_status()
+            return response.json()
+
+        async def _fallback(*_args, **_kwargs):
+            await asyncio.sleep(0)
+            return []
 
         return await self._cb.call(_fetch, fallback=_fallback)
