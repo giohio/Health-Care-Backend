@@ -21,6 +21,10 @@ class FakeAppointment:
         self.chief_complaint = "Fever"
         self.queue_number = queue_number
         self.status = status
+        self.ai_referred = False
+        self.urgency_level = None
+        self.referred_by_doctor_id = None
+        self.triage_session_id = None
 
 
 class FakeRepo:
@@ -39,6 +43,20 @@ class FakeDoctorClient:
     async def get_patient_full_context(self, patient_id):
         await asyncio.sleep(0)
         return self.patient_contexts.get(patient_id)
+
+
+class FakeEmrClient:
+    def __init__(self, readiness_by_appointment=None, error_ids=None):
+        self.readiness_by_appointment = readiness_by_appointment or {}
+        self.error_ids = set(error_ids or [])
+        self.calls = []
+
+    async def get_lab_readiness(self, appointment_id):
+        await asyncio.sleep(0)
+        self.calls.append(appointment_id)
+        if appointment_id in self.error_ids:
+            raise RuntimeError("emr unavailable")
+        return self.readiness_by_appointment.get(appointment_id)
 
 
 class FakeCache:
@@ -225,3 +243,35 @@ async def test_get_doctor_queue_cache_miss_sets_cache_with_expected_ttl():
     assert key == f"queue:{doctor_id}:{appointment_date}"
     assert ttl == 30
     assert isinstance(value, list)
+
+
+@pytest.mark.asyncio
+async def test_get_doctor_queue_includes_lab_readiness_when_emr_client_available():
+    doctor_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+    appt = FakeAppointment(doctor_id=doctor_id, appointment_date=appointment_date)
+    repo = FakeRepo([appt])
+    doctor_client = FakeDoctorClient()
+    readiness = {"total_orders": 2, "completed_results": 1, "all_ready": False}
+    emr_client = FakeEmrClient(readiness_by_appointment={str(appt.id): readiness})
+
+    use_case = GetDoctorQueueUseCase(appointment_repo=repo, doctor_client=doctor_client, emr_client=emr_client)
+    result = await use_case.execute(doctor_id=doctor_id, appointment_date=appointment_date)
+
+    assert result[0]["lab_readiness"] == readiness
+    assert emr_client.calls == [str(appt.id)]
+
+
+@pytest.mark.asyncio
+async def test_get_doctor_queue_tolerates_lab_readiness_errors():
+    doctor_id = uuid4()
+    appointment_date = date(2026, 3, 30)
+    appt = FakeAppointment(doctor_id=doctor_id, appointment_date=appointment_date)
+    repo = FakeRepo([appt])
+    doctor_client = FakeDoctorClient()
+    emr_client = FakeEmrClient(error_ids={str(appt.id)})
+
+    use_case = GetDoctorQueueUseCase(appointment_repo=repo, doctor_client=doctor_client, emr_client=emr_client)
+    result = await use_case.execute(doctor_id=doctor_id, appointment_date=appointment_date)
+
+    assert result[0]["lab_readiness"] == {}

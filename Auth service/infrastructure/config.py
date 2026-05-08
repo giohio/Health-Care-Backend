@@ -6,6 +6,7 @@ env_path = ".env"
 class Settings(BaseSettings):
     DATABASE_URL: str
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
+    REDIS_URL: str = "redis://localhost:6379/0"
     AUTH_SERVICE_PORT: int = 8000
     CORS_ORIGINS: list[str] = ["*"]
     DEBUG: bool = True

@@ -12,21 +12,29 @@ from infrastructure.clients.appointment_service_client import AppointmentService
 from infrastructure.clients.auth_service_client import AuthServiceClient
 from infrastructure.config import settings
 from infrastructure.consumers import (
+    AppointmentAdjustedConsumer,
     AppointmentAutoConfirmedConsumer,
     AppointmentCancelledConsumer,
     AppointmentCompletedConsumer,
     AppointmentConfirmedConsumer,
     AppointmentCreatedConsumer,
+    AIReferredReviewConsumer,
     AppointmentDeclinedConsumer,
     AppointmentNoShowConsumer,
+    AppointmentOverdueConsumer,
     AppointmentReminderConsumer,
     AppointmentRescheduledConsumer,
     AppointmentStartedConsumer,
+    LabOrderAllResultsReadyConsumer,
+    LabResultPublishedConsumer,
     PaymentCreatedConsumer,
     PaymentExpiredConsumer,
     PaymentFailedConsumer,
     PaymentPaidConsumer,
     PaymentRefundedConsumer,
+    TriageCompletedConsumer,
+    UserRegisteredConsumer,
+    UserResendOTPConsumer,
 )
 from infrastructure.database.session import AsyncSessionLocal
 from infrastructure.email.email_sender import EmailSender
@@ -52,7 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(notifications_router, prefix="/notifications")
+app.include_router(notifications_router)
 app.include_router(websocket_router)
 
 background_tasks = set()
@@ -91,24 +99,32 @@ async def startup_event():
 
     def use_case_factory(session):
         repo = NotificationRepository(session)
-        return CreateNotificationUseCase(repo, ws_manager, email_sender)
+        return CreateNotificationUseCase(repo, ws_manager, email_sender, cache)
 
     consumers = [
         AppointmentConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentAutoConfirmedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentAdjustedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AIReferredReviewConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        TriageCompletedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentCancelledConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentDeclinedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentRescheduledConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentNoShowConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        AppointmentOverdueConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentCompletedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentStartedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         PaymentCreatedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        LabResultPublishedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        LabOrderAllResultsReadyConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         PaymentPaidConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         PaymentFailedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         PaymentExpiredConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         PaymentRefundedConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
         AppointmentReminderConsumer(connection, cache, AsyncSessionLocal, use_case_factory, auth_client),
+        UserRegisteredConsumer(connection, cache, email_sender),
+        UserResendOTPConsumer(connection, cache, email_sender),
     ]
 
     for consumer in consumers:

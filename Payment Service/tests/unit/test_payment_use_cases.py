@@ -1,11 +1,15 @@
 import asyncio
+from datetime import date
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from Application.use_cases.create_lab_order_payment import CreateLabOrderPaymentUseCase
 from Application.use_cases.create_payment import CreatePaymentFromEventUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
+from Application.use_cases.list_admin_payment_history import ListAdminPaymentHistoryUseCase
+from Application.use_cases.list_patient_payment_history import ListPatientPaymentHistoryUseCase
 from Application.use_cases.process_vnpay_ipn import GetPaymentUseCase
 from Domain.entities.payment import Payment
 from Domain.entities.payment_transaction import PaymentTransaction
@@ -29,6 +33,10 @@ class FakeRepo:
         self.saved = []
         self.appended = []
         self.transactions = []
+        self.patient_history_calls = []
+        self.admin_history_calls = []
+        self.history_items = []
+        self.history_total = 0
 
     async def save(self, payment):
         await asyncio.sleep(0)
@@ -68,6 +76,21 @@ class FakeRepo:
     async def list_transactions(self, _payment_id):
         await asyncio.sleep(0)
         return self.transactions
+
+    async def list_history_by_patient_id(self, patient_id, **filters):
+        await asyncio.sleep(0)
+        self.patient_history_calls.append((patient_id, filters))
+        return self.history_items, self.history_total
+
+    async def list_history(self, **filters):
+        await asyncio.sleep(0)
+        self.admin_history_calls.append(filters)
+        return self.history_items, self.history_total
+
+    async def update_appointment_status(self, appointment_id, appointment_status):
+        await asyncio.sleep(0)
+        self.update_appt_status_calls = getattr(self, "update_appt_status_calls", [])
+        self.update_appt_status_calls.append((appointment_id, appointment_status))
 
 
 class FakeProvider:
@@ -123,6 +146,45 @@ async def test_create_payment_from_event_saves_payment_and_emits_events():
     assert len(repo.appended) == 1
     assert repo.appended[0]["transaction_type"] == PaymentTransactionType.PAYMENT_CREATED
     assert [c["event_type"] for c in publisher.calls] == ["payment.created", "payment.check_expiry"]
+
+
+@pytest.mark.asyncio
+async def test_create_lab_order_payment_saves_lab_payment_and_emits_events():
+    repo = FakeRepo()
+    provider = FakeProvider()
+    publisher = FakePublisher()
+    session = FakeSession()
+    lab_order_id = uuid4()
+    patient_id = uuid4()
+    doctor_id = uuid4()
+
+    use_case = CreateLabOrderPaymentUseCase(
+        session=session,
+        payment_repo=repo,
+        payment_provider=provider,
+        event_publisher=publisher,
+    )
+
+    payment = await use_case.execute(
+        {
+            "lab_order_id": str(lab_order_id),
+            "patient_id": str(patient_id),
+            "doctor_id": str(doctor_id),
+            "amount": 275000,
+            "test_name": "Lipid Panel",
+        }
+    )
+
+    assert payment.payment_type == "LAB_ORDER"
+    assert payment.reference_id == lab_order_id
+    assert payment.appointment_id is None
+    assert payment.vnpay_txn_ref == f"LAB_{lab_order_id}"
+    assert payment.payment_url == "https://pay.test/checkout"
+    assert repo.appended[0]["appointment_id"] is None
+    assert repo.appended[0]["metadata"]["lab_order_id"] == str(lab_order_id)
+    assert [call["event_type"] for call in publisher.calls] == ["payment.created", "payment.check_expiry"]
+    assert publisher.calls[0]["payload"]["payment_type"] == "LAB_ORDER"
+    assert publisher.calls[0]["payload"]["lab_order_id"] == str(lab_order_id)
 
 
 @pytest.mark.asyncio
@@ -211,6 +273,39 @@ async def test_process_ipn_success_marks_paid_and_publishes_paid_event():
 
 
 @pytest.mark.asyncio
+async def test_process_ipn_success_for_lab_order_publishes_lab_payment_paid():
+    lab_order_id = uuid4()
+    payment = Payment(
+        id=uuid4(),
+        appointment_id=None,
+        patient_id=uuid4(),
+        doctor_id=uuid4(),
+        amount=500000,
+        payment_type="LAB_ORDER",
+        reference_id=lab_order_id,
+        status=PaymentStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+    )
+    payment.vnpay_txn_ref = f"LAB_{lab_order_id}"
+    repo = FakeRepo(payment=payment)
+    provider = FakeProvider(verify_result=PaymentResult(success=True, provider_ref="TRANS-LAB-1"))
+    publisher = FakePublisher()
+    session = FakeSession()
+
+    use_case = ProcessVNPayIPnUseCase(
+        session=session, payment_repo=repo, payment_provider=provider, event_publisher=publisher
+    )
+
+    result = await use_case.execute({"vnp_TxnRef": payment.vnpay_txn_ref, "vnp_ResponseCode": "00"})
+
+    assert result == {"RspCode": "00", "Message": "OK"}
+    assert payment.status == PaymentStatus.PAID
+    assert publisher.calls[-1]["event_type"] == "lab_payment.paid"
+    assert publisher.calls[-1]["payload"]["lab_order_id"] == str(lab_order_id)
+    assert publisher.calls[-1]["payload"]["provider_ref"] == "TRANS-LAB-1"
+
+
+@pytest.mark.asyncio
 async def test_process_ipn_failed_marks_failed_and_publishes_failed_event():
     payment = Payment(
         id=uuid4(),
@@ -280,3 +375,172 @@ async def test_get_payment_use_case_not_found_raises_value_error():
 
     with pytest.raises(ValueError, match="Payment not found"):
         await use_case.execute(uuid4())
+
+
+@pytest.mark.asyncio
+async def test_list_patient_payment_history_use_case_returns_paginated_result():
+    payment = Payment(
+        id=uuid4(),
+        appointment_id=uuid4(),
+        patient_id=uuid4(),
+        doctor_id=uuid4(),
+        amount=500000,
+        status=PaymentStatus.PAID,
+        created_at=datetime.now(timezone.utc),
+    )
+    repo = FakeRepo()
+    repo.history_items = [payment]
+    repo.history_total = 21
+
+    use_case = ListPatientPaymentHistoryUseCase(repo)
+    result = await use_case.execute(
+        payment.patient_id,
+        from_date=date(2026, 4, 1),
+        to_date=date(2026, 4, 5),
+        status=PaymentStatus.PAID,
+        page=2,
+        limit=10,
+    )
+
+    assert result.total == 21
+    assert result.total_pages == 3
+    assert result.items[0].id == str(payment.id)
+    patient_id, filters = repo.patient_history_calls[-1]
+    assert patient_id == payment.patient_id
+    assert filters["offset"] == 10
+    assert filters["limit"] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_admin_payment_history_use_case_includes_owner_fields():
+    payment = Payment(
+        id=uuid4(),
+        appointment_id=uuid4(),
+        patient_id=uuid4(),
+        doctor_id=uuid4(),
+        amount=700000,
+        status=PaymentStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+    )
+    repo = FakeRepo()
+    repo.history_items = [payment]
+    repo.history_total = 1
+
+    use_case = ListAdminPaymentHistoryUseCase(repo)
+    result = await use_case.execute(
+        patient_id=payment.patient_id,
+        doctor_id=payment.doctor_id,
+        page=1,
+        limit=50,
+    )
+
+    assert result.total == 1
+    assert result.items[0].patient_id == str(payment.patient_id)
+    assert result.items[0].doctor_id == str(payment.doctor_id)
+    filters = repo.admin_history_calls[-1]
+    assert filters["patient_id"] == payment.patient_id
+    assert filters["doctor_id"] == payment.doctor_id
+
+
+@pytest.mark.asyncio
+async def test_list_payment_history_use_case_rejects_invalid_date_range():
+    repo = FakeRepo()
+    use_case = ListPatientPaymentHistoryUseCase(repo)
+
+    with pytest.raises(ValueError, match="from_date"):
+        await use_case.execute(
+            uuid4(),
+            from_date=date(2026, 4, 5),
+            to_date=date(2026, 4, 1),
+        )
+
+
+@pytest.mark.asyncio
+async def test_appointment_status_is_included_in_history_item():
+    """serialize_payment() must carry appointment_status from the Payment entity."""
+    from Application.use_cases.payment_history_models import serialize_payment
+
+    payment = Payment(
+        id=uuid4(),
+        appointment_id=uuid4(),
+        patient_id=uuid4(),
+        doctor_id=uuid4(),
+        amount=300000,
+        status=PaymentStatus.PENDING,
+        appointment_status="cancelled",
+        created_at=datetime.now(timezone.utc),
+    )
+    item = serialize_payment(payment)
+    assert item.appointment_status == "cancelled"
+
+
+@pytest.mark.asyncio
+async def test_appointment_status_defaults_to_pending_payment():
+    """Payment entity default appointment_status is 'pending_payment'."""
+    payment = Payment(
+        id=uuid4(),
+        appointment_id=uuid4(),
+        patient_id=uuid4(),
+        doctor_id=uuid4(),
+        amount=300000,
+        status=PaymentStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+    )
+    assert payment.appointment_status == "pending_payment"
+
+
+@pytest.mark.asyncio
+async def test_appt_status_consumer_calls_update_on_matching_event():
+    """Consumer's handle() must call repo.update_appointment_status with correct value."""
+    from infrastructure.consumers.payment_consumers import _appt_status_consumer_class
+
+    appointment_id = uuid4()
+    captured = []
+
+    class FakeRepoForConsumer:
+        async def update_appointment_status(self, appt_id, status):
+            captured.append((appt_id, status))
+
+    sessions_entered = []
+
+    class FakeSessionCtx:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            pass
+
+        def begin(self):
+            return self
+
+    def fake_session_factory():
+        s = FakeSessionCtx()
+        sessions_entered.append(s)
+        return s
+
+    def fake_repo_factory(session):
+        return FakeRepoForConsumer()
+
+    consumer_cls = _appt_status_consumer_class("cancelled", "cancelled")
+    consumer = consumer_cls.__new__(consumer_cls)
+    consumer._session_factory = fake_session_factory
+    consumer._payment_repo_factory = fake_repo_factory
+
+    await consumer.handle({"appointment_id": str(appointment_id)})
+
+    assert len(captured) == 1
+    assert captured[0] == (appointment_id, "cancelled")
+
+
+@pytest.mark.asyncio
+async def test_appt_status_consumer_ignores_missing_appointment_id():
+    """Consumer's handle() must be a no-op when appointment_id is absent."""
+    from infrastructure.consumers.payment_consumers import _appt_status_consumer_class
+
+    consumer_cls = _appt_status_consumer_class("confirmed", "confirmed")
+    consumer = consumer_cls.__new__(consumer_cls)
+    consumer._session_factory = lambda: None  # would raise if called
+    consumer._payment_repo_factory = lambda s: None
+
+    # Should not raise
+    await consumer.handle({})  # no appointment_id key

@@ -11,7 +11,7 @@ class TestPaymentApiContract:
     async def test_get_unknown_payment_returns_404(self, http, admin_token):
         missing_appointment_id = str(uuid.uuid4())
         resp = await http.get(
-            f"{PAYMENT_URL}/payments/{missing_appointment_id}",
+            f"{PAYMENT_URL}/{missing_appointment_id}",
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert resp.status_code == 404

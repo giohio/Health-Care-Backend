@@ -3,7 +3,10 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; fi \
+    && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 -o Acquire::ForceIPv4=true update \
+    && apt-get install -y --no-install-recommends \
+    curl \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
@@ -13,10 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared libraries
 COPY shared /tmp/shared
-RUN pip install --no-cache-dir /tmp/shared/healthai-cache \
-    && pip install --no-cache-dir /tmp/shared/healthai-common \
-    && pip install --no-cache-dir /tmp/shared/healthai-db \
-    && pip install --no-cache-dir /tmp/shared/healthai-events
+RUN pip install --no-cache-dir --no-build-isolation /tmp/shared/uuid-extension \
+    && pip install --no-cache-dir --no-build-isolation /tmp/shared/healthai-cache \
+    && pip install --no-cache-dir --no-build-isolation /tmp/shared/healthai-db \
+    && pip install --no-cache-dir --no-build-isolation /tmp/shared/healthai-common \
+    && pip install --no-cache-dir --no-build-isolation /tmp/shared/healthai-events
 
 # Copy payment service
 COPY ["Payment Service", "/app/"]

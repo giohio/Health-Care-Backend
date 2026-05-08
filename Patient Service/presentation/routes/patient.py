@@ -3,9 +3,11 @@ from uuid import UUID
 
 from Application import GetProfileUseCase, UpdateHealthBackgroundUseCase, UpdateProfileUseCase
 from Application.use_cases.get_health_summary import GetHealthSummaryUseCase
+from Application.use_cases.get_patient_summary import GetPatientSummaryUseCase
 from Application.use_cases.manage_vitals import GetLatestVitalsUseCase, GetVitalsHistoryUseCase, RecordVitalsUseCase
+from Application.use_cases.upload_profile_photo import UploadProfilePhotoUseCase
 from Domain import IEventPublisher, IPatientHealthRepository, IPatientProfileRepository
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 from healthai_cache import CacheClient
 from presentation.dependencies import (
     get_cache_client,
@@ -13,15 +15,19 @@ from presentation.dependencies import (
     get_event_publisher,
     get_health_repo,
     get_latest_vitals_use_case,
+    get_patient_summary_use_case,
     get_profile_repo,
     get_record_vitals_use_case,
+    get_upload_profile_photo_use_case,
     get_vitals_history_use_case,
 )
 from presentation.schema import (
     HealthUpdate,
     PatientFullContextResponse,
     PatientHealthResponse,
+    PatientPhotoUploadResponse,
     PatientProfileResponse,
+    PatientSummaryResponse,
     ProfileUpdate,
 )
 
@@ -31,6 +37,7 @@ _PROFILE_CACHE_TTL = 600
 
 
 @router.get("/", response_model=PatientFullContextResponse, responses={404: {"description": "Profile not found"}})
+@router.get("/profile", response_model=PatientFullContextResponse, responses={404: {"description": "Profile not found"}})
 async def get_my_full_profile(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     profile_repo: Annotated[IPatientProfileRepository, Depends(get_profile_repo)],
@@ -57,6 +64,7 @@ async def get_my_full_profile(
 
 
 @router.put("/profile", response_model=PatientProfileResponse, responses={404: {"description": "Profile not found"}})
+@router.patch("/profile", response_model=PatientProfileResponse, responses={404: {"description": "Profile not found"}})
 async def update_my_profile(
     data: ProfileUpdate,
     user_id: Annotated[UUID, Depends(get_current_user_id)],
@@ -66,11 +74,36 @@ async def update_my_profile(
 ):
     use_case = UpdateProfileUseCase(profile_repo, event_publisher)
     try:
-        updated_profile = await use_case.execute(user_id, **data.model_dump(exclude_unset=True))
+        payload = data.model_dump(exclude_unset=True)
+        if "avatar_url" in payload and "profile_photo_url" not in payload:
+            payload["profile_photo_url"] = payload["avatar_url"]
+        if "profile_photo_url" in payload and "avatar_url" not in payload:
+            payload["avatar_url"] = payload["profile_photo_url"]
+        updated_profile = await use_case.execute(user_id, **payload)
         await cache.delete(f"patient:profile:{user_id}")
         return updated_profile
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post(
+    "/profile/photo",
+    response_model=PatientPhotoUploadResponse,
+    responses={400: {"description": "Invalid photo upload"}},
+)
+async def upload_profile_photo(
+    photo: UploadFile = File(...),
+    user_id: Annotated[UUID, Depends(get_current_user_id)] = None,
+    use_case: Annotated[UploadProfilePhotoUseCase, Depends(get_upload_profile_photo_use_case)] = None,
+    cache: Annotated[CacheClient, Depends(get_cache_client)] = None,
+):
+    try:
+        data = await photo.read()
+        profile_photo_url = await use_case.execute(user_id, photo.filename or "photo", photo.content_type, data)
+        await cache.delete(f"patient:profile:{user_id}")
+        return PatientPhotoUploadResponse(profile_photo_url=profile_photo_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.put(
@@ -187,3 +220,49 @@ async def get_vitals_history(
         }
         for v in vitals
     ]
+
+
+@router.get(
+    "/{patient_id}/summary",
+    response_model=PatientSummaryResponse,
+    summary="Get patient summary (Doctor/Admin only)",
+    responses={
+        403: {"description": "Only doctors and admins can access patient summaries"},
+        404: {"description": "Patient not found"},
+    },
+)
+async def get_patient_summary(
+    patient_id: UUID,
+    use_case: Annotated[GetPatientSummaryUseCase, Depends(get_patient_summary_use_case)],
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
+):
+    """
+    Returns a clinical summary of a patient — full_name, DOB, gender, phone,
+    blood type, chronic conditions, allergies, and latest vital_signs.
+
+    **Access:** Doctor or Admin only. Patients cannot look up other patients.
+    """
+    if x_user_role not in ("doctor", "admin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only doctors and admins can access patient summaries.",
+        )
+    try:
+        profile, health = await use_case.execute(patient_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return PatientSummaryResponse(
+        user_id=profile.user_id,
+        full_name=profile.full_name,
+        date_of_birth=profile.date_of_birth,
+        gender=profile.gender,
+        phone_number=profile.phone_number,
+        avatar_url=profile.avatar_url,
+        blood_type=health.blood_type,
+        height_cm=health.height_cm,
+        weight_kg=health.weight_kg,
+        allergies=health.allergies,
+        chronic_conditions=health.chronic_conditions,
+        vital_signs=profile.vital_signs,
+    )

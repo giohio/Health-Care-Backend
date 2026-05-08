@@ -63,10 +63,12 @@ class FakePasswordHasher:
     def __init__(self, should_verify=True):
         self.should_verify = should_verify
 
-    def verify(self, _plain, _hashed):
+    async def verify(self, _plain, _hashed):
+        await _yield_control()
         return self.should_verify
 
-    def hash(self, plain):
+    async def hash(self, plain):
+        await _yield_control()
         return f"hashed:{plain}"
 
 
@@ -91,9 +93,25 @@ class FakePublisher:
             raise RuntimeError("publish failed")
 
 
+class FakeOTPRepo:
+    async def save(self, user_id, otp):
+        await _yield_control()  # no-op stub
+
+    async def get(self, user_id):
+        await _yield_control()
+        return None
+
+    async def delete(self, user_id):
+        await _yield_control()  # no-op stub
+
+    async def is_in_cooldown(self, user_id):
+        await _yield_control()
+        return False
+
+
 @pytest.mark.asyncio
 async def test_login_success_creates_access_and_refresh_token():
-    user = User("u@example.com", "hashed", UserRole.PATIENT)
+    user = User("u@example.com", "hashed", UserRole.PATIENT, is_email_verified=True)
     user_repo = FakeUserRepo(user=user)
     token_repo = FakeTokenRepo()
     hasher = FakePasswordHasher(should_verify=True)
@@ -129,7 +147,7 @@ async def test_login_invalid_password_raises_and_does_not_issue_tokens():
 
 @pytest.mark.asyncio
 async def test_refresh_token_rotates_and_revokes_old_token():
-    user = User("u@example.com", "hashed", UserRole.PATIENT)
+    user = User("u@example.com", "hashed", UserRole.PATIENT, is_email_verified=True)
     old_token = RefreshToken(
         user_id=user.id,
         token_value="old-token",
@@ -193,7 +211,7 @@ async def test_register_service_creates_user_and_publishes_event():
     user_repo.create = create_user
     hasher = FakePasswordHasher()
     publisher = FakePublisher()
-    use_case = RegisterService(user_repository=user_repo, password_hasher=hasher, event_publisher=publisher)
+    use_case = RegisterService(user_repository=user_repo, password_hasher=hasher, event_publisher=publisher, otp_repository=FakeOTPRepo())
 
     result = await use_case.execute("new@example.com", "Valid1!A", role=UserRole.DOCTOR)
 
@@ -209,7 +227,7 @@ async def test_register_service_invalid_email_raises():
     user_repo = FakeUserRepo(user=None)
     user_repo.create = lambda _user: None
     use_case = RegisterService(
-        user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher()
+        user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher(), otp_repository=FakeOTPRepo()
     )
 
     with pytest.raises(ValueError, match="Invalid email format"):
@@ -221,7 +239,7 @@ async def test_register_service_existing_email_raises():
     existing_user = User("dup@example.com", "hashed", UserRole.PATIENT)
     user_repo = FakeUserRepo(user=existing_user)
     use_case = RegisterService(
-        user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher()
+        user_repository=user_repo, password_hasher=FakePasswordHasher(), event_publisher=FakePublisher(), otp_repository=FakeOTPRepo()
     )
 
     with pytest.raises(ValueError, match="Email already exists"):
@@ -241,6 +259,7 @@ async def test_register_service_publish_failure_is_swallowed():
         user_repository=user_repo,
         password_hasher=FakePasswordHasher(),
         event_publisher=FakePublisher(should_fail=True),
+        otp_repository=FakeOTPRepo(),
     )
 
     result = await use_case.execute("safe@example.com", "Valid1!A")

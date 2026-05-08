@@ -50,10 +50,6 @@ async def test_get_db_commit_and_rollback(monkeypatch):
     assert db.rollbacks == 1
 
 
-# ──────────────────────────────────────────────
-# OutboxEventPublisher
-# ──────────────────────────────────────────────
-
 def _make_session():
     return AsyncMock()
 
@@ -67,6 +63,7 @@ class TestOutboxEventPublisher:
         calls = []
 
         async def fake_write(session, *, aggregate_id, aggregate_type, event_type, payload):
+            await asyncio.sleep(0)
             calls.append({"aggregate_id": aggregate_id, "aggregate_type": aggregate_type})
 
         with patch.object(pub_module.OutboxWriter, "write", side_effect=fake_write):
@@ -86,6 +83,7 @@ class TestOutboxEventPublisher:
         calls = []
 
         async def fake_write(session, *, aggregate_id, aggregate_type, event_type, payload):
+            await asyncio.sleep(0)
             calls.append({"aggregate_id": aggregate_id})
 
         with patch.object(pub_module.OutboxWriter, "write", side_effect=fake_write):
@@ -103,6 +101,7 @@ class TestOutboxEventPublisher:
         calls = []
 
         async def fake_write(session, *, aggregate_id, aggregate_type, event_type, payload):
+            await asyncio.sleep(0)
             calls.append({"aggregate_id": aggregate_id})
 
         with patch.object(pub_module.OutboxWriter, "write", side_effect=fake_write):
@@ -120,6 +119,7 @@ class TestOutboxEventPublisher:
         calls = []
 
         async def fake_write(session, *, aggregate_id, aggregate_type, event_type, payload):
+            await asyncio.sleep(0)
             calls.append({"aggregate_id": aggregate_id})
 
         with patch.object(pub_module.OutboxWriter, "write", side_effect=fake_write):
@@ -139,10 +139,6 @@ class TestOutboxEventPublisher:
             await pub.publish("exchange", "routing_key", {"user_id": str(uuid.uuid4())}, delay_ms=5000)
 
 
-# ──────────────────────────────────────────────
-# PatientProfileRepository
-# ──────────────────────────────────────────────
-
 def _mock_profile_model(user_id=None, profile_id=None):
     m = MagicMock()
     m.id = profile_id or uuid.uuid4()
@@ -153,6 +149,10 @@ def _mock_profile_model(user_id=None, profile_id=None):
     m.phone_number = "0901234567"
     m.address = "123 Street"
     m.avatar_url = None
+    m.profile_photo_url = None
+    m.vital_signs = {"height_cm": 170.0, "weight_kg": 65.0, "blood_pressure": "120/80", "heart_rate_bpm": 72}
+    m.emergency_contact = {"name": "Jane", "relationship": "Sister", "phone": "0909999999", "email": "jane@example.com"}
+    m.insurance = {"type": "PRIVATE", "provider": "Bao Viet", "policy_id": "POL123", "expiry_date": "2030-01-01"}
     m.created_at = datetime.now(timezone.utc)
     m.updated_at = datetime.now(timezone.utc)
     return m
@@ -206,6 +206,10 @@ class TestPatientProfileRepository:
             phone_number=model.phone_number,
             address=model.address,
             avatar_url=model.avatar_url,
+            profile_photo_url=model.profile_photo_url,
+            vital_signs=model.vital_signs,
+            emergency_contact=model.emergency_contact,
+            insurance=model.insurance,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -228,6 +232,8 @@ class TestPatientProfileRepository:
 
         assert result is not None
         assert result.full_name == "Test Patient"
+        assert result.vital_signs.blood_pressure == "120/80"
+        assert result.insurance.provider == "Bao Viet"
 
     @pytest.mark.asyncio
     async def test_get_by_id_not_found(self):
@@ -253,6 +259,7 @@ class TestPatientProfileRepository:
         result = await repo.get_by_user_id(model.user_id)
 
         assert result is not None
+        assert result.emergency_contact.email == "jane@example.com"
 
     @pytest.mark.asyncio
     async def test_update_returns_entity(self):

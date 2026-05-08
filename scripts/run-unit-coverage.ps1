@@ -10,7 +10,10 @@ $services = @(
     "Doctor Service",
     "Patient Service",
     "Payment Service",
-    "Notification Service"
+    "Notification Service",
+    "Clinical Service",
+    "EMR Result Service",
+    "AI Service"
 )
 
 $pythonExe = "$PSScriptRoot\..\.venv\Scripts\python.exe"

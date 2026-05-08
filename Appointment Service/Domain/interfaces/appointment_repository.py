@@ -71,3 +71,19 @@ class IAppointmentRepository(ABC):
     @abstractmethod
     async def mark_reminder_sent(self, appointment_id: UUID7, reminder_type: str):
         """Mark reminder as sent for an appointment."""
+
+    @abstractmethod
+    async def get_confirmed_past_end_time(self, current_time) -> List[Appointment]:
+        """Get all CONFIRMED appointments whose end_time has passed (for overdue processing)."""
+
+    @abstractmethod
+    async def list_filtered(
+        self,
+        date_from: date,
+        date_to: date,
+        status: str | None = None,
+        doctor_id: UUID7 | None = None,
+        page: int = 1,
+        limit: int = 50,
+    ) -> tuple[list[dict], int]:
+        """List appointments across all doctors with filters and pagination. Returns (list, total_count)."""

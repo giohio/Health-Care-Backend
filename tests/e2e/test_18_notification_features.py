@@ -43,8 +43,9 @@ class TestUnreadCount:
         WHEN GET /notifications/unread-count
         THEN 401 returned
         """
-        http.cookies.clear()
-        r = await http.get(f"{NOTIFICATION_URL}/notifications/unread-count")
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=30.0) as fresh:
+            r = await fresh.get(f"{NOTIFICATION_URL}/notifications/unread-count")
         assert r.status_code == 401
 
 
@@ -94,8 +95,9 @@ class TestMarkAllRead:
         WHEN PUT /notifications/read-all
         THEN 401 returned
         """
-        http.cookies.clear()
-        r = await http.put(f"{NOTIFICATION_URL}/notifications/read-all")
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=30.0) as fresh:
+            r = await fresh.put(f"{NOTIFICATION_URL}/notifications/read-all")
         assert r.status_code == 401
 
 

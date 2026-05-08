@@ -18,7 +18,13 @@ class DeclineAppointmentUseCase:
         self.appointment_repo = appointment_repo
         self.event_publisher = event_publisher
 
-    async def execute(self, appointment_id: UUID7, doctor_id: UUID7, reason: str | None) -> AppointmentResponse:
+    async def execute(
+        self,
+        appointment_id:      UUID7,
+        doctor_id:           UUID7,
+        reason:              str | None,
+        redirect_department: str | None = None,
+    ) -> AppointmentResponse:
         appointment = await self.appointment_repo.get_by_id_with_lock(appointment_id)
         if not appointment:
             raise AppointmentNotFoundException()
@@ -33,7 +39,12 @@ class DeclineAppointmentUseCase:
         appointment.cancelled_by = "doctor"
         appointment.cancelled_by_user_id = doctor_id
         appointment.cancelled_at = utcnow()
-        appointment.cancel_reason = reason
+        # Encode redirect_department into cancel_reason so no schema migration is needed.
+        # Format: "[redirect:DeptName] optional free-text reason"
+        if redirect_department:
+            appointment.cancel_reason = f"[redirect:{redirect_department}] {reason or ''}".strip()
+        else:
+            appointment.cancel_reason = reason
         was_paid = appointment.payment_status == PaymentStatus.PAID
         if was_paid:
             appointment.payment_status = PaymentStatus.REFUNDED
@@ -45,25 +56,25 @@ class DeclineAppointmentUseCase:
             aggregate_type="appointment_events",
             event_type="appointment.declined",
             payload={
-                "appointment_id": str(appointment.id),
-                "doctor_id": str(doctor_id),
-                "patient_id": str(appointment.patient_id),
-                "reason": reason,
+                "appointment_id":     str(appointment.id),
+                "doctor_id":          str(doctor_id),
+                "patient_id":         str(appointment.patient_id),
+                "reason":             reason,
+                "redirect_department": redirect_department,
             },
         )
-        # Always emit refund request on doctor decline. Payment service will enforce
-        # idempotency/state checks and ignore when payment is not yet paid.
-        await self.event_publisher.publish(
-            session=self.session,
-            aggregate_id=appointment.id,
-            aggregate_type="payment_events",
-            event_type="payment.refund_requested",
-            payload={
-                "appointment_id": str(appointment.id),
-                "patient_id": str(appointment.patient_id),
-                "reason": reason or "doctor_declined",
-                "appointment_marked_paid": was_paid,
-            },
-        )
+        if was_paid:
+            await self.event_publisher.publish(
+                session=self.session,
+                aggregate_id=appointment.id,
+                aggregate_type="payment_events",
+                event_type="payment.refund_requested",
+                payload={
+                    "appointment_id": str(appointment.id),
+                    "patient_id": str(appointment.patient_id),
+                    "reason": reason or "doctor_declined",
+                    "appointment_marked_paid": True,
+                },
+            )
         await self.session.commit()
         return AppointmentResponse.model_validate(appointment)

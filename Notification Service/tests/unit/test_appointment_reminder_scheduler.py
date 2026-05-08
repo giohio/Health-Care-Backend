@@ -100,15 +100,39 @@ async def test_send_reminder_already_locked_skips():
 @pytest.mark.asyncio
 async def test_start_stop():
     scheduler = AppointmentReminderScheduler(None, None, None)
-    # Mock the internal scheduler instance created in __init__
     scheduler.scheduler = MagicMock()
-    
-    # Simulate start
+
     scheduler.scheduler.running = True
     await scheduler.start()
     assert scheduler.scheduler.running
-    
-    # Simulate stop
+
     scheduler.scheduler.running = False
     await scheduler.stop()
     assert not scheduler.scheduler.running
+
+
+@pytest.mark.asyncio
+async def test_check_overdue_calls_client_and_logs():
+    mock_client = AsyncMock()
+    mock_client.check_overdue.return_value = {"processed": 2, "errors": []}
+
+    mock_cache = AsyncMock()
+    scheduler = AppointmentReminderScheduler(None, mock_client, mock_cache)
+
+    await scheduler._check_overdue()
+
+    mock_client.check_overdue.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_check_overdue_handles_client_failure_gracefully():
+    mock_client = AsyncMock()
+    mock_client.check_overdue.side_effect = Exception("connection refused")
+
+    mock_cache = AsyncMock()
+    scheduler = AppointmentReminderScheduler(None, mock_client, mock_cache)
+
+    # Must not raise — errors are swallowed
+    await scheduler._check_overdue()
+
+    mock_client.check_overdue.assert_awaited_once()

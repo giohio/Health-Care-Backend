@@ -84,6 +84,10 @@ def _appt(status=AppointmentStatus.PENDING_PAYMENT, payment_status=PaymentStatus
         cancelled_at=None,
         cancelled_by=None,
         cancel_reason=None,
+        ai_referred=False,
+        urgency_level=None,
+        referred_by_doctor_id=None,
+        triage_session_id=None,
     )
 
 

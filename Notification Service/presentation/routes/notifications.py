@@ -18,16 +18,27 @@ router = APIRouter(tags=["Notifications"])
 MISSING_USER_ID_HEADER_ERROR = "X-User-Id header is missing"
 
 
+def _parse_user_id(raw: str | None) -> UUID | None:
+    """Safely parse X-User-Id header value. Returns None for missing/invalid values."""
+    if not raw:
+        return None
+    try:
+        return UUID(str(raw))
+    except (ValueError, AttributeError):
+        return None
+
+
 @router.get("/me", response_model=NotificationListResponse)
 async def list_my_notifications(
     use_case: Annotated[ListNotificationsUseCase, Depends(get_list_notifications_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
     limit: int = 50,
     offset: int = 0,
 ):
-    if not x_user_id:
+    user_id = _parse_user_id(x_user_id)
+    if not user_id:
         raise HTTPException(status_code=401, detail=MISSING_USER_ID_HEADER_ERROR)
-    notifications = await use_case.execute(x_user_id, limit=limit, offset=offset)
+    notifications = await use_case.execute(user_id, limit=limit, offset=offset)
     unread_count = sum(1 for n in notifications if not n.is_read)
 
     return {
@@ -54,20 +65,22 @@ async def mark_as_read(
 @router.get("/unread-count")
 async def get_unread_count(
     use_case: Annotated[GetUnreadCountUseCase, Depends(get_unread_count_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
+    user_id = _parse_user_id(x_user_id)
+    if not user_id:
         raise HTTPException(status_code=401, detail=MISSING_USER_ID_HEADER_ERROR)
-    count = await use_case.execute(x_user_id)
+    count = await use_case.execute(user_id)
     return {"count": count}
 
 
 @router.put("/read-all")
 async def mark_all_as_read(
     use_case: Annotated[MarkAllReadUseCase, Depends(get_mark_all_read_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ):
-    if not x_user_id:
+    user_id = _parse_user_id(x_user_id)
+    if not user_id:
         raise HTTPException(status_code=401, detail=MISSING_USER_ID_HEADER_ERROR)
-    count = await use_case.execute(x_user_id)
+    count = await use_case.execute(user_id)
     return {"updated": count}

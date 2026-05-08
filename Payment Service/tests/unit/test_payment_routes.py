@@ -1,15 +1,19 @@
 import asyncio
+from datetime import date
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 import httpx
 import pytest
+from Application.use_cases.payment_history_models import PaymentHistoryItem, PaymentHistoryPage
 from fastapi import FastAPI
 from presentation.dependencies import (
     get_event_publisher,
     get_generate_payment_url_use_case,
     get_get_payment_use_case,
+    get_list_admin_payment_history_use_case,
+    get_list_patient_payment_history_use_case,
     get_list_patient_payments_use_case,
     get_process_vnpay_ipn_use_case,
 )
@@ -38,6 +42,68 @@ class DummyListPatientPaymentsUseCase:
     async def execute(self, patient_id):
         await asyncio.sleep(0)
         self.calls.append(patient_id)
+        return self.result
+
+
+class DummyListPatientPaymentHistoryUseCase:
+    def __init__(self, result=None):
+        self.result = result or PaymentHistoryPage(
+            items=[
+                PaymentHistoryItem(
+                    id="hist-1",
+                    appointment_id=str(uuid4()),
+                    status="paid",
+                    appointment_status="confirmed",
+                    amount=500000,
+                    currency="VND",
+                    payment_url=None,
+                    vnpay_txn_ref="TXN-1",
+                    paid_at=None,
+                    created_at="2026-04-05T10:00:00+00:00",
+                )
+            ],
+            total=1,
+            page=1,
+            limit=20,
+            total_pages=1,
+        )
+        self.calls = []
+
+    async def execute(self, patient_id, **filters):
+        await asyncio.sleep(0)
+        self.calls.append((patient_id, filters))
+        return self.result
+
+
+class DummyListAdminPaymentHistoryUseCase:
+    def __init__(self, result=None):
+        self.result = result or PaymentHistoryPage(
+            items=[
+                PaymentHistoryItem(
+                    id="admin-hist-1",
+                    appointment_id=str(uuid4()),
+                    status="paid",
+                    appointment_status="pending_payment",
+                    amount=900000,
+                    currency="VND",
+                    payment_url=None,
+                    vnpay_txn_ref="TXN-ADMIN-1",
+                    paid_at=None,
+                    created_at="2026-04-05T10:00:00+00:00",
+                    patient_id=str(uuid4()),
+                    doctor_id=str(uuid4()),
+                )
+            ],
+            total=1,
+            page=1,
+            limit=50,
+            total_pages=1,
+        )
+        self.calls = []
+
+    async def execute(self, **filters):
+        await asyncio.sleep(0)
+        self.calls.append(filters)
         return self.result
 
 
@@ -84,16 +150,22 @@ def app_with_overrides():
     gen_url_uc = DummyGeneratePaymentUrlUseCase()
 
     list_payments_uc = DummyListPatientPaymentsUseCase(result=[{"id": "pay-1", "status": "paid"}])
+    patient_history_uc = DummyListPatientPaymentHistoryUseCase()
+    admin_history_uc = DummyListAdminPaymentHistoryUseCase()
 
     app.dependency_overrides[get_get_payment_use_case] = lambda: get_payment_uc
     app.dependency_overrides[get_process_vnpay_ipn_use_case] = lambda: ipn_uc
     app.dependency_overrides[get_generate_payment_url_use_case] = lambda: gen_url_uc
     app.dependency_overrides[get_list_patient_payments_use_case] = lambda: list_payments_uc
+    app.dependency_overrides[get_list_patient_payment_history_use_case] = lambda: patient_history_uc
+    app.dependency_overrides[get_list_admin_payment_history_use_case] = lambda: admin_history_uc
     app.dependency_overrides[get_event_publisher] = lambda: SimpleNamespace()
     app.state.get_payment_uc = get_payment_uc
     app.state.ipn_uc = ipn_uc
     app.state.gen_url_uc = gen_url_uc
     app.state.list_payments_uc = list_payments_uc
+    app.state.patient_history_uc = patient_history_uc
+    app.state.admin_history_uc = admin_history_uc
     return app
 
 
@@ -227,12 +299,12 @@ async def test_get_my_payments_returns_list(app_with_overrides):
 
 @pytest.mark.asyncio
 async def test_get_my_payments_missing_user_id_returns_422(app_with_overrides):
-    """GET /my without X-User-Id header → 422 Unprocessable Entity."""
+    """GET /my without X-User-Id header → 401 Unauthorized."""
     transport = httpx.ASGITransport(app=app_with_overrides)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         r = await client.get("/my")
 
-    assert r.status_code == 422
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -247,3 +319,77 @@ async def test_get_my_payments_empty_list(app_with_overrides):
 
     assert r.status_code == 200
     assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_get_my_payment_history_returns_paginated_response(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    user_id = str(uuid4())
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(
+            "/history",
+            params={"status": "paid", "page": 2, "limit": 10, "from_date": date(2026, 4, 1).isoformat()},
+            headers={"X-User-Id": user_id},
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "success"
+    assert body["data"]["items"][0]["id"] == "hist-1"
+    _, filters = app_with_overrides.state.patient_history_uc.calls[-1]
+    assert filters["status"] == "paid"
+    assert filters["page"] == 2
+    assert filters["limit"] == 10
+
+
+@pytest.mark.asyncio
+async def test_get_my_payment_history_missing_user_id_returns_401(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/history")
+
+    assert r.status_code == 401
+    assert r.json()["detail"] == "X-User-Id header is missing"
+
+
+@pytest.mark.asyncio
+async def test_get_my_payment_history_invalid_date_range_returns_400(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(
+            "/history",
+            params={"from_date": "2026-04-05", "to_date": "2026-04-01"},
+            headers={"X-User-Id": str(uuid4())},
+        )
+
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_get_admin_payment_history_requires_admin(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get("/admin/history", headers={"X-User-Role": "patient"})
+
+    assert r.status_code == 403
+    assert r.json()["detail"] == "Admin only"
+
+
+@pytest.mark.asyncio
+async def test_get_admin_payment_history_returns_paginated_response(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    patient_id = str(uuid4())
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        r = await client.get(
+            "/admin/history",
+            params={"patient_id": patient_id, "status": "paid", "page": 1, "limit": 25},
+            headers={"X-User-Role": "admin"},
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "success"
+    assert body["data"]["items"][0]["id"] == "admin-hist-1"
+    filters = app_with_overrides.state.admin_history_uc.calls[-1]
+    assert str(filters["patient_id"]) == patient_id
+    assert filters["status"] == "paid"

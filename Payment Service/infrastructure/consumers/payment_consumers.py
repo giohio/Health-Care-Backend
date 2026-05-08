@@ -182,3 +182,115 @@ class PaymentRefundRequestedConsumer(BaseConsumer):
                         "patient_id": str(payment.patient_id),
                     },
                 )
+
+
+# ---------------------------------------------------------------------------
+#  Appointment status cache sync consumers
+# ---------------------------------------------------------------------------
+#
+#  Pattern: one consumer class per routing key (aligned with Notification Service).
+#  A factory creates all 7 consumer classes and their instances in bulk.
+#  Each consumer mirrors appointment state onto the payment record so that
+#  history endpoints can surface appointment_status without a cross-service
+#  HTTP call at query time.
+# ---------------------------------------------------------------------------
+
+def _appt_status_consumer_class(routing_key_suffix: str, new_status: str):
+    """
+    Class factory that returns a BaseConsumer subclass for one appointment event.
+
+    routing_key_suffix: e.g. "confirmed" → ROUTING_KEY = "appointment.confirmed"
+    new_status: value written to payments.appointment_status
+    """
+
+    class _Consumer(BaseConsumer):
+        QUEUE = f"payment.appt_status.{routing_key_suffix}"
+        EXCHANGE = "appointment_events"
+        ROUTING_KEY = f"appointment.{routing_key_suffix}"
+        _new_status = new_status
+
+        def __init__(self, connection, cache, session_factory, payment_repo_factory):
+            super().__init__(connection, cache)
+            self._session_factory = session_factory
+            self._payment_repo_factory = payment_repo_factory
+
+        async def handle(self, payload: dict[str, Any]) -> None:
+            raw_id = payload.get("appointment_id")
+            if not raw_id:
+                return
+            appointment_id = uuid.UUID(str(raw_id))
+            async with self._session_factory() as session:
+                async with session.begin():
+                    repo = self._payment_repo_factory(session)
+                    await repo.update_appointment_status(appointment_id, self._new_status)
+
+    _Consumer.__name__ = f"AppointmentStatusConsumer_{routing_key_suffix}"
+    _Consumer.__qualname__ = _Consumer.__name__
+    return _Consumer
+
+
+# Concrete consumer classes (one per appointment event type)
+_APPT_STATUS_EVENTS: list[tuple[str, str]] = [
+    ("confirmed",   "confirmed"),
+    ("cancelled",   "cancelled"),
+    ("declined",    "declined"),
+    ("completed",   "completed"),
+    ("started",     "in_progress"),
+    ("no_show",     "no_show"),
+    ("rescheduled", "rescheduled"),
+]
+
+_APPT_STATUS_CONSUMER_CLASSES = [
+    _appt_status_consumer_class(suffix, status)
+    for suffix, status in _APPT_STATUS_EVENTS
+]
+
+
+def create_appointment_status_consumers(
+    connection,
+    cache,
+    session_factory,
+    payment_repo_factory: Callable[[Any], IPaymentRepository],
+) -> list[BaseConsumer]:
+    """Instantiate and return all appointment-status cache sync consumers."""
+    return [
+        cls(connection, cache, session_factory, payment_repo_factory)
+        for cls in _APPT_STATUS_CONSUMER_CLASSES
+    ]
+
+
+class LabOrderPaymentRequiredConsumer(BaseConsumer):
+    """Create lab order payment from lab_order.payment_required event."""
+
+    QUEUE = "payment.lab_order_required"
+    EXCHANGE = "lab_order_events"
+    ROUTING_KEY = "lab_order.payment_required"
+
+    def __init__(
+        self,
+        connection,
+        cache,
+        session_factory,
+        payment_repo_factory: Callable[[Any], IPaymentRepository],
+        payment_provider: IPaymentProvider,
+        event_publisher: IEventPublisher,
+    ):
+        super().__init__(connection, cache)
+        self._session_factory = session_factory
+        self._payment_repo_factory = payment_repo_factory
+        self._payment_provider = payment_provider
+        self._event_publisher = event_publisher
+
+    async def handle(self, payload: dict[str, Any]) -> None:
+        from Application.use_cases.create_lab_order_payment import CreateLabOrderPaymentUseCase
+
+        async with self._session_factory() as session:
+            async with session.begin():
+                repo = self._payment_repo_factory(session)
+                use_case = CreateLabOrderPaymentUseCase(
+                    session=session,
+                    payment_repo=repo,
+                    payment_provider=self._payment_provider,
+                    event_publisher=self._event_publisher,
+                )
+                await use_case.execute(payload)

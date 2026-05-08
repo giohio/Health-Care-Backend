@@ -15,8 +15,11 @@ class LoginUseCase:
         if not user:
             raise ValueError("User not found")
 
-        if not self.password_hasher.verify(password, user.hashed_password):
+        if not await self.password_hasher.verify(password, user.hashed_password):
             raise ValueError("Invalid password")
+
+        if not user.is_email_verified:
+            raise ValueError("Email not verified")
 
         if not user.can_login():
             raise ValueError("User is not active")

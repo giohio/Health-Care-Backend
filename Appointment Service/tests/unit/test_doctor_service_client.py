@@ -141,6 +141,7 @@ async def test_get_patient_context_and_get_doctor_paths():
 
     client = DoctorServiceClient(cache=DummyCache(), base_url="http://doctor")
     client._client = SimpleNamespace(get=fake_get)
+    client._patient_client = SimpleNamespace(get=fake_get)
     client._cb = FakeCircuitBreaker(mode="fetch")
 
     patient_ctx = await client.get_patient_full_context(str(uuid4()))

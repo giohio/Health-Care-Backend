@@ -115,6 +115,10 @@ class BaseConsumer(ABC):
                     raise
 
             except Exception as e:
+                # ValueError (bad UUID, malformed data, etc.) is non-retryable – dead-letter immediately
+                if isinstance(e, (ValueError, KeyError, TypeError)):
+                    logger.error(f"{self.__class__.__name__} non-retryable data error: {e}")
+                    raise NonRetryableError(str(e)) from e
                 # Unexpected error → treat as retryable
                 if retry_count < self.MAX_RETRIES:
                     delay = self.RETRY_DELAYS[min(retry_count, len(self.RETRY_DELAYS) - 1)]

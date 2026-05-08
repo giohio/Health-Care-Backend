@@ -16,7 +16,7 @@ def _new_test_secret(prefix: str) -> str:
 
 
 async def register_patient(http: httpx.AsyncClient, auth_url: str) -> dict:
-    """Register a new patient and return credentials."""
+    """Register a new patient, verify email via debug OTP endpoint, and return credentials."""
     from tests.conftest import short_id
 
     email = f"patient_{short_id()}@healthai.dev"
@@ -31,10 +31,21 @@ async def register_patient(http: httpx.AsyncClient, auth_url: str) -> dict:
         json={
             "email": email,
             "password": secret,
+            "full_name": f"Patient {short_id()}",
         },
     )
     assert r.status_code in (200, 201), f"Patient register failed: {r.text}"
     user = r.json()
+
+    # Verify email using debug OTP endpoint (only available when DEBUG=True)
+    otp_resp = await http.get(f"{auth_url}/dev/otp/{email}")
+    if otp_resp.status_code == 200:
+        otp = otp_resp.json()["otp"]
+        verify_resp = await http.post(
+            f"{auth_url}/verify-email",
+            json={"email": email, "otp": otp},
+        )
+        assert verify_resp.status_code == 200, f"Email verification failed: {verify_resp.text}"
 
     # Login to get token
     r2 = await http.post(f"{auth_url}/login", json={"email": email, "password": secret})
@@ -86,7 +97,7 @@ async def register_doctor(
     # Create doctor account via admin
     r = await http.post(
         f"{auth_url}/admin/register-staff",
-        json={"email": email, "password": secret, "role": "doctor"},
+        json={"email": email, "password": secret, "role": "doctor", "full_name": full_name},
         headers={
             "Authorization": f"Bearer {fresh_admin_token}",
             "X-User-Role": "admin",

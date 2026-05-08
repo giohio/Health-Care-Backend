@@ -2,26 +2,31 @@ FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; fi \
+    && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 -o Acquire::ForceIPv4=true update \
+    && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir uv
 
 COPY ["Notification Service/requirements.txt", "."]
-RUN uv pip install --system --no-cache -r requirements.txt
+RUN uv pip install --system --no-cache --no-build-isolation -r requirements.txt
 
 COPY shared /tmp/shared
-RUN uv pip install --system --no-cache /tmp/shared/healthai-cache \
-    && uv pip install --system --no-cache /tmp/shared/healthai-common \
-    && uv pip install --system --no-cache /tmp/shared/healthai-db \
-    && uv pip install --system --no-cache /tmp/shared/healthai-events
+RUN uv pip install --system --no-cache --no-build-isolation /tmp/shared/uuid-extension \
+    && uv pip install --system --no-cache --no-build-isolation /tmp/shared/healthai-cache \
+    && uv pip install --system --no-cache --no-build-isolation /tmp/shared/healthai-db \
+    && uv pip install --system --no-cache --no-build-isolation /tmp/shared/healthai-common \
+    && uv pip install --system --no-cache --no-build-isolation /tmp/shared/healthai-events
 
 FROM python:3.11-slim-bookworm AS runtime
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; fi \
+    && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 -o Acquire::ForceIPv4=true update \
+    && apt-get install -y --no-install-recommends \
     curl \
     postgresql-client \
     && groupadd -r appuser && useradd -r -g appuser appuser \

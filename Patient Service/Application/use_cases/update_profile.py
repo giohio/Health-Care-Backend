@@ -19,9 +19,11 @@ class UpdateProfileUseCase:
 
         # Update profile fields
         profile.update_profile(**fields)
+        update_fields = {k: v for k, v in fields.items() if hasattr(profile, k)}
+        update_fields["updated_at"] = profile.updated_at
 
         updated_profile = await self.profile_repo.update(
-            profile.id, **{k: v for k, v in fields.items() if hasattr(profile, k)}
+            profile.id, **update_fields
         )
 
         # Check for profile completion

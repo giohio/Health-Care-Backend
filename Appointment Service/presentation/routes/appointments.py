@@ -3,6 +3,7 @@ from typing import Annotated, List
 from uuid import UUID
 
 from Application.dtos import (
+    AdjustAppointmentRequest,
     AppointmentResponse,
     AvailableSlotsResponse,
     CancelAppointmentRequest,
@@ -11,6 +12,7 @@ from Application.dtos import (
     DoctorQueueItemResponse,
     RescheduleAppointmentRequest,
 )
+from Application.use_cases.adjust_appointment import AdjustAppointmentUseCase
 from Application.use_cases.book_appointment import BookAppointmentUseCase
 from Application.use_cases.cancel_appointment import CancelAppointmentUseCase
 from Application.use_cases.complete_appointment import CompleteAppointmentUseCase
@@ -34,6 +36,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from healthai_common import SagaFailedError
 from infrastructure.repositories.appointment_repository import AppointmentRepository
 from presentation.dependencies import (
+    get_adjust_appointment_use_case,
     get_appointment_repo,
     get_appointment_stats_use_case,
     get_available_slots_use_case,
@@ -240,7 +243,9 @@ async def decline_appointment(
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
 ):
     uid = _verify_user_id(x_user_id)
-    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid, request.reason))
+    return await _handle_domain_exceptions(
+        use_case.execute(appointment_id, uid, request.reason, request.redirect_department)
+    )
 
 
 @router.put(
@@ -286,6 +291,28 @@ async def complete_appointment(
 ):
     uid = _verify_user_id(x_user_id)
     return await _handle_domain_exceptions(use_case.execute(appointment_id, uid))
+
+
+@router.put(
+    "/{appointment_id}/adjust",
+    response_model=AppointmentResponse,
+    responses={
+        400: {"description": "Invalid duration"},
+        403: {"description": "Unauthorized action — doctor only"},
+        404: {"description": "Appointment not found"},
+    },
+)
+async def adjust_appointment(
+    appointment_id: UUID,
+    request: AdjustAppointmentRequest,
+    use_case: Annotated[AdjustAppointmentUseCase, Depends(get_adjust_appointment_use_case)],
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
+):
+    uid = _verify_user_id(x_user_id)
+    if x_user_role != "doctor":
+        raise HTTPException(status_code=403, detail="Only doctors can adjust appointments")
+    return await _handle_domain_exceptions(use_case.execute(appointment_id, uid, request))
 
 
 @router.put(

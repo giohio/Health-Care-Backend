@@ -9,9 +9,12 @@ from infrastructure.consumers.appointment_events_consumers import (
     AppointmentCreatedConsumer,
     AppointmentDeclinedConsumer,
     AppointmentNoShowConsumer,
+    AppointmentOverdueConsumer,
     AppointmentReminderConsumer,
     AppointmentRescheduledConsumer,
     AppointmentStartedConsumer,
+    LabOrderAllResultsReadyConsumer,
+    LabResultPublishedConsumer,
     PaymentCreatedConsumer,
     PaymentExpiredConsumer,
     PaymentFailedConsumer,
@@ -68,12 +71,15 @@ def _factory(sink):
         (AppointmentNoShowConsumer, {"patient_id": "u4"}, "appointment.no_show"),
         (AppointmentCompletedConsumer, {"patient_id": "u5"}, "appointment.completed"),
         (AppointmentStartedConsumer, {"patient_id": "u12"}, "appointment.started"),
+        (LabResultPublishedConsumer, {"patient_id": "u13", "test_name": "CBC"}, "lab_result.published"),
+        (LabOrderAllResultsReadyConsumer, {"patient_id": "u14", "total_results": 2}, "lab_order.all_results_ready"),
         (PaymentFailedConsumer, {"patient_id": "u6"}, "payment.failed"),
         (PaymentCreatedConsumer, {"patient_id": "u7"}, "payment.created"),
         (PaymentPaidConsumer, {"patient_id": "u8"}, "payment.paid"),
         (PaymentExpiredConsumer, {"patient_id": "u9"}, "payment.expired"),
         (PaymentRefundedConsumer, {"patient_id": "u10"}, "payment.refunded"),
         (AppointmentReminderConsumer, {"patient_id": "u11"}, "appointment.reminder"),
+        (AppointmentOverdueConsumer, {"patient_id": "u15"}, "appointment.overdue"),
     ],
 )
 async def test_consumers_create_notification_and_commit(consumer_cls, payload, expected_event):
@@ -141,3 +147,54 @@ async def test_appointment_cancelled_branches_and_missing_target():
     # Missing both → no notification
     await consumer.handle({"cancelled_by": "doctor"})
     assert len(sink) == 0
+
+
+@pytest.mark.asyncio
+async def test_payment_created_consumer_uses_lab_order_copy_for_lab_payments():
+    sink = []
+    sf = SessionFactory()
+    consumer = PaymentCreatedConsumer(
+        connection=object(),
+        cache=object(),
+        session_factory=sf,
+        create_notification_use_case_factory=_factory(sink),
+    )
+
+    await consumer.handle({"patient_id": "p1", "payment_type": "LAB_ORDER"})
+
+    assert sink[0]["title"] == "Lab Order Payment Ready"
+    assert "lab order payment" in sink[0]["body"].lower()
+
+
+@pytest.mark.asyncio
+async def test_lab_result_published_consumer_includes_test_name():
+    sink = []
+    sf = SessionFactory()
+    consumer = LabResultPublishedConsumer(
+        connection=object(),
+        cache=object(),
+        session_factory=sf,
+        create_notification_use_case_factory=_factory(sink),
+    )
+
+    await consumer.handle({"patient_id": "p2", "test_name": "Lipid Panel"})
+
+    assert sink[0]["title"] == "Lab Result Ready"
+    assert "lipid panel" in sink[0]["body"].lower()
+
+
+@pytest.mark.asyncio
+async def test_all_results_ready_consumer_mentions_total_when_present():
+    sink = []
+    sf = SessionFactory()
+    consumer = LabOrderAllResultsReadyConsumer(
+        connection=object(),
+        cache=object(),
+        session_factory=sf,
+        create_notification_use_case_factory=_factory(sink),
+    )
+
+    await consumer.handle({"patient_id": "p3", "total_results": 3})
+
+    assert sink[0]["title"] == "All Lab Results Ready"
+    assert "all 3 lab results" in sink[0]["body"].lower()

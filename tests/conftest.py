@@ -46,17 +46,16 @@ async def http():
     limits = httpx.Limits(max_connections=100, max_keepalive_connections=0)
     
     async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
-        # Kong Compatibility: Clear cookies whenever Authorization header is present 
-        # to ensure Bearer token is used instead of a stale cookie role.
+        # Kong Compatibility: Always clear access_token cookie before every request
+        # to ensure Kong uses the Bearer token from Authorization header instead of
+        # a stale cookie role injected from a previous test's login.
         original_request = client.request
-        
+
         async def wrapped_request(*args, **kwargs):
-            headers = kwargs.get("headers") or {}
-            if any(h.lower() == "authorization" for h in headers):
-                if "access_token" in client.cookies:
-                    del client.cookies["access_token"]
+            if "access_token" in client.cookies:
+                del client.cookies["access_token"]
             return await original_request(*args, **kwargs)
-            
+
         client.request = wrapped_request
         yield client
 
@@ -218,8 +217,8 @@ async def _assert_runtime_contracts(http: httpx.AsyncClient) -> None:
         (
             PAYMENT_URL,
             "payment_service",
-            lambda spec: "get" in spec.get("paths", {}).get("/payments/{appointment_id}", {}),
-            "missing GET /payments/{appointment_id}",
+            lambda spec: "get" in spec.get("paths", {}).get("/{appointment_id}", {}),
+            "missing GET /{appointment_id}",
         ),
     ]
 
@@ -372,3 +371,25 @@ async def specialty_id(http, admin_token):
     raise AssertionError(
         "Failed to create specialty for doctor tests. " f"last_status={last_status}, last_body={last_body}"
     )
+
+
+@pytest.fixture(scope="session")
+async def patient_token(http):
+    """Login with a pre-seeded, email-verified patient account. Avoids OTP flow and rate limiting."""
+    r = await http.post(
+        f"{AUTH_URL}/login",
+        json={"email": "patient.le.thi.mai@healthai.dev", "password": "Patient@1234"},
+    )
+    assert r.status_code == 200, f"Seed patient login failed: {r.text}"
+    return r.json()["access_token"]
+
+
+@pytest.fixture(scope="session")
+async def doctor_token(http):
+    """Login with a pre-seeded doctor account. Avoids registration overhead in tests."""
+    r = await http.post(
+        f"{AUTH_URL}/login",
+        json={"email": "dr.nguyen.van.an@healthai.dev", "password": "Doctor@1234"},
+    )
+    assert r.status_code == 200, f"Seed doctor login failed: {r.text}"
+    return r.json()["access_token"]

@@ -84,16 +84,16 @@ class TestGetMyPayments:
 
         # Enable auto-confirm so booking → confirmed without extra step
         await http.put(
-            f"{DOCTOR_URL}/doctors/me/auto-confirm",
+            f"{DOCTOR_URL}/me/auto-confirm",
             json={"auto_confirm": True, "confirmation_timeout_minutes": 60},
             headers={"Authorization": f"Bearer {doctor['access_token']}"},
         )
 
         appt_date = str(date.today() + timedelta(days=5))
-        confirmed, payment = await _book_and_pay(http, patient, doctor, specialty_id, appt_date)
+        confirmed, _ = await _book_and_pay(http, patient, doctor, specialty_id, appt_date)
 
         p_headers = {"Authorization": f"Bearer {patient['access_token']}"}
-        r = await http.get(f"{PAYMENT_URL}/payments/my", headers=p_headers)
+        r = await http.get(f"{PAYMENT_URL}/my", headers=p_headers)
 
         assert r.status_code == 200, r.text
         body = r.json()
@@ -112,7 +112,7 @@ class TestGetMyPayments:
         patient = await register_patient(http, AUTH_URL)
         p_headers = {"Authorization": f"Bearer {patient['access_token']}"}
 
-        r = await http.get(f"{PAYMENT_URL}/payments/my", headers=p_headers)
+        r = await http.get(f"{PAYMENT_URL}/my", headers=p_headers)
         assert r.status_code == 200, r.text
         assert r.json() == []
 
@@ -123,7 +123,7 @@ class TestGetMyPayments:
         THEN 401 returned
         """
         http.cookies.clear()
-        r = await http.get(f"{PAYMENT_URL}/payments/my")
+        r = await http.get(f"{PAYMENT_URL}/my")
         assert r.status_code == 401
 
 
@@ -140,7 +140,7 @@ class TestGetMyAppointments:
         await add_doctor_schedule(http, DOCTOR_URL, doctor["user_id"], doctor["access_token"])
 
         await http.put(
-            f"{DOCTOR_URL}/doctors/me/auto-confirm",
+            f"{DOCTOR_URL}/me/auto-confirm",
             json={"auto_confirm": True, "confirmation_timeout_minutes": 60},
             headers={"Authorization": f"Bearer {doctor['access_token']}"},
         )
@@ -197,7 +197,7 @@ class TestPostPayEndpoint:
 
         # Use auto-confirm but do NOT simulate payment to keep in pending state
         await http.put(
-            f"{DOCTOR_URL}/doctors/me/auto-confirm",
+            f"{DOCTOR_URL}/me/auto-confirm",
             json={"auto_confirm": True, "confirmation_timeout_minutes": 60},
             headers={"Authorization": f"Bearer {doctor['access_token']}"},
         )
@@ -230,7 +230,7 @@ class TestPostPayEndpoint:
 
         # Call POST /pay to regenerate/retrieve VNPay URL
         pay_r = await http.post(
-            f"{PAYMENT_URL}/payments/{appt_id}/pay",
+            f"{PAYMENT_URL}/{appt_id}/pay",
             headers=p_headers,
         )
         assert pay_r.status_code == 200, pay_r.text
@@ -249,7 +249,7 @@ class TestPostPayEndpoint:
         await add_doctor_schedule(http, DOCTOR_URL, doctor["user_id"], doctor["access_token"])
 
         await http.put(
-            f"{DOCTOR_URL}/doctors/me/auto-confirm",
+            f"{DOCTOR_URL}/me/auto-confirm",
             json={"auto_confirm": True, "confirmation_timeout_minutes": 60},
             headers={"Authorization": f"Bearer {doctor['access_token']}"},
         )
@@ -259,7 +259,7 @@ class TestPostPayEndpoint:
 
         p_headers = {"Authorization": f"Bearer {patient['access_token']}"}
         pay_r = await http.post(
-            f"{PAYMENT_URL}/payments/{confirmed['id']}/pay",
+            f"{PAYMENT_URL}/{confirmed['id']}/pay",
             headers=p_headers,
         )
         assert pay_r.status_code == 409, pay_r.text
@@ -276,7 +276,7 @@ class TestPostPayEndpoint:
         p_headers = {"Authorization": f"Bearer {patient['access_token']}"}
 
         pay_r = await http.post(
-            f"{PAYMENT_URL}/payments/{uuid.uuid4()}/pay",
+            f"{PAYMENT_URL}/{uuid.uuid4()}/pay",
             headers=p_headers,
         )
         assert pay_r.status_code == 404, pay_r.text
@@ -295,7 +295,7 @@ class TestNotificationEmailFlow:
         await add_doctor_schedule(http, DOCTOR_URL, doctor["user_id"], doctor["access_token"])
 
         await http.put(
-            f"{DOCTOR_URL}/doctors/me/auto-confirm",
+            f"{DOCTOR_URL}/me/auto-confirm",
             json={"auto_confirm": True, "confirmation_timeout_minutes": 60},
             headers={"Authorization": f"Bearer {doctor['access_token']}"},
         )
