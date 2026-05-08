@@ -16,7 +16,7 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' \
     && apt-get install -y --no-install-recommends gcc \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir --upgrade uv wheel jaraco.context
 
 COPY ["AI Service/requirements.txt", "."]
 COPY shared/ /app/shared/
@@ -61,3 +61,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
 ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+

@@ -10,6 +10,9 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade build tools to fix security vulnerabilities
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel jaraco.context
+
 # Copy requirements and install
 COPY ["Payment Service/requirements.txt", "./"]
 RUN pip install --no-cache-dir -r requirements.txt

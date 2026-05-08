@@ -8,7 +8,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir --upgrade uv wheel jaraco.context
 
 COPY ["Notification Service/requirements.txt", "."]
 RUN uv pip install --system --no-cache --no-build-isolation -r requirements.txt
@@ -48,3 +48,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
 
 ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+

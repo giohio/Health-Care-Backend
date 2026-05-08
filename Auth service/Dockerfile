@@ -14,7 +14,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for fast dependency installation
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir --upgrade uv wheel jaraco.context
 
 # Copy only dependency files first
 COPY ["Auth service/requirements.txt", "."]
@@ -68,3 +68,4 @@ ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 
 # Default command (Check if main.py or similar exists)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
