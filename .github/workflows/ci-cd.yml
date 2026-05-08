@@ -1,0 +1,269 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      deploy_to_production:
+        description: 'Deploy to production?'
+        required: true
+        default: 'false'
+
+jobs:
+  lint_flake8:
+    name: Lint - Flake8
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+      - name: Run Flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  lint_bandit:
+    name: Security - Bandit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install bandit
+      - name: Run Bandit
+        run: bandit -r . -x ./tests,./venv -ll
+
+  lint_gitleaks:
+    name: Security - Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint_deps:
+    name: Lint - Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check for safety
+        run: |
+          pip install safety
+          # Check requirements files
+          find . -name "requirements*.txt" -exec safety check -r {} + || true
+
+  unit_tests_coverage:
+    name: Test & Coverage - ${{ matrix.component }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: healthai_ci
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - "Auth service"
+          - "Appointment Service"
+          - "Doctor Service"
+          - "Patient Service"
+          - "Payment Service"
+          - "Notification Service"
+          - "AI Service"
+          - "Clinical Service"
+          - "EMR Result Service"
+          - "shared"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov httpx sqlalchemy[asyncio] asyncpg pydantic-settings python-jose[cryptography] passlib[bcrypt] python-multipart celery redis amqp
+
+          if [ -f "${{ matrix.component }}/requirements.txt" ]; then
+            pip install -r "${{ matrix.component }}/requirements.txt"
+          fi
+          
+          # Install shared libs in editable mode for testing
+          pip install -e shared/healthai-db
+          pip install -e shared/healthai-events
+          pip install -e shared/healthai-cache
+          pip install -e shared/healthai-common
+          pip install -e shared/healthai-tracing
+
+      - name: Run unit tests with coverage gate
+        env:
+          PYTHONPATH: ${{ github.workspace }}/shared/healthai-db:${{ github.workspace }}/shared/healthai-events:${{ github.workspace }}/shared/healthai-cache:${{ github.workspace }}/shared/healthai-common:${{ github.workspace }}/shared/healthai-tracing
+        run: |
+          set -euo pipefail
+          export DATABASE_URL="postgresql+asyncpg://ci:ci@localhost:5432/healthai_ci"
+
+          if [[ "${{ matrix.component }}" == "shared" ]]; then
+            echo "=== Running Tests for Shared Libraries ==="
+            export PYTHONPATH="${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common:${GITHUB_WORKSPACE}/shared/healthai-tracing"
+            python -m pytest shared --cov=shared --cov-report=xml:shared/coverage.xml --cov-report=term-missing -q
+          else
+            echo "=== ${{ matrix.component }} ==="
+            pushd "${{ matrix.component }}" > /dev/null
+            unset PYTHONPATH
+            export PYTHONPATH="${GITHUB_WORKSPACE}/${{ matrix.component }}:${GITHUB_WORKSPACE}/shared/healthai-db:${GITHUB_WORKSPACE}/shared/healthai-events:${GITHUB_WORKSPACE}/shared/healthai-cache:${GITHUB_WORKSPACE}/shared/healthai-common:${GITHUB_WORKSPACE}/shared/healthai-tracing"
+            
+            cov_targets=(
+              --cov=Application
+              --cov=Domain
+              --cov=infrastructure
+              --cov=presentation
+            )
+            
+            python -m pytest tests/unit "${cov_targets[@]}" --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=75 -q
+            popd > /dev/null
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.component }}
+          path: |
+            ${{ matrix.component == 'shared' && 'shared/coverage.xml' || format('{0}/coverage.xml', matrix.component) }}
+
+  build_and_push:
+    name: Build & Push - ${{ matrix.service.image }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [lint_flake8, lint_bandit, lint_gitleaks, lint_deps, unit_tests_coverage]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - path: "Auth service"
+            image: "auth-service"
+          - path: "Appointment Service"
+            image: "appointment-service"
+          - path: "Doctor Service"
+            image: "doctor-service"
+          - path: "Patient Service"
+            image: "patient-service"
+          - path: "Notification Service"
+            image: "notification-service"
+          - path: "AI Service"
+            image: "ai-service"
+          - path: "Clinical Service"
+            image: "clinical-service"
+          - path: "EMR Result Service"
+            image: "emr-result-service"
+          - path: "Payment Service"
+            image: "payment-service"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and (optionally) push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.service.path }}/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service.image }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service.image }}:latest
+
+  trivy_scan:
+    name: Scan - Trivy (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.event_name == 'push'
+    needs: [build_and_push]
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - auth-service
+          - appointment-service
+          - doctor-service
+          - patient-service
+          - notification-service
+          - ai-service
+          - clinical-service
+          - emr-result-service
+          - payment-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan image with Trivy (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+
+  deploy:
+    name: Deploy (Manual)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [trivy_scan]
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_production == 'true'
+    environment:
+      name: production
+    steps:
+      - name: Deployment placeholder
+        run: echo "Deployment script would run here"
