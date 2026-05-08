@@ -44,6 +44,8 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     && groupadd -r appuser && useradd -r -g appuser appuser \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip install --no-cache-dir --upgrade pip "setuptools>=70.0.0" "wheel>=0.46.2" "jaraco.context>=6.1.0"
+
 # Copy installed Python packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
@@ -68,5 +70,6 @@ ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 
 # Default command
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
 

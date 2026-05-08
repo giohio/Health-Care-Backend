@@ -32,6 +32,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then sed -i 's|http://deb.
     && groupadd -r appuser && useradd -r -g appuser appuser \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip install --no-cache-dir --upgrade pip "setuptools>=70.0.0" "wheel>=0.46.2" "jaraco.context>=6.1.0"
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
 COPY ["EMR Result Service/", "."]
@@ -48,5 +49,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
 ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
 
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
 
