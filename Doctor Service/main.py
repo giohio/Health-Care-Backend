@@ -1,4 +1,5 @@
 import asyncio
+import importlib.util
 import logging
 import os
 import sys
@@ -16,10 +17,28 @@ from infrastructure.database.session import AsyncSessionLocal, engine
 from presentation.routes import doctors_router, schedules_router, specialties_router
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
-if str(TRACING_DIR) not in sys.path:
-    sys.path.append(str(TRACING_DIR))
+TELEMETRY_PATH = TRACING_DIR / "telemetry.py"
 
-from telemetry import setup_logging, setup_telemetry  # noqa: E402
+if TELEMETRY_PATH.exists():
+    spec = importlib.util.spec_from_file_location("healthai_tracing_telemetry", TELEMETRY_PATH)
+    telemetry_module = importlib.util.module_from_spec(spec) if spec and spec.loader else None
+    if spec and spec.loader and telemetry_module:
+        try:
+            spec.loader.exec_module(telemetry_module)
+            setup_logging = telemetry_module.setup_logging
+            setup_telemetry = telemetry_module.setup_telemetry
+        except Exception:
+            telemetry_module = None
+    else:
+        telemetry_module = None
+
+if not TELEMETRY_PATH.exists() or telemetry_module is None:
+
+    def setup_logging(*_args, **_kwargs):
+        return None
+
+    def setup_telemetry(*_args, **_kwargs):
+        return None
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

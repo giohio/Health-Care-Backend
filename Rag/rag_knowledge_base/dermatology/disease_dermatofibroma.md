@@ -1,0 +1,196 @@
+---
+source_url: https://dermnetnz.org/topics/dermatofibroma
+department: dermatology
+chunk_type: DISEASE
+severity: ROUTINE
+slug: disease_dermatofibroma
+note: Dermatofibroma (DF) — firm papule, dimple sign
+fetched_at: 2026-04-01 21:01 UTC
+---
+
+Title: Dermatofibroma (histiocytoma)
+
+URL Source: https://dermnetnz.org/topics/dermatofibroma
+
+Published Time: 2023-10-26T03:14:00+00:00
+
+Markdown Content:
+##### Dermatofibroma — extra information
+
+Synonyms:
+
+Fibrous histiocytoma, Histiocytoma cutis, Cutaneous fibrous histiocytoma, Sclerosing haemangioma, Dermatofibroma lenticulare, Subepidermal nodular fibrosis, Sclerosing angioma, Fibroma simplex, Dermal dendrocytoma
+
+Categories:
+
+Lesions (benign)
+
+ICD-10:
+
+D23.9
+
+ICD-11:
+
+2F23.0
+
+SNOMED CT:
+
+427186000
+
+**[Lesions (benign)](https://dermnetnz.org/topics?category=Lesions%20(benign))**
+
+Author: Dr Amanda Oakley, Dermatologist, Hamilton, New Zealand, 1997. Updated January 2016. Revised September 2020
+
+[Introduction](https://dermnetnz.org/topics/dermatofibroma#Introduction)[Demographics](https://dermnetnz.org/topics/dermatofibroma#Demographics)[Causes](https://dermnetnz.org/topics/dermatofibroma#Causes)[Clinical features](https://dermnetnz.org/topics/dermatofibroma#Clinical%20features)[Complications](https://dermnetnz.org/topics/dermatofibroma#Complications)[Diagnosis](https://dermnetnz.org/topics/dermatofibroma#Diagnosis)[Treatment](https://dermnetnz.org/topics/dermatofibroma#Treatment)
+
+## What is a dermatofibroma?
+
+A dermatofibroma is a common benign fibrous nodule usually found on the skin of the lower legs.
+
+A dermatofibroma is also called a cutaneous fibrous histiocytoma.
+
+## Who gets a dermatofibroma?
+
+Dermatofibromas are mostly seen in adults. People of every ethnicity can develop dermatofibromas. Ordinary dermatofibromas are more common in women than in men, although some histologic variants are more commonly identified in males.
+
+## What causes dermatofibroma?
+
+It is not clear if dermatofibroma is a reactive process or a true neoplasm. The lesions are composed of proliferating fibroblasts.Histiocytes may also be involved.
+
+They are sometimes attributed to minor trauma including insect bites, injections, or a rose thorn injury, but not consistently. Multiple dermatofibromas can develop in patients with altered immunity such as HIV, immunosuppression, or autoimmune conditions.
+
+## What are the clinical features of dermatofibroma?
+
+A dermatofibroma usually presents as a solitary firm papule or nodule on a limb.
+
+*   A dermatofibroma can occur anywhere on the skin.
+*   Dermatofibroma size varies from 0.5–1.5 cm diameter; most lesions are 7–10 mm diameter.
+*   A dermatofibroma is tethered to the skin surface and mobile over subcutaneous tissue.
+*   The overlying skin dimples on pinching the lesion – the dimple or pinch sign.
+*   Colour may be pink to light brown in white skin, and dark brown to black in dark skin; some appear paler in the centre.
+*   Dermatofibromas do not usually cause symptoms, but they are sometimes painful, tender, or itchy.
+
+Clinical variants include giant, eruptive, and multiple forms.
+
+![Image 1: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/dermfib3.jpg)
+
+Dermatofibroma
+
+![Image 2: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/dermfib1.jpg)
+
+Dermatofibroma
+
+![Image 3: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/s/df6.jpg)
+
+Dermatofibroma
+
+![Image 4: Dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/df5.jpg)
+
+Dermatofibroma
+
+![Image 5: Pinch sign of dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/df4.jpg)
+
+Pinch sign of dermatofibroma
+
+![Image 6: Dermoscopy of dermatofibroma](https://dermnetnz.org/assets/Uploads/lesions/dermfib2.jpg)
+
+Dermoscopy of dermatofibroma
+
+[See more images of dermatofibroma](https://dermnetnz.org/topics/dermatofibroma-images).
+
+## What are the complications of dermatofibroma?
+
+Because dermatofibromas are often raised lesions, they may be traumatised, for example by a razor.
+
+Occasionally dozens may erupt within a few months, usually in the setting of immunosuppression.
+
+Dermatofibroma does not give rise to cancer. However, occasionally, it may be mistaken for [dermatofibrosarcoma protuberans](https://dermnetnz.org/topics/dermatofibrosarcoma-protuberans) or [desmoplastic melanoma](https://dermnetnz.org/topics/desmoplastic-melanoma).
+
+## How is a dermatofibroma diagnosed?
+
+Dermatofibroma is usually easy to diagnose clinically, supported by [dermoscopy](https://dermnetnz.org/topics/dermoscopy). The most common dermoscopic pattern is a central white area surrounded by a faint pigment network. However different patterns may be seen in skin of colour.
+
+Diagnostic [excision](https://dermnetnz.org/topics/excision-of-skin-lesions) or [skin biopsy](https://dermnetnz.org/topics/skin-biopsy) is undertaken if there is an atypical feature such as recent enlargement, ulceration, or asymmetrical structures and colours on dermoscopy.
+
+The [pathology of dermatofibroma](https://dermnetnz.org/topics/dermatofibroma-fibrous-histiocytoma-pathology) shows whirling fascicles of spindle cell proliferation with excessive collagen deposition in the dermis. There are many pathological variants including:
+
+*   cellular
+*   aneurysmal
+*   epithelioid
+*   atypical
+*   lipidized ankle-type
+*   palisading
+*   cholesterotic
+
+In case of doubt, [immunohistochemical staining](https://dermnetnz.org/topics/immunohistochemistry-stains) is used to confirm the diagnosis.
+
+## What is the treatment for dermatofibroma?
+
+A dermatofibroma is harmless and seldom causes any symptoms. Usually, only reassurance is needed. If it is nuisance or causing concern, the lesion can be removed surgically. Recurrence is common as the lesion often extends beyond the clinical margin.
+
+[Cryotherapy](https://dermnetnz.org/topics/cryotherapy), shave biopsy and [laser](https://dermnetnz.org/topics/lasers-in-dermatology) treatments are rarely completely successful.
+
+### Bibliography
+
+*   Beatrous SV, Riahi RR, Grisoli SB, Cohen PR. Associated conditions in patients with multiple dermatofibromas: case reports and literature review.Dermatol Online J. 2017;23(9):13030/qt8zv852d8. [PubMed](https://pubmed.ncbi.nlm.nih.gov/29469716/)
+*   Alves JV, Matos DM, Barreiros HF, Bártolo EA. Variants of dermatofibroma--a histopathological study.An Bras Dermatol. 2014;89(3):472–7. doi:10.1590/abd1806-4841.20142629. [PubMed](https://pubmed.ncbi.nlm.nih.gov/24937822/)
+*   Kelati A, Aqil N, Baybay H, Gallouj S, Mernissi FZ. Beyond classic dermoscopic patterns of dermatofibromas: a prospective research study.J Med Case Rep. 2017;11(1):266. doi:10.1186/s13256-017-1429-6. [PubMed](https://pubmed.ncbi.nlm.nih.gov/28927449/)
+*   Juliandri J, Wang XY, Liu ZJ, Zhang JW, Xu Y. Dermoscopic patterns of dermatofibroma in 72 Chinese patients.Chin Med J (Engl). 2019;132(17):2121–2. doi:10.1097/CM9.0000000000000406. [PubMed](https://pubmed.ncbi.nlm.nih.gov/31425360/)
+*   Calonje E. Soft-tissue tumours and tumour-like conditions. In: Griffiths C, Barker J, Bleiker T, Chalmers R, Creamer D (eds). Rook's Textbook of Dermatology [4 volumes], 9th edn, Wiley Blackwell, 2016:137.19–22.
+
+### On DermNet
+
+*   [Common benign skin lesions](https://dermnetnz.org/topics/benign-skin-lesions)
+*   [Dermatofibroma – pathology](https://dermnetnz.org/topics/dermatofibroma-fibrous-histiocytoma-pathology)
+*   [Epithelioid histiocytoma – pathology](https://dermnetnz.org/topics/epithelioid-histiocytoma-pathology)
+*   [Dermatofibrosarcoma protuberans](https://dermnetnz.org/topics/dermatofibrosarcoma-protuberans)
+*   [Basal cell carcinoma](https://dermnetnz.org/topics/basal-cell-carcinoma)
+*   [Squamous cell carcinoma](https://dermnetnz.org/topics/cutaneous-squamous-cell-carcinoma)
+*   [Melanoma](https://dermnetnz.org/topics/melanoma)
+*   [Fibromatosis](https://dermnetnz.org/topics/fibromatosis)
+*   [Fibrous papule of the nose](https://dermnetnz.org/topics/fibrous-papule-of-the-nose)
+*   [Dermal and subcutaneous tumours](https://dermnetnz.org/cme/lesions/dermal-and-subcutaneous-lesions) – common skin lesions course
+
+### Other websites
+
+*   [Dermatofibroma](http://emedicine.medscape.com/article/1056742-overview)— Medscape Reference
+*   [Dermatofibroma](https://www.bad.org.uk/pils/dermatofibroma-also-known-as-histiocytoma/)— British Association of Dermatologists
+
+### Books about skin diseases
+
+*   [Books about the skin](https://dermnetnz.org/topics/books-about-the-skin/)
+*   [_Dermatology Made Easy_- second edition](https://www.amazon.com/Dermatology-Made-second-Amanda-Oakley-dp-1914961161/dp/1914961161/ref=dp_ob_title_bk?&_encoding=UTF8&tag=nzdermnet-20&linkCode=ur2&linkId=2addc7901a76f7726fa42eeeea7a28ea&camp=1789&creative=9325)
+
+### Other recommended articles
+
+## Around the web
+
+*   [Risk factors of digital dermatitis in feedlot cattle](https://rev.trendmd.com/open/tfU4pDZuRIbPyApJtb9bF5gLEKioKcTBg7uqtYpULgq6stNcdJvGbFy3jNG1zZmNfkKzrFQXFjCqmlHmk5iiutw9Yp7s3s40Orf1gH_AhyWQFlMOSxvb8S1L7oec6-LCtygdqLa2O1kSNyTjW5oLloKzWc0KnusAdf2yDHRFkNyHRg91w7py-2-PAhYs3wMwDotWjzeuwAtTKPyUiLIlRz6ra5u6cqhZegbns2l8wxAWWLg83_nNdaHTk6BjKy9lS0kkW39FbFtkYkq33EOqYnF0SyChhdaEDfV7zTeiZz3XGWY32v0E__BSu9jwZqbzK9ammRuSeyIqTNIfU_SaTKa6jNlETpriTR1CFRcCpEov0CO9p3Fq-BE5D0fTJhThz3a95ZeMrOOd7iPppVBDimW-wBsKRZxQEa0Nao23HmyG1dX8GwcCGSarij6A9TFFzFpT8jf6dvIgoHA_OdzSysma80KYyqo4SfEpKR3iNnV0Tj-P_YCNgTGLmtvyuiI4X0Hvk2hx-2u3rOlPDkZnw1NUFAgEgCd1TSN0tNU_Boqyu6nbHC9BZKJOGqc-8wyhl9pobsxd9azIhp_6-XFo6_pFoRNVlzxlFvrhdEix7co0BMA5NSlPByiF90YDXAKpT-YfAebMCrGU3lBngFwvcaprApLLXc2Fns_Z3wF5DSuuqwKKAzigfgR2gjoDtRO_ye0AsdJ2-pIEI6s0brV5NFK_o2H873xdOI6LqhNZR17PXIk791bitwn0MnYm6wZYmmTpVNS0EjHxgW4cKlAAinzydlJ-_b_ZlDhI9mmtidryq9mqFRZomySAK7ucoroGRZj7-i_jBlB_RIZ27XtF03QdlWc0swDnIvNbitNMsvrWyJOy8BVFnCewUqLzZ-sEgmlwvoTbodTqjGX3Pky64A-bSa1eLRf_HZfJGyDt0sp_KgcEF2jd2i_utrc4zETGzu9hMJSKQACQhGb-mO3RSplmjHzpNXUV9IZEV9GUeNnjB8E8rYcS3ep3cbt_jPoPRlyOgPZyFPvLg81k_Ra4Dl2-XpJiD-3QnETV8g-i-kVrLRiGZJ3_JasYjV-Cp0cBSAdaAX2Z3NHnArVteer4RIZLCHQmAfUzyB5fDmENJHXJ38g7yufKxED-gFIr-bNt-Uy9F1gXEJaWaP3fDPa-b6NuMsdY6gtT5dip5oot-R9d-j-t2LFg0qk8lklet4dI_BYObUQGY5xyoOpud7eY4VGiQMqxcGuR2h_oBgei07iqOC9lfciS2BF1n4yKf9_kXCEjQIFDk1Lr5aXhQt8h0Zmq7wlfgI-ITpN7_QANIjlj7xNXjLdFi9nw2iBuCpNWkwzXv5sk7r677JkO7iepVrPnbfNbdtH3WGGtZ6lXM8Xc2DUT_jSinOVMnDUfd11D0_ekbUGOCFSHaIBV0yoCk-f7XZwF5GbB1PApw3BKGLqqjmA)
+Julian A Cortes, Translational Behavioral Medicine, 2021
+
+*   [Cancer-Associated Fibroblasts Interact with Schwann Cells for Tumor Perineural Invasion by Oral Squamous Cell Carcinoma](https://rev.trendmd.com/open/95xRR0mabTODlvbOKVaS7izRiCM0OpbEDeaBKakN9Qcv2c3QOOffTWGT1JvjnqFrGs1Ej-1Vuh5aoi-npGpIz_CeQs1hhkGsbmNIqi5iIyRy5CPKT9lkLOaZ-4ahla76G5r43bOlUqCMHHpnkilTsWwgGDAaYDTklSTl9YC1Ului90NmVMh03R6yFr_QKcYuzN-9AoVdOkb45lUW6RxWihmDXvBHbypWP_uXvPAfbXe0MQ0nQUxkbEEmqzIwdjgdlB3xMZC2_vdAQdH_rpvNsmCHQR_-5lGnv4Y_fEmsVqleiOsay_iIJEoeKMuxqhwnMchtRUiIgKOvS5Bq5mIuzV2GAolBlVXlrkv9s0grcPFy7YMsCOQEgeKgFck-_b8xw8t-ZdlLgnZfw4c2uFdSkKrARZHaDzieeRDYwZvW9FjCX9cNj8fS7DkQ33zA-WL5S8WNa5O0I1_W5W7xCZkH1GqeVLVmXuXyvrG3GeoeRKzfnc5T4jUQ9-Yewo9odNp0KyND7IGvBzrVo75w-wDq_pFER6lh0sl8E6xnMitazFTBTXlICrnkvRGbkyww6t5w3tZXhcFFqS5KOEzwbt0NJM285_noh80oSs1pFaH946H4X0IMgTeOPIW4jTcMDzjuBnF_W124SPZrpf61wC-_KfaouCYA5if54vi78H8hHSiGBqvrkVycODEZ-SfBcApy4JnId1gPEbSfTYKuaejkzpfdVmPIzHUsckrDtHqCUhbpgxgJWNTEFsu6epZHQr0MyFu2grOMDxLOqN5tmdsFLxwMyI_41T0JPEOOEkfEltKSJlGYFtdBB5vbj1vrjUoLcKDJMzB3ubpHoUiIUFkYixOVo-0hMnQxHXvTs8h9Yhys5FZUA8qqv_qEzS17jOTHRZ-Z-JowTpyJ7kpP-FKbLvPLNf4eGI-Eb2PR6LY6ZLQHxYi_El0V9_072iooW3AHSHmKq1Ls2MBpjWfSCBoKBw-y57VFrhGjBxh5-bipUBdj0FD-9tWh8LiCuZHP_P66TpPDvFhe-LVK54iRtl3F2daTvQAJVzUwJbggn-G2JjKlBxaIgnRnmFqDriRGCc7d0hRdddM9UmI_CRWhBHGaEoFfT-wGTSbJEDuI_9vE6OqxULdzdEwpQV7XA1_lHqChUsffDy4zc9bInI8vyUdisKKBLFJn96ck6ZcJU6WuCjU1QvJYq0vfL5L3f59ndQWu3vBOjLxwQhiFcHmhRTAWuOn00IywibS15Zv4Vzf_19N2kwAkOcoya2KsU-Oe6A5Xl0RvlUWvQwnQZaTBYPDyPC-asd0LDCm5R3J0YbLyRf4UWObqf9lsFJ-2MqU3goTOEXBzOogfYyGLwcwemmQ-fRQEm_sXFVznqOTcV6A-GOFKwkB7mcO7GUihSDemXng_vLZquIlxjnH-T3jNf_ME-nuwfkndKaPBR-iXc_kreoYgcgGZXZpLmGwwtJ5BrzyoDvPFqiR7Z7Xf_lR7Va3CiNBaxpqwL3hykCuM05mOkRfqD_Or66Gx5_Gvjjkc3vVOKMh9WPKURmtzrwtU6OhmNhoaUkahqRAqwnweZQ)
+Neuroscience Bulletin, 2025
+
+*   [Prevalence and lameness-associated risk factors in Alberta feedlot cattle](https://rev.trendmd.com/open/BT-hDwRdkNhmkI8Ttj-YnKHjr1r18YotIhfMiScE8q1Te5njutAOzhqzbn2qJPi13hvCls2MqJrEmPuoJbKU5_1DM_bFp_j6ua-w1YEEa5_tZjN5rkxU-q5GJuQFAdzu-cydyowl6RbJSKLGU4Pd-aYd4joiR_0uSMa4FkshY2MdUkCNlpJGMvS1IAWcY5_QUCjdKbZgUyEUL0JH3DeKCDokNz-t0YPwkWIw_UTfaTKt31ySOKUz-eUNNylV4sp0H1gfQcBMRBoIhIGbv4v4fEKSNVFSBuXzXNfjGCCNehUQHXhJ3zD99lQIVy6P3gEWXOi_DoMB_sZJTztWaxgFs9mDKsC3aT6QERPih3VFqvc34mAgiKf4W9aTvE7ge9n_SHzBHWwrKcuRnwPfH_y_jOXusZYtPOj5rBzyZkkPacSdfUfaesX3Bv4Vzid79THGCc33x2EgcABrJWDUlpwbUiGos_T9r1IbA7K4M21PcfTVIMidR4dxFtirs4qCKMkRPpbgnLD0cEcDxUKoZNlhqMnP41pcpWEvTJiZouoLK3HF6hvUZ9VSlzLoS8iYnf0j6WBHqcoc6lpaxo9tM3QaM9H9k8_gEvqClE5i-NG0oeuu9cMxjYtiUBdTL6eMHwAvWBCoHBzqlXoBobAqy_Tb2BKD9eBpCNyc8B1NTfIdLo9Ege-qor3K5nEZL6habr7538M8u8ApA_ycmAqtyB8FZ2JOtNc_1aV-rc7WDHZzIOdul_IvJ8lJLjyYGBxQtTMOsM8jyzt7FUlXB9TPI07f5L5bHFkfrgi_qEeX4WVrcVURvaX5Tvvhm2njeEyaG0ZKnBYdEgQb6G5zX3Nq44BWYR3LIL9ndNcbXbWt37qocFRanoMrEXhcT3kAEg6jA3pXMD-QkEr98MdIUppI-R_4rQ7n7xrdZCsBgguaIfCaHJJkyDreWF1VPTDMhE44qzTAcm7B6Gw16KRyDNWLNOlH-9ldUCo7X_yuMs9gvCMSlHaW_QVyprhlSQipfq0prLrJe7nfd7_Yc2tGYbepBgFr4odNLSGn82t4_bky2Y1lFeh0BemRlm-DQFT7bznIFKhxYL9Cpmb56ebWW9ndKpQkYhUeoVXNfefu86Pa13wTpghqIoEzAGDfirbsAL63fBOU_p4-xGfNqne5yY3lvS03sBz-FkFBbY8KQmiZsrEDoGAwPmfugvZzauGNe8pRxl7FPcmSm5nFPAGHnrOIle2K1MbN4iQa8YPa15k6PWyR49UozfIb5DLNti88zS6FmhQuPbxVKNgz1NsMzrpPGOrqHu7tM6JfX1OyWKz97thj4QIEEQl9MLnsGmTo_HxbwC50p_QeZq-Tylre4xFwyrVTjryrbQn5c7LKFNKH8vnb32vtaON2rRZlIL6qrERog_zAv0hwmn4ONi2acnZc-OjWr94VVQ1w7-RV9qYMB29oBblV67VSXOOj3A)
+Jessica Davis-Unger, Translational Behavioral Medicine, 2019
+
+*   [Economic impact of digital dermatitis, foot rot, and bovine respiratory disease in feedlot cattle](https://rev.trendmd.com/open/LzPaP2NJzX_lyt5W3MvYfHeCX-VJq3mZ1le3Zcow2QkEO_x3WzXEXIlbsqdBhgbZCNNfVejZ5u35_GDbaZco4ZSZQ0OyN6_MWprLK6_PeXJjMUD47rEMvGcEPZVF0qgVN4WTiLym73Vf4c5M2RQwm7zGur3fHVeJKAC2KIDmb3e4BkL9kMJb1WC4EIEDZt5CvFwtq9ZE0dv_Mezwcgcjwg_hYNTIpx8HEf38FyiUmAf9_GwQ74hAgWk5LvBRHxw5KkYzOTn_x9Wj8tJ9mdfxeojkid5_YC5_1GkPN8oOn573QPw-9vPHFpdRZOFV3OznhvYpTpuIERRePp2mC-a_Gq6tBLtFEjPlBg_7Vqy5pxicXsXR1L_b2AztkzyKj4UwELY2PYXkhE-52FoAyy5DxDUYzQUb8AEtrNZRUBUlx4qXR18asEnvjINC4uT72xoKZKm2HqHK98G3y1IA6aMeSaXfUYE2BoB10xwWdaGtYBQeojH8nkR9a5plb6NuLyrsznk30ET39v8xAhQwSaoywn9kt2NlZuKhpu-9Ked8VDiBC00JgZmk-G076duazmsN01tu6GLxP2DuNu1yAMGnaiOyYqcd0Y7Lxo96yWeTEixPSKpCZRSj7KG_BSzX-7ZSNdKnKDBUDbO-pw19Enb7YFwzlmsgyLROo2QLBBGuFgd4l4yK4-j40e2cX6sUn7yeax7nIZBVZUcxGMF_loP85JhKkUnAM1_VGtF2fOFRFQaKFYylVWq3-FWUV2-OnkSQEIBLzEZI_LC_4SM0XufweCfPm5TiD1hBWE_GQbXyNLyen80zW1rflfkD372xT68bcc9C389arH58VwxeXimI0wTXfW2PSZDP89vRm7w6e5WyHuHShguHS1kptPcPn1p9Z7A75PCv1Ej0Hl4yP4lcGFbsbr5f5ypyONVk_dTRdJp6P-4q5J9R0mmOIZ-M3BqP1JfcC3I08gRWduvTCCS1s6PNijFLVK9V2QcLktZC59JtmAtXen7dM1zI9V9IYRP5JMvwa7ipt2rGY69vNhprSGVmzMxQ2xG5QiVXQ5HuFfmrJx36o9SEpR6NcdsZ90ZsmhWEk6sznMl5gN190nDqWbI0GfEGrEmmkZ2qAxOGqWAAtEGeqWCT4Ek9tIh9GReexmXwDDmFtZO5s7UsbJfV4BGIOPU-nNBvzj_K1aVQThn1_dVN_GyY2JxLWm4lJuJPpOYX0KM8XRzu3y7T1HVeFpq4fCJvUO27O4ZQmXAEVP9J3b1thY4VkP9TI_KnA__-YVoLZ6ddwm_wZRBfevrypcPJycsYIFZFP088sgse0FOfDzlGpmsLwqzudhm8OF2SZWpWXOpwiVl0lR4N_CaDzj0PmYCRFIoRNp52PvLJiIjkqI4t75iX4OuCnY3eBaVFG9cEBmfosc95q5NUy-5qB_5iXJDlv_sg-ySwhrxejkL3zwjhaDyxLIIRaLp9SQ)
+Julian Alberto Cortes, Translational Behavioral Medicine, 2021
+
+*   [Stress and Neoplasia: Speculations and Caveats](https://rev.trendmd.com/open/KPoet_VZXDP7Dpg9agL6txcoUTC4oyz0mPmF6pY4EUz7ZbhUNoMqgbx2-OhDvwQLym5seuvnep5HytmRtB-FhUiIAvm_JcaZ4ceUUU7qVdeDdbKncLdpcxZZ3iq8PQWtkG3L5dV-nKS8EkzthfhQpFS7jVVZwvrY_Mzbtp3i5_95cawS7LijpiCv6CZlISh_tgiZE6AawjKeP3KLDUiwc4LMCJgaE2nCOKHOy4UsSkNrqRtx_-tpDxxGvXxAoY0MgGC4F413njTl1RQTZte_PcoaD1cYdZ_KBRuWM7sy2XgUw89iVIywKbMglILJQOWPuTjw1yc6P4KrEPy42T-2Ag654he_b97yCKLNrBHlSWs-FhMMFkOBIGJEroODGQM05OIG6BndrucDB3beXze4DPepfyhlF2z2oLiFnQZwfkPNW7t4nojxsjFu7lylt-RlosFxQVzr5UvEZYGxRJpeK1p_7DExuzvcQ5hhixZNdqYS3wgUy3biTOtdPWG9U4BHimwEU_-LO7tY-h3vDPFkG5ACEfQMRrkdfuLci1bPG1W7jTZ1rFhX6_T2tpat4hcV4GVTY6QHxvkBzXqbFIOfT1eKxOpBN9EMJV-1QW4hSdJXenSDyZLPBJK0-Q6Kv3qs4HqTa7E_IVEBkvizqot14xBT9iiOl6eAekqB4ub3JOm1CCeACJ5EpTOZnE_xTppKpbge64Q8AG89B1sOxqFHv4KhAbNcfareqTLZCaprNo_vf1UdiIokyHEstH78pUoMAvRZlVPDTXITzrkC07iWOKBKA10uUv5ihQcJnxPZDRZkpB8-8KVP-qpGAn-DZzDX2RBGn6-6TBfHrg1VxbHGwNmiZZoWe1vn4JStr9SjEYzDMNFooaWtheSM85FESdGgbG13mZxTTkaYQrLE-0uaYpL612F855RIzhfjqNFuOBC3XOZs0Lhnua-qHYhHlq8_ROYDDhjo6tmZOq5JzWFKUvmF4jxcgIAw24_us8HxxAqYPJFwR3B6hhgBKpR8bbCJdFLKkBCdAnpQWIg3NHt3qTK8kdVR0u10O9kN3o-2KDu_CS06tiEMGjEFVxC1czhqSV8XUCLiR_gvXddVoFy55rnBKuT9EqIWvvofCl1-Sni9pYawXZ9cmLBwOBmBBS-_uHvWcBfW0LUJqAkBDLum1vyjF24-RW3Fbp6NsxkuwFvx1YZQsvZFzpOr0h2kHhyxWKUslhqMxjx31ftqsebs1v32KySImpSnaGfds2kXkn9wMCokpX901Es3lwticY3ATe0mumZLMlcR-ozkiHcnKLS-eEussgrlSADuhUQmngwhkAmx47SoigloF6VRMksK6LWgcc-rbFFgoKL2y8HtS-DFKgTH4uPBUl92pvfJshA4gvdSh4Cjg7KiFEk9sJ2uH5LhkIL8t6Oq1qHL7tQIWYbdl82luS9eU3qQGz-8Use-cAeCKSlli6jsFbVUVjOQ5V-rzhZEBfbZYa2FDuLsCsc)
+Hymie Anisman, Annals of Behavioral Medicine, 1983
+
+*   [Prevalence and correlates of skin self-examination behaviors among melanoma survivors: a systematic review](https://rev.trendmd.com/open/fPE2ota48OxIlZr4molZolHI7fGs3_YaVw3MBhCb15JQPXtOtiVAtneJT2AAtQau5b1z92t0DG--NhMt2Ua919RkchLieE3OHKrCQBePl5Nya6uKcTmYsQXYJ4Wz_VmVjlJPqfXrN8osIAdUy-LWtTwc8OgbueTpsQ_kn1cZTuYJmq1wMxA_yxKxZHPiFt7f6eAsOuqtibtRL5aHvdCO0uTDVaAj0ScP_3mT6kK_2xM2TWvciNklNyIn1eNbyG6KPSlcDnqz-lFFt1HbRU7bjrdgmQRAVWtHG-7EvYxlIlxSTB49XSScmG1SxIJUQu72O-y9lZghLSfK3CabpTS5Szdb9-1XMOD7-pUD-VBND8E8hTquOt7X_pRjleGknlAXOwcl05YDD0n19D6PsGVgGDVhf6jpAVFr_rf2U26PFm7rEYicNVaHQ65KD5p2lonY-peqZT-rmW1-fIu3hJoNPt7WeUagriDLCu4Yqyeas0dB3IurEoM8su916_sejmq8BJQ3pbJhpISZIJm-J5xZa5Wdju1PQEtdKv-NicVpT3xvynApkxwcVoC72_Yn2VY3TKz6w6N-WADYo7HpnHqd-I77Bd8MddbLXxTJOHD4bzS0o08KAkpjG3Op2813odAV_x9_pFGd5Yvf8h-l2FT9UKZtEA4VYTcfU6_3taeVeHmqiZE2JcoAGwvdnhCQtHlztvWkYftFkPII15E0xcz9peeRRsUqSc1WYHjX96Gz2UifqQs0aK_1bbFNESWnDp5RMvDlaBpIXxoAM6CMbcB6ur_R27Kei5yOR3K_cIeWqeQ9QcMCQFUjxx6N1TVgDoUBqNt8qKyKk75U4xvepEpBuQSgWGjCrmVPCQeiGZ62dZ0iBDeUewbrVbEQ3xNbGqbePdORea7oduF_u_Vi_5LCicdIYLY-E_JoGEVbw7hRuwNjZXtV5YlF60KcAyELAyDYBrFOvNIBYpwViKBbwq3bIJZ9xwNumL8v7NzxFzJkJ8Qt8DzxcdxLMNqpXNpk9wtM2xCllrIKFUWGcieLcSH8fA7kJ22kPb-QNuyR0DZXjE-xXiS7xAG7H9X4fusbvsSFSG6kW3ucWGRl6ubjo15igwBjwh6SZjFS2IaytloxJHwYY3y1Rt0acSPzy9EhS8B9Bef0VsOcDQPd5RG-iHTwGD-RqpqoqkF-LMpyMOfHldxGPRXWoYFJORzUgsDYrJgOqBlW2vWOqBuqrBJS5KrQOWmLdtN64WE7mY_bVcCIBY3cWPKDppBbE2u4TIL-rtoftR-Oqv31mno-KyBFrSo72w2T513UnWqzKDeWffskpsgMrRpF-FrU-N0VOiI0q4wkkvXWX9FY4dGwohHt6r8FtndqakG5KADjjWhlE4Gz3QLrpoSolwnrZlcKgPtYzuOSb5jGUeVn3Kp4rNGwTyvUPNe4f4xBaxduxrifKdl8dJad)
+Trishnee Bhurosy, Translational Behavioral Medicine, 2020
+
+*   [Society of Behavioral Medicine Position Statement: promote sun-safety policies and practices for youth in educational, childcare, and recreational settings](https://rev.trendmd.com/open/Oyd7zSrtYzt2HK7Fo5Kly40w4BfsQGgOwkWjHIREo2sL3u2-MIq_LW49rHvymP7ncZ-3HDGvbYESuFh5R_CjCx6kSgkSYx3E4DOCor0nYBlQId9nS8JS13ertdGOCgguXzawE_abH-A6dBMCbKIruA43BMHKskiTJpCtAL-HdXjpvmrc4tm60AnFL7ivRhccIAa4IQQKlhIy3UdxrIwblauLuCQPIUw9zSNvkksZ9WULDhawkyb2S8Ql6PIxiZhtUpmC6hxOpgks2qqOCLqbYoJRi3G2kJO4ViYGStqKmtpW4Xi3fOntFkkPUsZrnjc6Qpn9lG1GrFZY3NsDUYxy6yXnRQzC7rH_BI2gXjVCTjBKK0u2AU0XWlvIYUPsfi2jUExbLP11VuotMaz7sK0zf39v48qQPvNDBjLToGImQVfPhKfqbkNQ-MS7Uv_ML1VwNO2unq40ioeb9soplzr4fD6XX0sot0bd36Zqhe1YfShQ_ofh40sEhobdHlyhB2-V8D60ugQ7DPqHWrJDZuQ_7XSW59KjFIqP6p6h0M160qOJ2U2U61dLoWWnmIHqF5L8fa33NxAqeSzWrgq1wkPblSAMiczAwBnsO6fG0zyTh5KfLrRS2q2BOr15JG1tPNmwzte3vGynDeyrFYncScyKNZsbNn-zTR6aNeNS6KCsmf9Zf9W6HEPTUgJMrjhYYMNit5qdpSVIcwEHSb1GmWdSiyqnoHHVKhRdqpF-542LIM3w-BL3aowYrR3HVMcw7Lf1tYEW03p8juGLsama-03U9SsId2cEQO8LfctpDOEnL1qE4799Dp6ED8xePAHw_N_geprNYkXp3nCwCTGC66VUWRl1FladS1tuOphjba9ajUdtgUORlVuoRChUws-C2rS1Um-lhsYbTRSwAKzsRKkEhutGLqCSy-2s3g-eF3xB5ETpBDGBQkS4LkgH3fQyT6FO3RnjfD8RYWvJtXCbxCWdMxpucozY8yQKuWEKrB5xnZCtzzxje_64miH2VY3TvdYmMkQ3_K06sbSoxOuc2qfCvnqnUTOYxch5NPAD7oKqs-aY2mCF3FPO6L5CojcGD4V8HW6JRmbaENEYM49-F8JqSB7HVXgGd5823RaSlMeu-GTFZQJetpjrDTToyqF6v55BviRmlYWgxJ_7NEuiNS7gvCHdQhrXtsLQe8P_kFU2paiVJ7MxXyHCQkJyMDyVpXIrJQDdcRjicsxUY6JNIVDBIoARo5Tm_BLd4LC315AX_M_j3R1-e__onnG89VZ8mn5B_qrDCc83tOetiFS2CG_UydWtox3oOObEXI06C3RECev3MyyK19teofBQjleHm_CL0Avr5PsnWnjxPEnpiRBkFnc_BWq6mgGMyXIaYk5RGKgFnQkuow-cqWzM-tyWYqye05p73P5Y1wMOUo3bg71u4r-LoG9lDQC9HXzo3xqryQY)
+Carolyn J Heckman, Translational Behavioral Medicine, 2019
+
+*   [Strategies for Dissecting the Genetic Driving of Conserved Noncoding-Elements for Evolutionary Development of the Corpus Callosum](https://rev.trendmd.com/open/tAkJMPNgH3irOH5XRHAd-oukNu76X-jgcCPtG8VOI77Jabe07uGl_p60sqokvor0Pa_OPv-F6lvTiMSpsGpTk4nHEqG9wSwCP80m58jYVvg-S-ynVoBbThGiapqZ2Zk7qWvT7DurWSxCyx6Vltun40Wo68kwSW11r08X1CFHKg5ENeSXe5j5qVRr90DchmQMDTlrnR9mOiF4K5ZKx_OIwoyUUHkZoSl_Csn-HBWQ7aXErHRdiTWQolGqnUAKXlhgbczJFDahy6zkGDH7vSZrg6IF7g_1wv9hAGlvCOp_Hfq6hEZSSrcXNstpsjnjTVrWkVLhnKTUrcGYwc5uRxnbs2_UFvLh6XFTcMbvReVUTdupCl388IQU9LavYA6eLYvJ2TcAHIbzGl1dpn9STsldhgc0rO4Cn9REMG0ieMnQ5DS_ZLJalldkpnY1zvxb4LChMa9E3r_gkf0Ts0W-Li-OCmJqfQizg09iL8ZPbsmwWJ1awWDaHcbI1s9taTRz4BxAyvxmRhIdZK0ZD7D03bY0SvFZaGeg3oqlFZcLknUZcKg4guxpNnBYOQR0Q5jsc1BSqBxNugpv14xUPGZiK8TeOJOqs702BktDVa58bChNgmUEXZPlN64dR-Z2qiOr2bhQWYZIAhHGjVWsmfzC3DFBoUD5Cl2WAjw5RaVqfs6O6mItNYl_y1paxB6hnWjL-0-_eqnKaBiH7R5JG5yWi8AvbOVO06deletDXupGqw_lHW_25nCMoO8wetuyBRjoo6kpx5pQ3gHCVlS_ddhnrSI0GgFk2h7o2A_Y5SsO1a3rFmVJuF4uU5QV1WjlrwKcueoX9zVx_prDH92PqFfwHQzz_6YC54fBe6EN1FRSxfvuanejuCPRD4G-mHKjo2hO6zjEnc3CiWAUiNuZ4SvZnBNdyjOsBGgbTd8u2jG60I3ZlY35xSbmMW9tz3FzGLkwhfJmRxzhAeCE-t3IIfayjfor5YAENSwrZ_jq-0KoUIazIxhe3y8MAanV0uUHc3YRWYhw9NYfBD6Lkq5yLDA_sTjL3NmW_oYBg80siCj8Fjk5kb6EadjLhsYsxPcDR39iu3FIwNoSgqnbNmbAtDcTv_X5GrNupHm6syQk4qJhX8HSaivotMNhQpoqLXeozcX8QYouuRGKmZzkozHDOAtv7JlrNQfpeZX1xk2MjsrRpE09xxEyuH7zpvp9APueFc4Od01SHbUHZDeeyotUkAthCNUsRnRsv-di5jwk3BGAxmWrq0ZEbQoSsDMJKWi42092R5put0JGGZiGBRBfa-ZMcHANv856lhghAKuDW2fI8U3apSkFS62JQiBPJn2_5SUsnjIayAlxUAXKZ3lr6C4luKMthGWYTiF5sc2euDOJkGtwWJngE7_d_xC4O2floLZZx5NvkETHQDDzZgCnVBcWFw6gT-3gS-Y03XyDUvCLHkMksUmm19j2R89FayS6ccKIAoDDtS3qoiNSs_NWM1R-ftx1IdDjRwJZTs6oe0KFsuZ19AXV14LJjdHv6sORjHjTBwEOUajamM8vGwRaF16F8ctCyVYTghlSklUaCgo9xQ)
+Neuroscience Bulletin, 2024
+
+*   [Behavioral Aspects of Cystic Fibrosis](https://rev.trendmd.com/open/Hy-secCtP9RXFGcCJTpe40k0QG0ysfXr8Y08m7xrdp4G-j7d25l_lpEgTyALExrYvgx4eodHyIpj23lQL0BKxt4tQkrAh0SOZVYfT0mN6jkKv3Tk_KUI349dyxSPmgnr0Zf2oVy2Ru4xU2QcSXTAHf3y_02h1LS6llxIrnzO3Mg-3Gdyo_Tb-bWQE0L7U7EhEsVErEO56fZHU_e47eALHxaNRFAdwmZp4ezuC9lzclOH_dpFDOxgwwM7DqRoDmmeFHrYBjyDwDuwzw1eLTGc3SBCOAs4NqFbLjjEKkhjfNVDr9RLHt5QmmFER4R2nH2aUKaTNPcH0c1ZfvAF4v99yrTMoFEO9rMti5LU_IOv9f27kXhI_FArbP9ixcowqW5mbv_XsdaL2h0fmMZzN_UZ0Ino7Atcj77HBZSDV8MuxaOp-YpJU8HN2fYkvlSYWnTljzNXdkdKCPaT7v9_Q4eiYh13ERIrZempBv8zkOylxYVTUwJpo3phv6WSLy43w9ZRMCbDQsdWhxuhwl2EsvAxNmrgr3xCoaje5hiLpQ2HPFLhvv6fVsEh6qhgnCEEYPqyHH91tZUjDCxLKY3Js9bjpx1kDdF6L0Ridb1uPwW2jFzkm1ZnVWksxluNQqJAUxp4VU0w3EhhqE3BoxFedITYo4qfw0AghmEYzTH7BnA8XI3X4yjA_lJR6cBpT2wt75xwpy9-ShJFTGzyTfwUkQpPJlp9iCTwnCLesS_UgII2RH_UTDJSLCjUtY_aQbVstBrXaPbqSGFdf3-PdwjrFlyD-FK_0C20Ps9qLqvhpLIBwjxCaXxfypuD4vjEuAy0AX-wiKNATIOepjyCvm_q37zKjEGzhMj2kDnRbZoHyaEK7N5jHqSKaCGRGbw2QwRVtmHdGCl5Ves16wDL5wTWTJDpELl7OEqrWQUQHgFwtWRUIKcrAAn4Xu9RO__VLMFWis5sNoLLtZcMnftga8gaxDWlhFF3uLLxfOi0hXIC3Wn5IVtghy2ThgQyTmFdk3f7n0cbbQMpjEMnfE_XJ_dEy4VylFx-71DGesAkmsIuM0S97HdIFh-I5NGbW5c_w8tfC0ttLiWcV8HD2sJNBbKAEGSean5OJ7Zu52OcpRC9pGgwrdGd_I-FKHuLG2c7J-MGxIEDKm0FVhtzIAri2hpR5A75dBlDeJeFJbs7Wx4S2wDODmeRMzKdd4V4YXgUcY4n4WwqsmSnGRoRIALoDoetXZSuhJQ8kQcW76QJDJ_7RWK0Q68C2OBAVsUaRb2Qw-Ti-V6hQclhCqGCGttxVGjl4ZsRhvbvmBX7jxxMcdfjP9ik5b6OoXq8Unx290nsvFSxiIzGDi597X9VWxHopHgBU_a7vcgIbZJa687q_ocxa64Ia-yT6D710DTd5Bn0BdOMeCgE7MapSZpWyCPLklsP0ybigexPb4DDTekULSbjo97slbYpFv0dHaox)
+David M. Orenstein, Annals of Behavioral Medicine, 1985
+
+*   [mySmartCheck, a Digital Intervention to Promote Skin Self-examination Among Individuals Diagnosed With or at Risk for Melanoma: A Randomized Clinical Trial](https://rev.trendmd.com/open/rUcJOYKrMlTxiU6fogXVuHDWPNaRZfJc6wUHLkvb34vVlAmL_hrSXuOCEJVSYuhdDO55bcCtzyLSDQuGj0y77CmrsniqcD3pfJ5AsvN_tJXpTI2F45XBRv2dqaDkGIXxZSH7JYW0LzX5kKAEAbpqZ_4nnK955vkH8Wg6DR5ZFBKL0nHuu5v4ttqDRsAlk8r-7_qU_RX1k-IzFphkZRn2GFAJ3aWaORpZ6ZeuDi-KUPJy5vIONVL2Xc2p_Q3rufvrrmbR6TfDeyO4pLDvgbEcP3DU6ZNi6qZ3bexBTSTTgm7PZRRRB1nm8GQMpmPNqAUhKRImlr7cbTTdkFqrBB0y0hQMfBRrzphCq36HLzyEKF-Hh0r4nFTx59Pw_E3NGgK2AaUPOKJh6zbSctr1BG9vl_oet8lX5OhL3rJOeMx9lBaXXoWE0o4xzfj___LsCqFNdAZCA2ZMlIlxAd-CeNyS97EEXf8Bm5MdEgUBZplLN5Q1KgmqWHxuaqrWMnudb3Fjy1tfRzh67m-zR0KuZQDkiEBD8Fyqh4uESeW9jqKb-hzBlwYAmG8dVTWmhWjVRK6xofFJPs8tbJ_05lpNR8SolxvfpTThixZ2TyfQymu6PJqvIy_e7z9lecFOF4kl3qmf6eWeO76-YLYCYWM9juZXpr0jVEZ0T7bVR_yTvz5RsKNfHIy76iqlKtQeo-jJqbeTfrazlYC4IBTD4ikN0ruHFtKQO8SpcDYL8gJr1qXrEbJEuIcTh1fKW4q7HNECYwUjLhB033wjsunub4Ei6Ctj1aY6ur8Hf3htzpxePRUYHIEKGCkVvtgITSWPEFlX7LFFkMsxblANYDVfyfbYnVsxJfefSoHqX9kV0uion2VB01nw8bFZdSrmKJAmfBW5h7YcIYzIWilrjF_LlWeE5dLoQVEt5aLDJCY9OnvTXhNw-OLP0SJy1qC20ap6M8jzveikNkChjKW5HNTh9tBX1k5EsekflQAmOcECrqvImdhEY2G4DfTT1rSfPWbS_eSD8m3BPH6MNS6-hiwN8bjOpiWELpbGs5rfu1465RR08Wz3Fl5SYi3cqN3FYX8qpCTk8p1xSaq6i0uh8vn_UysdKuYs5BLZGskIuaY2MTJYi0MydqN7TO58zP_TJRF9ZKQUcsdkmfZzDDmLne5ox1-xkFxl0wxYI9qSYwKQw6jfADXI9CABQ43qlBH53juqG6LK_FAgaviA41vD8uyKtIeQjbYKAxFdzI-AAplohjnnu7kUIoHQJhv889p7YTcr9y0Nssn7Djrtu8dtcoKB9LGTzcKMpXVBqs6vQJS4zFUnlKb5cYDZxzSeUgzomZsLRBTcbYWDoM76A6rrIA4pi7oNV6oZygorXyaDmxFwSJ_DOhYBNX14niZrVeUNtXjNEtosmvPjbVE541OHAJdFMK5ubiFBCaZAscXJSblzPNugjEMkaTxQEJiHYu15DOrz8ddcMkNlHs6cAEXYBvxrLPnEzTqMM7ZiUYCGzkOOX-8JO74DWcAxWmdwYpkdMaNP-YRN7WQbZ19cLA)
+Sharon L Manne, Annals of Behavioral Medicine, 2021

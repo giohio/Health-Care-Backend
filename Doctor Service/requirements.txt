@@ -6,7 +6,6 @@ pydantic-settings
 alembic
 psycopg2-binary
 email-validator
-uuid-extension
 pika
 aio-pika
 python-dotenv

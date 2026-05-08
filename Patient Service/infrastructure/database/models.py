@@ -28,6 +28,10 @@ class PatientProfileModel(Base):
     phone_number: Mapped[str | None] = mapped_column(String(20))
     address: Mapped[str | None] = mapped_column(Text)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
+    profile_photo_url: Mapped[str | None] = mapped_column(String(500))
+    vital_signs: Mapped[dict | None] = mapped_column(JSON)
+    emergency_contact: Mapped[dict | None] = mapped_column(JSON)
+    insurance: Mapped[dict | None] = mapped_column(JSON)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)

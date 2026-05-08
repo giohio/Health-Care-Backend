@@ -6,7 +6,8 @@ from infrastructure.database.models import PatientProfileModel, PatientVitalsMod
 
 @pytest.mark.asyncio
 async def test_get_profile_id_success():
-    session = AsyncMock()
+    session = MagicMock()
+    session.execute = AsyncMock()
     repo = VitalsRepository(session)
     user_id = uuid.uuid4()
     
@@ -22,7 +23,9 @@ async def test_get_profile_id_success():
 
 @pytest.mark.asyncio
 async def test_create_vitals_success():
-    session = AsyncMock()
+    session = MagicMock()
+    session.execute = AsyncMock()
+    session.flush = AsyncMock()
     repo = VitalsRepository(session)
     user_id = uuid.uuid4()
     profile_id = uuid.uuid4()
@@ -40,7 +43,8 @@ async def test_create_vitals_success():
 
 @pytest.mark.asyncio
 async def test_create_vitals_profile_not_found():
-    session = AsyncMock()
+    session = MagicMock()
+    session.execute = AsyncMock()
     repo = VitalsRepository(session)
     
     mock_result = MagicMock()
@@ -52,7 +56,8 @@ async def test_create_vitals_profile_not_found():
 
 @pytest.mark.asyncio
 async def test_get_latest_vitals_none():
-    session = AsyncMock()
+    session = MagicMock()
+    session.execute = AsyncMock()
     repo = VitalsRepository(session)
     
     mock_result = MagicMock()

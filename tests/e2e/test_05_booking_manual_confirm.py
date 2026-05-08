@@ -167,5 +167,5 @@ class TestBookingManualConfirm:
         )
 
         # Payment refund triggered
-        payment_after = (await http.get(f"{PAYMENT_URL}/payments/{appt_id}", headers=p_header)).json()
+        payment_after = (await http.get(f"{PAYMENT_URL}/{appt_id}", headers=p_header)).json()
         assert payment_after["status"] in ("refunded", "refund_pending")

@@ -82,6 +82,14 @@ class PaymentPaidConsumer(BaseConsumer):
                 auto_confirm = True if doctor_cfg is None else doctor_cfg.get("auto_confirm", True)
                 timeout_minutes = 15 if doctor_cfg is None else doctor_cfg.get("confirmation_timeout_minutes", 15)
 
+                # AI-referred appointments require manual doctor confirmation regardless of auto_confirm setting
+                if getattr(appt, 'ai_referred', False):
+                    auto_confirm = False
+                    logger.info(
+                        "AI-referred appointment %s -- forcing manual doctor confirmation (auto_confirm overridden)",
+                        appointment_id,
+                    )
+
                 if auto_confirm:
                     appt.queue_number = await repo.get_next_queue_number(
                         appt.doctor_id,
@@ -103,6 +111,8 @@ class PaymentPaidConsumer(BaseConsumer):
                             "start_time": str(appt.start_time),
                             "queue_number": appt.queue_number,
                             "auto_confirmed": True,
+                            "ai_referred": appt.ai_referred,
+                            "urgency_level": appt.urgency_level,
                         },
                     )
                 else:
@@ -121,6 +131,9 @@ class PaymentPaidConsumer(BaseConsumer):
                             "appointment_date": str(appt.appointment_date),
                             "start_time": str(appt.start_time),
                             "auto_confirmed": False,
+                            "ai_referred": appt.ai_referred,
+                            "urgency_level": appt.urgency_level,
+                            "referred_by_doctor_id": str(appt.referred_by_doctor_id) if appt.referred_by_doctor_id else None,
                         },
                     )
                     await OutboxWriter.write(
@@ -133,6 +146,24 @@ class PaymentPaidConsumer(BaseConsumer):
                             "timeout_at": timeout_at.isoformat(),
                         },
                     )
+
+                    # Notify GM doctor with priority alert for AI-referred appointments
+                    if appt.ai_referred and appt.referred_by_doctor_id:
+                        await OutboxWriter.write(
+                            session,
+                            aggregate_id=appt.id,
+                            aggregate_type="appointment_events",
+                            event_type="appointment.ai_referred_review",
+                            payload={
+                                "appointment_id": str(appt.id),
+                                "patient_id": str(appt.patient_id),
+                                "doctor_id": str(appt.referred_by_doctor_id),
+                                "urgency_level": appt.urgency_level,
+                                "department": "general_medicine",
+                                "appointment_date": str(appt.appointment_date),
+                                "start_time": str(appt.start_time),
+                            },
+                        )
 
                 await repo.save(appt)
 

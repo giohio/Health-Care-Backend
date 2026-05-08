@@ -82,7 +82,7 @@ async def wait_for_notification(
     def check(resp):
         notifs = resp if isinstance(resp, list) else resp.get("notifications", [])
         return any(
-            n.get("type") == notification_type
+            (n.get("event_type") == notification_type or n.get("type") == notification_type)
             and (contains_text in n.get("title", "") or contains_text in n.get("body", ""))
             for n in notifs
         )
@@ -108,7 +108,7 @@ async def wait_for_payment_record(
 
     async def fetch():
         r = await http.get(
-            f"{payment_url}/payments/{appointment_id}",
+            f"{payment_url}/{appointment_id}",
             headers={"Authorization": f"Bearer {token}"},
         )
         return {"status_code": r.status_code, "body": r.json()}
@@ -140,7 +140,7 @@ async def wait_for_payment_status(
 ) -> dict:
     async def fetch():
         r = await http.get(
-            f"{payment_url}/payments/{appointment_id}",
+            f"{payment_url}/{appointment_id}",
             headers={"Authorization": f"Bearer {token}"},
         )
         return r.json()

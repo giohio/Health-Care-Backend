@@ -41,7 +41,7 @@ class TestPaymentHappyPathIntegration:
 
         # Payment record should be created asynchronously by PaymentRequiredConsumer.
         async def _get_payment():
-            return await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            return await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
 
         payment_resp = None
         for _ in range(20):

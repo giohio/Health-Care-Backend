@@ -18,10 +18,11 @@ class User:
     role: UserRole
 
     id: UUID7 = field(default_factory=uuid7)
+    full_name: str | None = None
 
     is_active: bool = True
     is_deleted: bool = False
-    is_email_verified: bool = True
+    is_email_verified: bool = False
     is_profile_completed: bool = False
 
     created_at: datetime = field(default_factory=datetime.now)
@@ -29,7 +30,7 @@ class User:
     deleted_at: datetime | None = None
 
     def can_login(self) -> bool:
-        return self.is_active and not self.is_deleted
+        return self.is_active and not self.is_deleted and self.is_email_verified
 
     def record_login(self):
         self.updated_at = datetime.now()

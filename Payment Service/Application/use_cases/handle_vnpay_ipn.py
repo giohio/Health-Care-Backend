@@ -42,10 +42,15 @@ class ProcessVNPayIPnUseCase:
         # Find payment by transaction reference
         payment = await self.payment_repo.get_by_vnpay_txn_ref(txn_ref)
         if not payment:
-            return {"RspCode": "02", "Message": "Payment not found"}
+            return {"RspCode": "01", "Message": "Payment not found"}
 
         response_code = str(params.get("vnp_ResponseCode", ""))
         provider_ref = verify_result.provider_ref or params.get("vnp_TransactionNo")
+
+        # Idempotency: already processed (IPN may have run before Return URL)
+        from Domain.value_objects.payment_status import PaymentStatus
+        if payment.status in (PaymentStatus.PAID, PaymentStatus.FAILED, PaymentStatus.EXPIRED):
+            return {"RspCode": "02", "Message": "Order already confirmed"}
 
         if response_code == "00":
             payment.mark_as_paid(
@@ -66,20 +71,37 @@ class ProcessVNPayIPnUseCase:
                 },
             )
 
-            await self.event_publisher.publish(
-                session=self.session,
-                aggregate_id=payment.id,
-                aggregate_type="payment_events",
-                event_type="payment.paid",
-                payload={
-                    "payment_id": str(payment.id),
-                    "appointment_id": str(payment.appointment_id),
-                    "patient_id": str(payment.patient_id),
-                    "doctor_id": str(payment.doctor_id),
-                    "status": payment.status.value,
-                    "provider_ref": payment.vnpay_provider_ref,
-                },
-            )
+            # Publish different events for lab order vs appointment payments
+            if payment.payment_type == "LAB_ORDER":
+                await self.event_publisher.publish(
+                    session=self.session,
+                    aggregate_id=payment.id,
+                    aggregate_type="payment_events",
+                    event_type="lab_payment.paid",
+                    payload={
+                        "payment_id": str(payment.id),
+                        "lab_order_id": str(payment.reference_id),
+                        "patient_id": str(payment.patient_id),
+                        "doctor_id": str(payment.doctor_id),
+                        "status": payment.status.value,
+                        "provider_ref": payment.vnpay_provider_ref,
+                    },
+                )
+            else:
+                await self.event_publisher.publish(
+                    session=self.session,
+                    aggregate_id=payment.id,
+                    aggregate_type="payment_events",
+                    event_type="payment.paid",
+                    payload={
+                        "payment_id": str(payment.id),
+                        "appointment_id": str(payment.appointment_id),
+                        "patient_id": str(payment.patient_id),
+                        "doctor_id": str(payment.doctor_id),
+                        "status": payment.status.value,
+                        "provider_ref": payment.vnpay_provider_ref,
+                    },
+                )
             await self.session.commit()
             return {"RspCode": "00", "Message": "OK"}
 

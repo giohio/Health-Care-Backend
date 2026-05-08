@@ -129,3 +129,17 @@ async def test_update_health_ignores_unknown_fields():
     assert result.weight_kg == pytest.approx(70.0)
     _, fields = health_repo.updated[0]
     assert "unknown_field" not in fields
+
+
+@pytest.mark.asyncio
+async def test_update_health_with_empty_payload_skips_repository_update():
+    profile = PatientProfile(user_id=uuid4(), full_name="A")
+    existing = PatientHealthBackground(patient_id=profile.id)
+    profile_repo = FakeProfileRepo(profile=profile)
+    health_repo = FakeHealthRepo(health=existing)
+    use_case = UpdateHealthBackgroundUseCase(profile_repo=profile_repo, health_repo=health_repo)
+
+    result = await use_case.execute(user_id=profile.user_id)
+
+    assert result.patient_id == profile.id
+    assert health_repo.updated == []

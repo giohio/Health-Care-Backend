@@ -45,7 +45,7 @@ class TestDoctorClinicalFlow:
         # 3. Pay for Appointment (Hit IPN + Direct Event Publication)
         payment = None
         for _ in range(10):
-            resp = await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            resp = await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
             if resp.status_code == 200:
                 payment = resp.json()
                 break

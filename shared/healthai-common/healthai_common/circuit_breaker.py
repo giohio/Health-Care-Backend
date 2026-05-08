@@ -1,9 +1,10 @@
 import logging
-from typing import Callable, Optional, TypeVar
+from typing import Awaitable, Callable, Optional, ParamSpec, TypeVar
 
 from healthai_cache import CacheClient
 
 logger = logging.getLogger(__name__)
+P = ParamSpec("P")
 T = TypeVar("T")
 
 
@@ -73,7 +74,13 @@ class CircuitBreaker:
         state = await self.cache.get(self._state_key)
         return state or "CLOSED"
 
-    async def call(self, fn: Callable[..., T], fallback: Optional[Callable[..., T]] = None, *args, **kwargs) -> T:
+    async def call(
+        self,
+        fn: Callable[P, Awaitable[T]],
+        fallback: Optional[Callable[P, Awaitable[T]]] = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
         state = await self.get_state()
 
         if state == "OPEN":

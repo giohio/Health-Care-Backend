@@ -26,7 +26,10 @@ class TestLoginUseCase:
     @pytest.fixture
     def password_hasher(self):
         """Mock password hasher."""
-        return MagicMock()
+        mock = MagicMock()
+        mock.verify = AsyncMock(return_value=True)
+        mock.hash = AsyncMock(return_value="hashed_value")
+        return mock
 
     @pytest.fixture
     def jwt_handler(self):
@@ -404,11 +407,11 @@ class TestLogOutUseCase:
         # Assert
         token_repo.revoke_all_for_user.assert_called_with(user_id)
 
-    def test_logout_all_devices_missing_user_id(self, use_case):
+    async def test_logout_all_devices_missing_user_id(self, use_case):
         """Test logout all devices without user_id raises error."""
         # Act & Assert
         with pytest.raises(ValueError, match="user_id required for logout_all_devices"):
-            use_case.execute(user_id=None, logout_all_devices=True)
+            await use_case.execute(user_id=None, logout_all_devices=True)
 
     async def test_logout_expired_token_silently_succeeds(self, use_case, token_repo):
         """Test logout with expired token succeeds silently."""

@@ -11,6 +11,7 @@ from presentation.dependencies import (
     get_current_user_id,
     get_event_publisher,
     get_health_repo,
+    get_upload_profile_photo_use_case,
     get_initialize_profile_use_case,
     get_latest_vitals_use_case,
     get_profile_repo,
@@ -135,6 +136,12 @@ class FakeCache:
         self.deleted.append(key)
 
 
+class FakeUploadPhotoUseCase:
+    async def execute(self, *_args, **_kwargs):
+        await asyncio.sleep(0)
+        return "/uploads/profile-photos/test.png"
+
+
 def _build_app():
     app = FastAPI()
     app.include_router(router)
@@ -193,6 +200,16 @@ async def test_patient_routes_profile_health_and_summary_success_paths():
         upd_profile = await client.put("/profile", json={"full_name": "Alice"})
         assert upd_profile.status_code == 200
 
+        patch_profile = await client.patch(
+            "/profile",
+            json={
+                "vital_signs": {"height_cm": 170.5, "weight_kg": 65.5, "blood_pressure": "120/80", "heart_rate_bpm": 72},
+                "emergency_contact": {"name": "Bob", "relationship": "Brother", "phone": "0909000000", "email": "bob@example.com"},
+                "insurance": {"type": "PRIVATE", "provider": "Bao Viet", "policy_id": "POL1", "expiry_date": "2030-01-01"},
+            },
+        )
+        assert patch_profile.status_code == 200
+
         upd_health = await client.put("/health", json={"height_cm": 170, "weight_kg": 65.5})
         assert upd_health.status_code == 200
 
@@ -219,6 +236,10 @@ async def test_patient_get_profile_uses_cache_hit_without_repository_calls():
                     "phone_number": None,
                     "address": None,
                     "avatar_url": None,
+                    "profile_photo_url": None,
+                    "vital_signs": None,
+                    "emergency_contact": None,
+                    "insurance": None,
                     "created_at": now_iso,
                     "updated_at": now_iso,
                 },
@@ -267,6 +288,28 @@ async def test_patient_routes_value_error_paths_map_to_404():
 
         health_fail = await client.put("/health", json={"height_cm": 170})
         assert health_fail.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_patient_profile_photo_upload_route_invalid_and_success_paths():
+    app = _build_app()
+    user_id = uuid4()
+    cache = FakeCache()
+
+    app.dependency_overrides[dependencies.get_current_user_id] = lambda: user_id
+    app.dependency_overrides[dependencies.get_cache_client] = lambda: cache
+    app.dependency_overrides[dependencies.get_upload_profile_photo_use_case] = lambda: FakeUploadPhotoUseCase()
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        ok = await client.post(
+            "/profile/photo",
+            files={"photo": ("avatar.png", b"image-bytes", "image/png")},
+        )
+        assert ok.status_code == 200
+        assert ok.json()["profile_photo_url"] == "/uploads/profile-photos/test.png"
+
+    assert any(k == f"patient:profile:{user_id}" for k in cache.deleted)
 
 
 @pytest.mark.asyncio

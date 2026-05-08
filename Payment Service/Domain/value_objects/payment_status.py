@@ -9,6 +9,7 @@ class PaymentStatus(str, Enum):
     FAILED = "failed"
     EXPIRED = "expired"
     REFUNDED = "refunded"
+    REFUND_PENDING = "refund_pending"
 
     def __str__(self):
         return self.value

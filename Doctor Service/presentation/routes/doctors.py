@@ -21,6 +21,8 @@ from Application.use_cases.update_doctor_profile import UpdateDoctorProfileUseCa
 from Domain.exceptions.domain_exceptions import DoctorNotFoundException
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from infrastructure.database.session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from presentation.dependencies import (
     get_add_day_off_use_case,
     get_add_service_offering_use_case,
@@ -52,7 +54,7 @@ async def doctor_health_check():
 async def provision_doctor(
     dto: DoctorDTO,
     use_case: Annotated[RegisterDoctorUseCase, Depends(get_register_doctor_use_case)],
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if x_user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
@@ -73,8 +75,8 @@ async def provision_doctor(
 async def set_my_auto_confirm_settings(
     payload: DoctorAutoConfirmSettingsRequest,
     use_case: Annotated[SetAutoConfirmSettingsUseCase, Depends(get_set_auto_confirm_settings_use_case)],
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
-    x_user_role: str | None = Header(default=None, alias="X-User-Role"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail="X-User-Id header is missing")
@@ -166,12 +168,14 @@ async def submit_rating(
     appointment_id: UUID | None = Query(default=None),
     comment: str | None = Query(default=None),
     use_case: Annotated[SubmitRatingUseCase, Depends(get_submit_rating_use_case)] = None,
-    x_user_id: UUID | None = Header(default=None, alias="X-User-Id"),
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+    session: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     if not x_user_id:
         raise HTTPException(status_code=401, detail="X-User-Id header is missing")
     try:
         result = await use_case.execute(doctor_id, x_user_id, rating, comment, appointment_id=appointment_id)
+        await session.commit()  # Commit before response is sent to avoid race condition
         return {"success": True, "rating_id": str(result.id)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -265,9 +269,26 @@ async def list_services(
     use_case: Annotated[ListServiceOfferingsUseCase, Depends(get_list_service_offerings_use_case)],
 ):
     services = await use_case.execute(doctor_id)
+
+    def _read(item, key: str, fallback: str | None = None):
+        if isinstance(item, dict):
+            if key in item:
+                return item[key]
+            return item.get(fallback) if fallback else None
+        value = getattr(item, key, None)
+        if value is None and fallback:
+            value = getattr(item, fallback, None)
+        return value
+
     return {
         "services": [
-            {"id": str(s.id), "name": s.service_name, "fee": s.fee, "duration": s.duration_minutes} for s in services
+            {
+                "id": str(_read(s, "id")),
+                "name": _read(s, "service_name", fallback="name"),
+                "fee": _read(s, "fee"),
+                "duration": _read(s, "duration_minutes", fallback="duration"),
+            }
+            for s in services
         ]
     }
 

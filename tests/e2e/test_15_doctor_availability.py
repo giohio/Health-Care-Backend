@@ -418,12 +418,17 @@ class TestDoctorRatingSystem:
         )
         assert rate_r.status_code in (200, 201), rate_r.text
 
-        # Verify it appears in ratings list
-        list_r = await http.get(f"{DOCTOR_URL}/{doctor['user_id']}/ratings")
-        assert list_r.status_code == 200
-        ratings = (
-            list_r.json()
-            if isinstance(list_r.json(), list)
-            else list_r.json().get("items", list_r.json().get("ratings", []))
+        # Verify it appears in ratings list (retry up to 5× for async commit visibility)
+        import asyncio as _asyncio
+        ratings = []
+        for _attempt in range(5):
+            list_r = await http.get(f"{DOCTOR_URL}/{doctor['user_id']}/ratings")
+            assert list_r.status_code == 200
+            body = list_r.json()
+            ratings = body if isinstance(body, list) else body.get("items", body.get("ratings", []))
+            if any(rev.get("rating") == 4 for rev in ratings):
+                break
+            await _asyncio.sleep(0.5)
+        assert any(rev.get("rating") == 4 for rev in ratings), (
+            f"Rating 4 not found after retries. Response: {list_r.json()}"
         )
-        assert any(rev.get("rating") == 4 for rev in ratings)

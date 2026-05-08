@@ -7,7 +7,7 @@ until pg_isready -h postgres -p 5432 -U "${POSTGRES_USER:-postgres}" >/dev/null 
   sleep 1
 done
 
-PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/postgresql+asyncpg/postgresql/')
+PSQL_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's|postgresql+asyncpg|postgresql|')
 
 has_migration_files() {
   if [ -n "$(find /app/alembic/versions -maxdepth 1 -type f -name '*.py' ! -name '__init__.py' -print -quit 2>/dev/null)" ]; then

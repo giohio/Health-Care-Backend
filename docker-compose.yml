@@ -71,6 +71,9 @@ services:
       - appointment_service
       - payment_service
       - notification_service
+      - clinical_service
+      - emr_result_service
+      - ai_service
       - jaeger
 
   auth_service:
@@ -81,6 +84,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/authentication
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
       APP_ROOT_PATH: /auth
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     networks:
@@ -89,6 +93,10 @@ services:
       postgres:
         condition: service_started
       rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      notification_service:
         condition: service_healthy
 
   patient_service:
@@ -138,13 +146,22 @@ services:
       context: .
       dockerfile: ./Appointment Service/Dockerfile
     container_name: appointment_service
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/appointment_db
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
       APP_ROOT_PATH: /appointments
       DOCTOR_SERVICE_URL: http://doctor_service:8000
+      EMR_SERVICE_URL: http://emr_result_service:8000
       REDIS_URL: redis://redis:6379/0
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      TZ: Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - healthcare_net
     depends_on:
@@ -162,6 +179,7 @@ services:
       context: .
       dockerfile: ./Payment Service/Dockerfile
     container_name: payment_service
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/payment_db
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
@@ -169,8 +187,15 @@ services:
       REDIS_URL: redis://redis:6379/0
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-TV1BKXSO}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-9W8MLHMKMYTSO7DN1JGI1H9XEQOYXPWH}
-      VNPAY_URL: https://sandbox.vnpayment.vn/paygate
+      VNPAY_URL: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      VNPAY_GATEWAY_RETURN_URL: http://localhost:8000/payments/vnpay/return
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - healthcare_net
     depends_on:
@@ -197,6 +222,13 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      TZ: Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - healthcare_net
     depends_on:
@@ -206,6 +238,136 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+
+  clinical_service:
+    build:
+      context: .
+      dockerfile: ./Clinical Service/Dockerfile
+    container_name: clinical_service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/clinical_db
+      PATIENT_SERVICE_URL: http://patient_service:8000
+      APP_ROOT_PATH: /clinical
+      REDIS_URL: redis://redis:6379/2
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    networks:
+      - healthcare_net
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      patient_service:
+        condition: service_started
+
+  emr_result_service:
+    build:
+      context: .
+      dockerfile: ./EMR Result Service/Dockerfile
+    container_name: emr_result_service
+    volumes:
+      - emr_uploads:/app/uploads
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/emr_result_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+      NOTIFICATION_SERVICE_URL: http://notification_service:8000
+      CLINICAL_SERVICE_URL: http://clinical_service:8000
+      APP_ROOT_PATH: ""
+      REDIS_URL: redis://redis:6379/3
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    networks:
+      - healthcare_net
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      clinical_service:
+        condition: service_started
+      notification_service:
+        condition: service_started
+
+  ai_service:
+    build:
+      context: .
+      dockerfile: ./AI Service/Dockerfile
+    container_name: ai_service
+    extra_hosts:
+      - "llm.wokushop.com:104.21.24.170"
+      - "generativelanguage.googleapis.com:142.250.197.74"
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      WOKU_API_KEY: ${WOKU_API_KEY:-}
+      CLINICAL_SERVICE_URL: http://clinical_service:8000
+      EMR_RESULT_SERVICE_URL: http://emr_result_service:8000
+      REDIS_URL: redis://redis:6379/4
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/triage_session_db
+      APP_ROOT_PATH: /ai
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      RAG_ENABLED: "true"
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: clinical_guidelines
+      OLLAMA_URL: http://ollama:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: on-failure
+    networks:
+      - healthcare_net
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      clinical_service:
+        condition: service_started
+      emr_result_service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  ai_worker:
+    build:
+      context: .
+      dockerfile: ./AI Service/Dockerfile
+    container_name: ai_celery_worker
+    command: >
+      sh -c "celery -A celery_worker worker --loglevel=info --concurrency=2 -Q ai_tasks"
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_worker inspect ping --timeout 5 | grep -q 'pong'"]
+      interval: 30s
+      timeout: 15s
+      start_period: 40s
+      retries: 3
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    extra_hosts:
+      - "llm.wokushop.com:104.21.24.170"
+      - "generativelanguage.googleapis.com:142.250.197.74"
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      WOKU_API_KEY: ${WOKU_API_KEY:-}
+      CLINICAL_SERVICE_URL: http://clinical_service:8000
+      EMR_RESULT_SERVICE_URL: http://emr_result_service:8000
+      REDIS_URL: redis://redis:6379/4
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/triage_session_db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    networks:
+      - healthcare_net
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_started
+      ai_service:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
@@ -217,7 +379,6 @@ services:
       - redis_data:/data
     networks:
       - healthcare_net
-
 
   static_docs:
     image: nginx:alpine
@@ -234,3 +395,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  emr_uploads:

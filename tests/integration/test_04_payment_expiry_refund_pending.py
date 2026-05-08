@@ -42,7 +42,7 @@ class TestPaymentExpiryRefundIntegration:
         # 2. Wait for Payment record to exist
         payment = None
         for _ in range(10):
-            resp = await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            resp = await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
             if resp.status_code == 200:
                 payment = resp.json()
                 break
@@ -97,7 +97,7 @@ class TestPaymentExpiryRefundIntegration:
         # Wait for payment and mark as PAID
         payment = None
         for _ in range(10):
-            resp = await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            resp = await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
             if resp.status_code == 200:
                 payment = resp.json()
                 break
@@ -125,7 +125,7 @@ class TestPaymentExpiryRefundIntegration:
         # PaymentRefundRequestedConsumer transitions status to 'refunded'
         refunded_payment = None
         for _ in range(20):
-            resp = await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            resp = await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
             if resp.status_code == 200:
                 if resp.json().get("status") == "refunded":
                     refunded_payment = resp.json()

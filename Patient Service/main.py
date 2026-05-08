@@ -1,4 +1,5 @@
 import asyncio
+import importlib.util
 import logging
 import os
 import sys
@@ -8,6 +9,7 @@ from urllib.parse import urlparse
 import aio_pika
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from healthai_cache import CacheClient
 from healthai_events import OutboxRelay, RabbitMQPublisher
 from infrastructure.config import settings
@@ -20,10 +22,28 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 TRACING_DIR = Path(__file__).resolve().parents[1] / "shared" / "healthai-tracing"
-if str(TRACING_DIR) not in sys.path:
-    sys.path.append(str(TRACING_DIR))
+TELEMETRY_PATH = TRACING_DIR / "telemetry.py"
 
-from telemetry import setup_logging, setup_telemetry  # noqa: E402
+if TELEMETRY_PATH.exists():
+    spec = importlib.util.spec_from_file_location("healthai_tracing_telemetry", TELEMETRY_PATH)
+    telemetry_module = importlib.util.module_from_spec(spec) if spec and spec.loader else None
+    if spec and spec.loader and telemetry_module:
+        try:
+            spec.loader.exec_module(telemetry_module)
+            setup_logging = telemetry_module.setup_logging
+            setup_telemetry = telemetry_module.setup_telemetry
+        except Exception:
+            telemetry_module = None
+    else:
+        telemetry_module = None
+
+if not TELEMETRY_PATH.exists() or telemetry_module is None:
+
+    def setup_logging(*_args, **_kwargs):
+        return None
+
+    def setup_telemetry(*_args, **_kwargs):
+        return None
 
 app = FastAPI(
     title="Patient Profile Service",
@@ -42,6 +62,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+upload_dir = Path(settings.UPLOAD_DIR)
+upload_dir.mkdir(parents=True, exist_ok=True)
+upload_mount = settings.UPLOAD_BASE_URL if settings.UPLOAD_BASE_URL.startswith("/") else f"/{settings.UPLOAD_BASE_URL}"
+app.mount(upload_mount, StaticFiles(directory=upload_dir), name="patient-uploads")
 
 # Routes
 app.include_router(patient.router)

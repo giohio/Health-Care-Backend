@@ -65,4 +65,30 @@ Thumbs.db
 Evidence/
 KienNH126_Final Exam Devops/
 
+# AI / Agent tools
 .claude/
+.agents/
+.augment/
+brain/
+
+# Graphify output
+graphify-out/
+
+# LaTeX files (thesis / docs)
+*.tex
+*.aux
+*.out
+*.toc
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+
+# OpenAPI & config JSON exports (generated, không cần commit)
+*_openapi.json
+*openapi*.json
+
+# Lock files từ AI tools
+skills-lock.json

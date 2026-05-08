@@ -28,8 +28,14 @@ class Appointment:
     cancelled_by_user_id: UUID7 | None = None
     cancel_reason: str | None = None
     queue_number: int | None = None
+    consultation_fee: int = 0
     reminder_24h_sent: bool = False
     reminder_1h_sent: bool = False
+    # AI Triage referral fields
+    triage_session_id: UUID7 | None = None
+    ai_referred: bool = False
+    urgency_level: str | None = None
+    referred_by_doctor_id: UUID7 | None = None  # GM doctor who confirmed/referred
 
     def __post_init__(self):
         # Normalize to naive time objects to prevent timezone offset comparison issues
@@ -47,8 +53,11 @@ class Appointment:
             pass
 
     def can_be_confirmed_by(self, doctor_id: UUID7) -> bool:
-        """Only the assigned doctor can confirm a pending appointment."""
-        return self.doctor_id == doctor_id and self.status == AppointmentStatus.PENDING
+        """Only the assigned doctor can confirm a pending or pending-payment appointment."""
+        return self.doctor_id == doctor_id and self.status in (
+            AppointmentStatus.PENDING,
+            AppointmentStatus.PENDING_PAYMENT,
+        )
 
     def can_be_cancelled_by(self, user_id: UUID7, user_role: str) -> bool:
         """Check whether the given caller is allowed to cancel this appointment."""
@@ -66,6 +75,13 @@ class Appointment:
             AppointmentStatus.PENDING_PAYMENT,
             AppointmentStatus.PENDING,
             AppointmentStatus.CONFIRMED,
+        )
+
+    def can_be_adjusted_by(self, doctor_id: UUID7) -> bool:
+        """Only the assigned doctor can adjust duration/fee on an active appointment."""
+        return self.doctor_id == doctor_id and self.status in (
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.IN_PROGRESS,
         )
 
     def can_transition_to(self, target: AppointmentStatus) -> bool:

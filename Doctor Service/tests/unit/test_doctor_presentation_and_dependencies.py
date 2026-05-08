@@ -87,6 +87,27 @@ async def test_doctor_health_endpoint():
 
 
 @pytest.mark.asyncio
+async def test_list_services_supports_dict_items_from_cache():
+    app = FastAPI()
+    app.include_router(doctors_router)
+
+    class DummyUC:
+        async def execute(self, *_args):
+            await asyncio.sleep(0)
+            return [{"id": uuid4(), "service_name": "Consult", "fee": 100000.0, "duration_minutes": 30}]
+
+    app.dependency_overrides[get_list_service_offerings_use_case] = lambda: DummyUC()
+
+    async with _make_async_client(app) as client:
+        r = await client.get(f"/{uuid4()}/services")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["services"]) == 1
+    assert body["services"][0]["name"] == "Consult"
+
+
+@pytest.mark.asyncio
 async def test_provision_doctor_requires_admin():
     app = FastAPI()
     app.include_router(doctors_router)

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 
@@ -10,12 +10,15 @@ class Payment:
     """Payment entity - domain model"""
 
     id: UUID
-    appointment_id: UUID
     patient_id: UUID
+    appointment_id: UUID | None  # None for LAB_ORDER payments
     doctor_id: UUID
     amount: int  # in VND
+    payment_type: str = "APPOINTMENT"  # APPOINTMENT | LAB_ORDER
+    reference_id: UUID | None = None  # lab_order_id for LAB_ORDER type
     currency: str = "VND"
     status: PaymentStatus = PaymentStatus.PENDING
+    appointment_status: str = "pending_payment"
     vnpay_txn_ref: str | None = None
     vnpay_provider_ref: str | None = None
     payment_url: str | None = None
@@ -40,6 +43,10 @@ class Payment:
     def mark_as_refunded(self) -> None:
         """Mark payment as refunded"""
         self.status = PaymentStatus.REFUNDED
+
+    def mark_as_refund_pending(self, reason: str = "") -> None:
+        """Mark payment as pending manual refund by admin."""
+        self.status = PaymentStatus.REFUND_PENDING
 
     def is_expired(self, now: datetime) -> bool:
         """Check if payment has expired (15 minutes from creation)"""

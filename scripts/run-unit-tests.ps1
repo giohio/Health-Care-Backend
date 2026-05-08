@@ -5,6 +5,8 @@ param(
     [switch]$AuthOnly,
     [switch]$DoctorOnly,
     [switch]$PatientOnly,
+    [switch]$ClinicalOnly,
+    [switch]$EMROnly,
     [switch]$NewFeaturesOnly,
     [switch]$Coverage
 )
@@ -32,8 +34,8 @@ function Run-ServiceTests {
     }
 }
 
-if ((@($PaymentOnly, $NotificationOnly, $AppointmentOnly, $AuthOnly, $DoctorOnly, $PatientOnly, $NewFeaturesOnly) | Where-Object { $_ }).Count -gt 1) {
-    throw "Use only one of -PaymentOnly, -NotificationOnly, -AppointmentOnly, -AuthOnly, -DoctorOnly, -PatientOnly or -NewFeaturesOnly"
+if ((@($PaymentOnly, $NotificationOnly, $AppointmentOnly, $AuthOnly, $DoctorOnly, $PatientOnly, $ClinicalOnly, $EMROnly, $NewFeaturesOnly) | Where-Object { $_ }).Count -gt 1) {
+    throw "Use only one of -PaymentOnly, -NotificationOnly, -AppointmentOnly, -AuthOnly, -DoctorOnly, -PatientOnly, -ClinicalOnly, -EMROnly or -NewFeaturesOnly"
 }
 
 function Run-CoverageReport {
@@ -89,6 +91,16 @@ if ($PatientOnly) {
     exit 0
 }
 
+if ($ClinicalOnly) {
+    Run-ServiceTests -ServicePath "$PSScriptRoot\..\Clinical Service" -Target "tests/unit"
+    exit 0
+}
+
+if ($EMROnly) {
+    Run-ServiceTests -ServicePath "$PSScriptRoot\..\EMR Result Service" -Target "tests/unit"
+    exit 0
+}
+
 if ($NewFeaturesOnly) {
     Write-Host "Running new feature tests (21 core use case tests)..." -ForegroundColor Green
     
@@ -109,6 +121,8 @@ if ($Coverage) {
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Auth service" -ServiceName "Auth Service"
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Doctor Service" -ServiceName "Doctor Service"
     Run-CoverageReport -ServicePath "$PSScriptRoot\..\Patient Service" -ServiceName "Patient Service"
+    Run-CoverageReport -ServicePath "$PSScriptRoot\..\Clinical Service" -ServiceName "Clinical Service"
+    Run-CoverageReport -ServicePath "$PSScriptRoot\..\EMR Result Service" -ServiceName "EMR Result Service"
     exit 0
 }
 
@@ -118,3 +132,5 @@ Run-ServiceTests -ServicePath "$PSScriptRoot\..\Appointment Service" -Target "te
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Auth service" -Target "tests/unit"
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Doctor Service" -Target "tests/unit"
 Run-ServiceTests -ServicePath "$PSScriptRoot\..\Patient Service" -Target "tests/unit"
+Run-ServiceTests -ServicePath "$PSScriptRoot\..\Clinical Service" -Target "tests/unit"
+Run-ServiceTests -ServicePath "$PSScriptRoot\..\EMR Result Service" -Target "tests/unit"

@@ -29,3 +29,26 @@ async def get_patient_full_context_internal(
         return {"profile": profile, "health_background": health}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=f"Patient not found: {str(e)}")
+
+
+@router.get(
+    "/{user_id}",
+    responses={404: {"description": "Patient not found"}},
+)
+async def get_patient_name_internal(
+    user_id: UUID,
+    profile_repo: Annotated[IPatientProfileRepository, Depends(get_profile_repo)],
+):
+    """
+    Lightweight internal endpoint to fetch just the patient's full_name.
+    Used by AI Service to include patient name in triage session responses.
+    """
+    from Application import GetProfileUseCase
+    from Domain import IPatientHealthRepository
+    try:
+        profile = await profile_repo.get_by_id(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        return {"full_name": profile.full_name}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

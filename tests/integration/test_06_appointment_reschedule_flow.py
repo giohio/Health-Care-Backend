@@ -47,7 +47,7 @@ class TestAppointmentRescheduleFlow:
         # 3. Pay to reach CONFIRMED
         payment = None
         for _ in range(20):
-            resp = await http.get(f"{PAYMENT_URL}/payments/{appointment_id}", headers=patient_h)
+            resp = await http.get(f"{PAYMENT_URL}/{appointment_id}", headers=patient_h)
             if resp.status_code == 200:
                 payment = resp.json()
                 break
@@ -104,7 +104,7 @@ class TestAppointmentRescheduleFlow:
                 break
             await asyncio.sleep(1)
         else:
-            pytest.fail(f"Original slot 08:00 was never released after reschedule")
+            pytest.fail("Original slot 08:00 was never released after reschedule")
 
         # 7. Verify New Slot is Taken
         slots_new_resp = await http.get(

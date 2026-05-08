@@ -62,7 +62,8 @@ class FakeTokenRepo:
 
 
 class FakePasswordHasher:
-    def verify(self, _plain, _hashed):
+    async def verify(self, _plain, _hashed):
+        await _yield_control()
         return True
 
 
