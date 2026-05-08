@@ -1,27 +1,35 @@
-# HealthAI Backend Microservices
+<div align="center">
+  <h1>⚙️ HealthAI Clinical OS (Backend)</h1>
+  <p><i>A Robust, Event-Driven Microservices Architecture for Modern Healthcare</i></p>
+</div>
 
-This document is the official introduction to the HealthAI backend system. It describes the architecture, service responsibilities, and the end-to-end business flow in a production-oriented format.
+<br />
 
-## 1. System Goals
+> **HealthAI Backend** is the mission-critical engine powering the HealthAI Clinical OS. Designed with enterprise-grade patterns, it orchestrates complex clinical workflows, real-time appointments, and cutting-edge AI decision support while maintaining strict data consistency and high availability.
 
-HealthAI Backend is built as a microservices platform to handle core capabilities of a healthcare appointment system:
+---
 
-- User authentication and authorization.
-- Patient and doctor profile management.
-- Real-time appointment booking by available slots.
-- Online payments (VNPAY) per appointment.
-- Real-time user notifications.
-- Clinical records: diagnoses, medications, clinical notes, vaccinations.
-- AI-powered clinical decision support: triage, lab analysis, EMR summarization.
-- Human-in-the-Loop AI lab result workflow with physician review.
+## 1. 🎯 System Goals & Capabilities
 
-The platform is designed to prioritize:
+This platform is engineered to handle the comprehensive lifecycle of a modern healthcare facility:
 
-- Business consistency across multi-service workflows.
-- Fault tolerance through asynchronous broker-based communication.
-- Independent scalability per component.
+- **Identity & Access:** Secure JWT-based authentication with OTP verification.
+- **Entity Management:** Comprehensive Patient and Doctor profile lifecycles.
+- **Resource Booking:** High-concurrency appointment slot management and queueing.
+- **FinTech Integration:** Real-time VNPAY online payment processing.
+- **Clinical Informatics:** Digital EMR management (Diagnoses, Medications, SOAP Notes).
+- **Advanced AI Triage:** Dynamic, stateful symptom-checking conversational agents.
+- **Human-in-the-Loop AI:** Automated lab result analysis with mandatory physician review pipelines.
+- **Real-time Communications:** WebSocket-driven notification push system.
 
-## 2. Architecture Overview
+### 🏗 Design Philosophy
+
+- **Resilience:** Fault tolerance via asynchronous, broker-based communication (RabbitMQ).
+- **Consistency:** Saga orchestration and Outbox patterns for distributed transactions.
+- **Scalability:** True database-per-service isolation within a clean architecture context.
+
+
+## 2. 🏛 Architecture Overview
 
 ### 2.1 Core Components
 
@@ -37,19 +45,25 @@ The platform is designed to prioritize:
 | **Clinical Service** | Diagnoses, medications, clinical notes, vaccinations |
 | **EMR Result Service** | Lab orders, lab results, HITL AI review pipeline |
 | **AI Service** | Triage/symptom check, lab analysis, EMR summarization, speech, auscultation |
-| **Database** | PostgreSQL per service |
+| **AI Worker** | Celery worker for background AI tasks (lab analysis, speech processing) |
+| **Database** | PostgreSQL per service (Auth, Patient, Doctor, Appointment, Payment, Notification, Clinical, EMR Result, Triage) |
 | **Event Bus** | RabbitMQ |
-| **Cache** | Redis |
+| **Cache** | Redis (shared instance with multiple DB indices) |
+| **Vector DB** | Qdrant (Clinical guidelines knowledge base) |
+| **Local LLM** | Ollama (for RAG / specialized local inference) |
+| **Tracing** | Jaeger (OpenTelemetry collector) |
+| **Docs Hub** | Nginx serving static API/Architecture documentation |
 
 ### 2.2 Architectural Principles
 
-- **Database-per-service**: each service owns its schema and data.
-- **Clean Architecture**: Application, Domain, Infrastructure, Presentation separation.
-- **Outbox Pattern**: business data and integration events are persisted in the same transaction.
-- **Saga/Compensation**: multi-step workflow control (especially Appointment + Payment).
-- **Event-driven integration**: services communicate through domain events instead of deep synchronous coupling.
+- 📦 **Database-per-service**: each service owns its schema and data.
+- 🧹 **Clean Architecture**: Application, Domain, Infrastructure, Presentation separation.
+- 📮 **Outbox Pattern**: business data and integration events are persisted in the same transaction.
+- 🔄 **Saga/Compensation**: multi-step workflow control (especially Appointment + Payment).
+- ⚡ **Event-driven integration**: services communicate through domain events instead of deep synchronous coupling.
+- 👨‍⚕️ **Human-in-the-Loop (HITL)**: critical AI decisions (lab results, urgent triage) require physician validation before publication.
 
-### 2.3 Kong Route Map
+### 2.3 🔀 Kong Route Map
 
 | Kong Path | Backend Service | Auth |
 |---|---|---|
@@ -418,43 +432,58 @@ ACTIVE → AI_SUGGESTED → AUTO_CONFIRMED (routine urgency, no doctor needed)
 - Best-effort enrichment (lab_readiness, specialty enrichment) with graceful degradation.
 - Service isolation limits failure blast radius.
 
-## 7. Local Runtime
+## 7. Development Workflow
 
-### 7.1 Run with Docker Compose
+### 7.1 Branching Strategy
+- `main`: Production-ready code.
+- `develop`: Integration branch for new features.
+- `feature/*`: Specific feature development.
 
-1. Prepare environment configuration (`.env`) based on project settings.
-2. Start:
+### 7.2 Automated Pull Requests
+The system is configured with a GitHub Action to automatically create a Pull Request from any `feature/*` branch to `develop` whenever code is pushed. This ensures a consistent review process and keeps the integration branch up to date.
+
+---
+
+## 8. 💻 Local Runtime
+
+### 8.1 Prerequisites
+- **Docker & Docker Compose** (v2+)
+- `.env` file configured (copy from `.env.example`)
+- API Keys for AI features (Groq, Gemini, Woku)
+
+### 8.2 Run with Docker Compose
+
+1. Prepare environment configuration (`.env`). *Make sure to never commit your actual `.env` file (it is ignored by git).*
+2. Start the entire ecosystem (16+ containers):
 
 ```bash
 docker compose up --build
 ```
 
 3. Verify:
+- Kong API Gateway is reachable at `localhost:8000`.
+- All services (Auth, Patient, Doctor, etc.) are healthy.
+- Infrastructure (RabbitMQ, PostgreSQL, Redis, Jaeger, Qdrant) is running.
 
-- Kong gateway is reachable.
-- All services are healthy.
-- RabbitMQ/PostgreSQL/Redis/Jaeger are running.
+### 8.3 Quick Validation Flow
 
-### 7.2 Quick Validation Flow
+1. Register and verify email (via OTP).
+2. Complete patient profile setup.
+3. Book an appointment and process VNPAY payment (sandbox).
+4. Doctor confirms and starts the consultation.
+5. Doctor records clinical notes and orders lab tests.
+6. Doctor/KTV uploads lab results -> **AI Worker** generates draft.
+7. Doctor reviews and publishes results -> Patient receives WebSocket notification.
 
-1. Register and verify email (OTP).
-2. Update patient profile.
-3. Create an appointment with VNPAY payment.
-4. Doctor confirms and starts appointment.
-5. Doctor records clinical notes and prescriptions.
-6. Doctor orders lab tests.
-7. AI analyzes lab results (if file upload).
-8. Doctor reviews and publishes results.
-9. Patient views published lab results.
-10. Verify notification records and WebSocket delivery.
+---
 
-## 8. Observability
+## 9. 📊 Observability & Monitoring
 
-- **Tracing**: Jaeger for cross-service transaction flow.
-- **Logging**: structured service-level logs.
-- **Metrics/alerts**: expandable for production SLO needs.
+- 🔍 **Distributed Tracing**: Jaeger is integrated via OpenTelemetry for cross-service request tracking.
+- 📝 **Structured Logging**: Standardized service-level logs across all microservices.
+- 📈 **Metrics Ready**: Extensible architecture for adding Prometheus/Grafana in production.
 
-## 9. Current Strengths
+## 10. Current Strengths
 
 - Clear domain boundaries via 9 well-scoped microservices.
 - Stable event backbone for feature evolution.
@@ -463,7 +492,7 @@ docker compose up --build
 - Human-in-the-Loop AI lab result workflow ensures physician oversight.
 - Production hardening-ready direction: rate limiting, circuit breaker, DLQ policy, contract versioning.
 
-## 10. Recommended Next Improvements
+## 11. Recommended Next Improvements
 
 - Standardize event schema versioning.
 - Add inter-service contract tests.
