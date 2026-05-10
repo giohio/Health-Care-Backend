@@ -55,6 +55,42 @@ class FakeClinicalClient:
         return self._context
 
 
+class FakeTriageState:
+    def __init__(self, recommendation=None, pending_slots=None):
+        self.recommendation = recommendation
+        self.pending_slots = pending_slots
+        self.saved_pending_slots = None
+        self.deleted_pending = False
+        self.deleted_recommendation = False
+
+    async def get_pending_slots(self, patient_id):
+        await _yield_control()
+        return self.pending_slots
+
+    async def set_pending_slots(self, patient_id, data):
+        await _yield_control()
+        self.saved_pending_slots = data
+        self.pending_slots = data
+
+    async def del_pending_slots(self, patient_id):
+        await _yield_control()
+        self.deleted_pending = True
+        self.pending_slots = None
+
+    async def get_recommendation(self, patient_id):
+        await _yield_control()
+        return self.recommendation
+
+    async def set_recommendation(self, patient_id, data):
+        await _yield_control()
+        self.recommendation = data
+
+    async def del_recommendation(self, patient_id):
+        await _yield_control()
+        self.deleted_recommendation = True
+        self.recommendation = None
+
+
 @pytest.mark.asyncio
 async def test_symptom_check_yields_all_chunks():
     groq     = FakeGroqClient(["[Q]", " Xin chào", " đây là câu hỏi."])
@@ -188,6 +224,155 @@ async def test_symptom_check_empty_stream_returns_nothing():
     chunks  = [c async for c in use_case.execute(request, "u-001", "patient")]
 
     assert chunks == []
+
+
+@pytest.mark.asyncio
+async def test_booking_yes_please_after_recommendation_asks_for_date_without_llm():
+    groq = FakeGroqClient(chunks=["[Q]", " should not be called"])
+    clinical = FakeClinicalClient()
+    use_case = SymptomCheckUseCase(
+        llm=groq,
+        clinical=clinical,
+        state=FakeTriageState(),
+    )
+
+    request = SymptomCheckRequest(
+        patient_id="p-book-date",
+        symptoms="Yes pls",
+        conversation_history=[
+            ConversationTurn(role="patient", content="I have fever and cough"),
+            ConversationTurn(role="assistant", content="[R] I recommend General Medicine. Would you like me to help you book an appointment?"),
+        ],
+    )
+
+    chunks = [c async for c in use_case.execute(request, "u-001", "patient")]
+
+    assert "".join(chunks) == "[Q] What date would you like to book, or would you prefer the earliest available?"
+    assert clinical.called_with is None
+    assert groq.last_messages is None
+
+
+@pytest.mark.asyncio
+async def test_booking_yes_oks_after_offer_asks_for_date_without_llm():
+    groq = FakeGroqClient(chunks=["[Q]", " should not be called"])
+    clinical = FakeClinicalClient()
+    use_case = SymptomCheckUseCase(
+        llm=groq,
+        clinical=clinical,
+        state=FakeTriageState(),
+    )
+
+    request = SymptomCheckRequest(
+        patient_id="p-book-yes-oks",
+        symptoms="Yes oks",
+        conversation_history=[
+            ConversationTurn(role="patient", content="I have fever and cough"),
+            ConversationTurn(role="assistant", content="[R] I recommend General Medicine. Would you like me to help you book an appointment?"),
+        ],
+    )
+
+    chunks = [c async for c in use_case.execute(request, "u-001", "patient")]
+
+    assert "".join(chunks) == "[Q] What date would you like to book, or would you prefer the earliest available?"
+    assert clinical.called_with is None
+    assert groq.last_messages is None
+
+
+@pytest.mark.asyncio
+async def test_booking_date_answer_after_prompt_checks_availability_after_busy_until_day():
+    from Application.symptom_check import _parse_date_from_message
+
+    expected_date = _parse_date_from_message("I'm busy till next tuesday so after that would work")
+    assert expected_date is not None
+
+    groq = FakeGroqClient(chunks=["[Q]", " should not be called"])
+    clinical = FakeClinicalClient()
+    state = FakeTriageState()
+    use_case = SymptomCheckUseCase(llm=groq, clinical=clinical, state=state)
+
+    fake_availability = {
+        "status": "ok",
+        "slots": [
+            {
+                "doctor_id": "doc-1",
+                "specialty_id": "spec-1",
+                "doctor_name": "Dr. An",
+                "start_time": "09:00:00",
+                "end_time": "09:30:00",
+            },
+        ],
+    }
+
+    request = SymptomCheckRequest(
+        patient_id="p-book-after",
+        symptoms="I'm busy till next tuesday so after that would work",
+        conversation_history=[
+            ConversationTurn(role="patient", content="I have fever and cough"),
+            ConversationTurn(role="assistant", content="[R] I recommend General Medicine. Would you like me to help you book an appointment?"),
+            ConversationTurn(role="patient", content="Yes pls"),
+            ConversationTurn(role="assistant", content="[Q] What date would you like to book, or would you prefer the earliest available?"),
+        ],
+    )
+
+    with patch("infrastructure.llm.booking_tools.fn_check_availability", new=AsyncMock(return_value=fake_availability)) as mock_check:
+        chunks = [c async for c in use_case.execute(request, "u-001", "patient")]
+
+    full_text = "".join(chunks)
+    mock_check.assert_awaited_once_with("General Medicine", expected_date)
+    assert f"on {expected_date}" in full_text
+    assert "Dr. An" in full_text
+    assert state.saved_pending_slots["date_str"] == expected_date
+    assert clinical.called_with is None
+    assert groq.last_messages is None
+
+
+@pytest.mark.asyncio
+async def test_booking_date_answer_parses_next_week_thurday_typo():
+    from Application.symptom_check import _parse_date_from_message
+
+    expected_date = _parse_date_from_message("I'm busy till next week, maybe i will be free on thurday")
+    assert expected_date is not None
+
+    groq = FakeGroqClient(chunks=["[Q]", " should not be called"])
+    clinical = FakeClinicalClient()
+    state = FakeTriageState()
+    use_case = SymptomCheckUseCase(llm=groq, clinical=clinical, state=state)
+
+    fake_availability = {
+        "status": "ok",
+        "slots": [
+            {
+                "doctor_id": "doc-2",
+                "specialty_id": "spec-1",
+                "doctor_name": "Dr. Binh",
+                "start_time": "10:00:00",
+                "end_time": "10:30:00",
+            },
+        ],
+    }
+
+    request = SymptomCheckRequest(
+        patient_id="p-book-thurday",
+        symptoms="I'm busy till next week, maybe i will be free on thurday",
+        conversation_history=[
+            ConversationTurn(role="patient", content="I have fever and cough"),
+            ConversationTurn(role="assistant", content="[R] I recommend General Medicine. Would you like me to help you book an appointment?"),
+            ConversationTurn(role="patient", content="Yes pls"),
+            ConversationTurn(role="assistant", content="[Q] What date would you like to book, or would you prefer the earliest available?"),
+        ],
+    )
+
+    with patch("infrastructure.llm.booking_tools.fn_check_availability", new=AsyncMock(return_value=fake_availability)) as mock_check:
+        chunks = [c async for c in use_case.execute(request, "u-001", "patient")]
+
+    full_text = "".join(chunks)
+    mock_check.assert_awaited_once_with("General Medicine", expected_date)
+    assert "What date would you like to book" not in full_text
+    assert f"on {expected_date}" in full_text
+    assert "Dr. Binh" in full_text
+    assert state.saved_pending_slots["date_str"] == expected_date
+    assert clinical.called_with is None
+    assert groq.last_messages is None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -334,6 +519,3 @@ async def test_symptom_route_unknown_session_returns_404():
             )
 
     assert resp.status_code == 404
-
-
-

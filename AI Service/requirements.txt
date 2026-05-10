@@ -21,8 +21,7 @@ sqlalchemy[asyncio]==2.0.25
 asyncpg==0.29.0
 alembic==1.13.1
 psycopg2-binary
-# Event outbox + RabbitMQ for publishing triage events
-healthai_db @ file://./shared/healthai-db
+# Direct RabbitMQ publisher for triage events
 aio_pika>=9.4.0
 # RAG
 qdrant-client>=1.9.0
