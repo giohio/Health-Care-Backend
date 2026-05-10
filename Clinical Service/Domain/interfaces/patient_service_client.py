@@ -20,7 +20,8 @@ class IPatientServiceClient(ABC):
             "weight_kg": float | None,
             "blood_pressure": str | None,
             "heart_rate": int | None,
-            "temperature_c": float | None,
+            "temperature_celsius": float | None,
+            "oxygen_saturation": int | None,
             "recorded_at": str | None,
         }
         """

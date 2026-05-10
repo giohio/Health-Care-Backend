@@ -198,12 +198,27 @@ def build_emr_summary_prompt(context, recent_labs: list[dict], user_language: st
     if getattr(context, 'recent_notes', None):
         notes_lines = "\n".join(f"  [{i}] {n}" for i, n in enumerate(context.recent_notes[:3], 1))
         notes_block = f"\nRecent visit notes:\n{notes_lines}\n"
+    vitals_parts = []
+    if getattr(context, 'height_cm', None):
+        vitals_parts.append(f"Height {context.height_cm} cm")
+    if getattr(context, 'weight_kg', None):
+        vitals_parts.append(f"Weight {context.weight_kg} kg")
+    if getattr(context, 'blood_pressure', None):
+        vitals_parts.append(f"BP {context.blood_pressure} mmHg")
+    if getattr(context, 'heart_rate_bpm', None):
+        vitals_parts.append(f"HR {context.heart_rate_bpm} bpm")
+    if getattr(context, 'temperature_celsius', None):
+        vitals_parts.append(f"Temp {context.temperature_celsius} °C")
+    if getattr(context, 'oxygen_saturation', None):
+        vitals_parts.append(f"SpO2 {context.oxygen_saturation}%")
+    vitals_text = " | ".join(vitals_parts) or "None recorded"
 
     return f"""{lang}
 
 PATIENT PROFILE:
 Name: {context.full_name}
 Age: {context.age} | Gender: {context.gender}
+Current vitals: {vitals_text}
 
 Active diagnoses: {', '.join(context.active_diagnoses) or 'None'}
 Current medications: {', '.join(context.current_medications) or 'None'}
@@ -223,18 +238,24 @@ Your task is to generate a professional SOAP note draft based on patient data.
 
 REQUIRED JSON STRUCTURE (Return ONLY valid JSON):
 {
-  "s": "Subjective findings (Chief complaint, HPI, symptoms reported by patient)",
-  "o": "Objective findings (Vitals, physical exam findings, current lab/imaging results)",
-  "a": "Assessment (Differential diagnoses, clinical reasoning, status of chronic conditions)",
-  "p": "Plan (Management, medications prescribed, tests ordered, follow-up, referrals)"
+  "s": "Subjective findings (chief complaint, HPI, symptoms reported by patient)",
+  "o": "Objective findings (vitals, physical exam findings, current lab/imaging results)",
+  "a": "Assessment (problem representation, differential diagnoses, clinical reasoning, chronic condition status)",
+  "p": "Plan (management, medications, tests, follow-up, referrals, return precautions)"
 }
 
 ABSOLUTE RULES:
 1. Write in concise, professional medical English.
 2. Use standard abbreviations (e.g., pt, hx, dx, rx, c/o).
-3. Map available data strictly to the S, O, A, P categories.
-4. If data is missing for a section, provide a minimal placeholder like "Pending assessment."
-5. Do NOT include prose or markdown outside the JSON object.
+3. Do not include section labels like "S:", "O:", "A:", or "P:" inside the JSON values; the UI already provides those labels.
+4. Put all recorded vital signs in "o"; do not put vitals in "s".
+5. Interpret every recorded vital sign using standard adult clinical judgment: BP, HR, temperature, SpO2, height, weight, and BMI when height/weight are available.
+6. Do not describe all vitals as normal/stable if any value is borderline, abnormal, internally inconsistent, or clinically worth rechecking.
+7. Mention clinically relevant borderline/abnormal vitals in "a" and include an appropriate recheck, monitoring, clinical correlation, or follow-up step in "p".
+8. Consider patient context before overcalling abnormality: age, symptoms, known conditions, and acute complaint. If the significance is uncertain, say it should be correlated clinically rather than making a diagnosis.
+9. If physical exam or labs are missing, state "Pending assessment" or "None available" in the correct section. Do not invent findings.
+10. Keep each section clinically useful: avoid generic filler, but include relevant negatives from the patient history when provided.
+11. Do NOT include prose or markdown outside the JSON object.
 """
 
 
@@ -249,10 +270,25 @@ def build_soap_draft_prompt(context, recent_labs: list[dict] = None,
     triage_text = ""
     if triage_summary:
         triage_text = f"\n\nRECENT TRIAGE SUMMARY:\n{str(triage_summary)}"
+    vitals_parts = []
+    if getattr(context, 'height_cm', None):
+        vitals_parts.append(f"Height {context.height_cm} cm")
+    if getattr(context, 'weight_kg', None):
+        vitals_parts.append(f"Weight {context.weight_kg} kg")
+    if getattr(context, 'blood_pressure', None):
+        vitals_parts.append(f"BP {context.blood_pressure} mmHg")
+    if getattr(context, 'heart_rate_bpm', None):
+        vitals_parts.append(f"HR {context.heart_rate_bpm} bpm")
+    if getattr(context, 'temperature_celsius', None):
+        vitals_parts.append(f"Temp {context.temperature_celsius} °C")
+    if getattr(context, 'oxygen_saturation', None):
+        vitals_parts.append(f"SpO2 {context.oxygen_saturation}%")
+    vitals_text = " | ".join(vitals_parts) or "None recorded"
 
     return f"""PATIENT PROFILE:
 Name: {context.full_name}
 Age: {context.age} | Gender: {context.gender}
+Current vitals: {vitals_text}
 Active diagnoses: {', '.join(context.active_diagnoses) or 'None'}
 Current medications: {', '.join(context.current_medications) or 'None'}
 Allergies: {context.allergies or 'None'}
@@ -260,7 +296,7 @@ Chronic conditions: {context.chronic_conditions or 'None'}
 
 RECENT LABS:{labs_text or ' None'}{triage_text}
 
-Based on the above data, generate a structured SOAP note draft in JSON format."""
+Generate a structured SOAP note draft in JSON format. Respect the clinical interpretation rules from the system message, especially for borderline oxygen saturation."""
 
 
 # ─────────────────────────────────────────────

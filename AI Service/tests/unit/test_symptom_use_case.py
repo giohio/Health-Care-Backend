@@ -18,9 +18,11 @@ async def _yield_control():
 
 
 class FakeGroqClient:
-    def __init__(self, chunks=None):
+    def __init__(self, chunks=None, structured_result=None):
         self.last_messages = None
         self._chunks = chunks if chunks is not None else ["[Q]", " chunk1", " chunk2"]
+        self._structured_result = structured_result
+        self.structured_calls = []
 
     async def stream_conversation(self, messages, **kwargs):
         self.last_messages = messages
@@ -36,6 +38,11 @@ class FakeGroqClient:
 
     async def complete_structured(self, **kwargs):
         await _yield_control()
+        self.structured_calls.append(kwargs)
+        schema = kwargs.get("response_schema") or {}
+        required = set(schema.get("required") or [])
+        if "intent" in required and self._structured_result is not None:
+            return self._structured_result
         return {"specialties": []}
 
 
@@ -371,6 +378,95 @@ async def test_booking_date_answer_parses_next_week_thurday_typo():
     assert f"on {expected_date}" in full_text
     assert "Dr. Binh" in full_text
     assert state.saved_pending_slots["date_str"] == expected_date
+    assert clinical.called_with is None
+    assert groq.last_messages is None
+
+
+@pytest.mark.asyncio
+async def test_booking_date_answer_uses_semantic_date_when_regex_cannot_parse():
+    groq = FakeGroqClient(
+        chunks=["[Q]", " should not be streamed"],
+        structured_result={
+            "intent": "provide_date_constraint",
+            "date_constraint": {
+                "kind": "after",
+                "raw_text": "until the 14th, after that works",
+                "normalized_date": "2026-05-15",
+            },
+            "time_preference": "",
+            "confidence": 0.91,
+        },
+    )
+    clinical = FakeClinicalClient()
+    state = FakeTriageState()
+    use_case = SymptomCheckUseCase(llm=groq, clinical=clinical, state=state)
+
+    fake_availability = {
+        "status": "ok",
+        "slots": [
+            {
+                "doctor_id": "doc-3",
+                "specialty_id": "spec-1",
+                "doctor_name": "Dr. Chi",
+                "start_time": "09:00:00",
+                "end_time": "09:30:00",
+            },
+        ],
+    }
+
+    request = SymptomCheckRequest(
+        patient_id="p-book-semantic-date",
+        symptoms="I'm tied up until the 14th, after that works",
+        conversation_history=[
+            ConversationTurn(role="patient", content="I have fever and cough"),
+            ConversationTurn(role="assistant", content="[R] I recommend General Medicine. Would you like me to help you book an appointment?"),
+            ConversationTurn(role="patient", content="Yes pls"),
+            ConversationTurn(role="assistant", content="[Q] What date would you like to book, or would you prefer the earliest available?"),
+        ],
+    )
+
+    with patch("infrastructure.llm.booking_tools.fn_check_availability", new=AsyncMock(return_value=fake_availability)) as mock_check:
+        chunks = [c async for c in use_case.execute(request, "u-001", "patient")]
+
+    full_text = "".join(chunks)
+    mock_check.assert_awaited_once_with("General Medicine", "2026-05-15")
+    assert "What date would you like to book" not in full_text
+    assert "Dr. Chi" in full_text
+    assert state.saved_pending_slots["date_str"] == "2026-05-15"
+    assert clinical.called_with is None
+    assert groq.last_messages is None
+
+
+@pytest.mark.asyncio
+async def test_booking_semantic_acceptance_after_recommendation_asks_for_date():
+    groq = FakeGroqClient(
+        chunks=["[Q]", " should not be streamed"],
+        structured_result={
+            "intent": "accept_booking",
+            "date_constraint": {
+                "kind": "unknown",
+                "raw_text": "",
+                "normalized_date": "",
+            },
+            "time_preference": "",
+            "confidence": 0.88,
+        },
+    )
+    clinical = FakeClinicalClient()
+    use_case = SymptomCheckUseCase(llm=groq, clinical=clinical, state=FakeTriageState())
+
+    request = SymptomCheckRequest(
+        patient_id="p-book-semantic-accept",
+        symptoms="Could you arrange that for me?",
+        conversation_history=[
+            ConversationTurn(role="patient", content="I have fever and cough"),
+            ConversationTurn(role="assistant", content="[R] I recommend General Medicine. Would you like me to help you book an appointment?"),
+        ],
+    )
+
+    chunks = [c async for c in use_case.execute(request, "u-001", "patient")]
+
+    assert "".join(chunks) == "[Q] What date would you like to book, or would you prefer the earliest available?"
     assert clinical.called_with is None
     assert groq.last_messages is None
 

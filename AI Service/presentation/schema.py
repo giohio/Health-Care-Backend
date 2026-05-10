@@ -68,7 +68,7 @@ class DoctorReferInput(BaseModel):
     notes: Optional[str] = Field(
         default=None,
         max_length=2000,
-        description="Reason for redirecting to Internal Medicine.",
+        description="Reason for redirecting to General Medicine.",
     )
 
 

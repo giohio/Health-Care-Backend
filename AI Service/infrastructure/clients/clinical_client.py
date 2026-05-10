@@ -44,6 +44,8 @@ class ClinicalClient(IClinicalClient):
         weight_kg   = None
         blood_press = None
         heart_rate  = None
+        temperature = None
+        oxygen_sat  = None
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             # ── 1. Clinical Service: diagnoses, medications, allergies, vitals ──
@@ -73,11 +75,19 @@ class ClinicalClient(IClinicalClient):
                     allergies = raw_allergies
 
                 vitals = data.get("vitals_latest") or {}
+                if isinstance(vitals, dict) and isinstance(vitals.get("vitals"), dict):
+                    vitals = vitals["vitals"]
                 if vitals:
                     height_cm  = vitals.get("height_cm")
                     weight_kg  = vitals.get("weight_kg")
-                    blood_press = vitals.get("blood_pressure")
-                    heart_rate  = vitals.get("heart_rate_bpm")
+                    systolic = vitals.get("blood_pressure_systolic")
+                    diastolic = vitals.get("blood_pressure_diastolic")
+                    blood_press = vitals.get("blood_pressure") or (
+                        f"{systolic}/{diastolic}" if systolic and diastolic else None
+                    )
+                    heart_rate  = vitals.get("heart_rate_bpm") or vitals.get("heart_rate")
+                    temperature = vitals.get("temperature_celsius") or vitals.get("temperature")
+                    oxygen_sat  = vitals.get("oxygen_saturation") or vitals.get("spo2")
 
             except Exception as e:
                 logger.warning("clinical_client: clinical_service fallback for %s: %s", patient_id, e)
@@ -125,6 +135,8 @@ class ClinicalClient(IClinicalClient):
                     weight_kg   = pvitals.get("weight_kg")   or weight_kg
                     blood_press = pvitals.get("blood_pressure") or blood_press
                     heart_rate  = pvitals.get("heart_rate_bpm") or heart_rate
+                    temperature = pvitals.get("temperature_celsius") or pvitals.get("temperature") or temperature
+                    oxygen_sat  = pvitals.get("oxygen_saturation") or pvitals.get("spo2") or oxygen_sat
 
             except Exception as e:
                 logger.warning("clinical_client: patient_service fallback for %s: %s", patient_id, e)
@@ -158,5 +170,7 @@ class ClinicalClient(IClinicalClient):
             weight_kg=weight_kg,
             blood_pressure=blood_press,
             heart_rate_bpm=heart_rate,
+            temperature_celsius=temperature,
+            oxygen_saturation=oxygen_sat,
             recent_notes=recent_notes,
         )

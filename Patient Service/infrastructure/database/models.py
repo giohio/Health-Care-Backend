@@ -86,5 +86,6 @@ class PatientVitalsModel(Base):
     blood_pressure_diastolic: Mapped[int | None] = mapped_column(nullable=True)
     heart_rate: Mapped[int | None] = mapped_column(nullable=True)
     temperature_celsius: Mapped[float | None] = mapped_column(nullable=True)
+    oxygen_saturation: Mapped[int | None] = mapped_column(nullable=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

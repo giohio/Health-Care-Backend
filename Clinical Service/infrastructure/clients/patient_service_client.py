@@ -56,11 +56,17 @@ class PatientServiceClient(IPatientServiceClient):
 
     async def get_latest_vitals(self, patient_id: UUID) -> Optional[Dict[str, Any]]:
         async def _fetch() -> Optional[Dict[str, Any]]:
-            response = await self._client.get(f"/patients/{patient_id}/vitals/latest")
+            response = await self._client.get(
+                f"/patients/{patient_id}/vitals/latest",
+                headers={"X-User-Role": "service"},
+            )
             if response.status_code == 404:
                 return None
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            if isinstance(data, dict) and isinstance(data.get("vitals"), dict):
+                return data["vitals"]
+            return data
 
         async def _fallback(*_args, **_kwargs) -> Optional[Dict[str, Any]]:
             await asyncio.sleep(0)
