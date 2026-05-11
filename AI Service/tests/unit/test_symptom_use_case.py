@@ -490,7 +490,7 @@ def _fake_triage_session(session_id: str = "ses-01", messages=None) -> TriageSes
 
 async def _stream_sse(client, payload, headers=None):
     """POST to /symptom-check and collect non-blank SSE lines."""
-    _headers = {"x-user-id": "u-001", "x-user-role": "patient"}
+    _headers = {"x-user-id": "p-001", "x-user-role": "patient"}
     if headers:
         _headers.update(headers)
     lines = []
@@ -588,7 +588,7 @@ async def test_symptom_route_existing_session_loads_history():
                 {"patient_id": "p-001", "symptoms": "Đau ở thái dương", "session_id": "ses-existing"},
             )
 
-    mock_svc.load_session.assert_called_once_with("ses-existing", "u-001", "patient")
+    mock_svc.load_session.assert_called_once_with("ses-existing", "p-001", "patient")
     # system(1) + 2 prior turns + current user message(1) = 4 messages sent to Groq
     assert len(groq.last_messages) == 4
 
@@ -611,7 +611,7 @@ async def test_symptom_route_unknown_session_returns_404():
             resp = await client.post(
                 "/symptom-check",
                 json={"patient_id": "p-001", "symptoms": "Đau đầu kéo dài nhiều giờ", "session_id": "bad-id"},
-                headers={"x-user-id": "u-001", "x-user-role": "patient"},
+                headers={"x-user-id": "p-001", "x-user-role": "patient"},
             )
 
     assert resp.status_code == 404

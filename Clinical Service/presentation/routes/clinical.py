@@ -16,7 +16,7 @@ from Application.dtos import (
 )
 from Application.exceptions import DiagnosisNotFoundError, MedicationNotFoundError
 from Application.use_cases.add_diagnosis import AddDiagnosisUseCase
-from Application.use_cases.clinical_notes import CreateClinicalNoteUseCase, ListClinicalNotesUseCase, UpdateClinicalNoteUseCase
+from Application.use_cases.clinical_notes import CreateClinicalNoteUseCase, DeleteClinicalNoteUseCase, ListClinicalNotesUseCase, UpdateClinicalNoteUseCase, UpsertClinicalNoteUseCase
 from Application.use_cases.get_patient_summary import GetPatientSummaryUseCase
 from Application.use_cases.list_diagnoses import ListDiagnosesUseCase
 from Application.use_cases.list_medications import ListMedicationsUseCase
@@ -30,7 +30,9 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from presentation.dependencies import (
     get_add_diagnosis_use_case,
     get_create_note_use_case,
+    get_delete_note_use_case,
     get_update_note_use_case,
+    get_upsert_note_use_case,
     get_list_diagnoses_use_case,
     get_list_medications_use_case,
     get_list_notes_use_case,
@@ -238,6 +240,24 @@ async def create_clinical_note(
     return await use_case.execute(body)
 
 
+@router.put(
+    "/patients/{patient_id}/notes/current",
+    response_model=ClinicalNoteResponse,
+    summary="Create or replace the current clinical note for this appointment and type",
+)
+async def upsert_current_clinical_note(
+    patient_id: UUID,
+    body: CreateClinicalNoteRequest,
+    x_user_id: UUID | None = Header(None),
+    x_user_role: str | None = Header(None),
+    use_case: UpsertClinicalNoteUseCase = Depends(get_upsert_note_use_case),
+):
+    _require_user_id(x_user_id)
+    _require_role(x_user_role, ["doctor", "admin"])
+    body = body.model_copy(update={"patient_id": patient_id})
+    return await use_case.execute(body)
+
+
 @router.patch(
     "/notes/{note_id}",
     response_model=ClinicalNoteResponse,
@@ -256,6 +276,25 @@ async def update_clinical_note(
     if result is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return result
+
+
+@router.delete(
+    "/notes/{note_id}",
+    status_code=204,
+    summary="Delete an existing clinical note",
+)
+async def delete_clinical_note(
+    note_id: UUID,
+    x_user_id: UUID | None = Header(None),
+    x_user_role: str | None = Header(None),
+    use_case: DeleteClinicalNoteUseCase = Depends(get_delete_note_use_case),
+):
+    _require_user_id(x_user_id)
+    _require_role(x_user_role, ["doctor", "admin"])
+    deleted = await use_case.execute(note_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return None
 
 
 @router.get(

@@ -19,6 +19,14 @@ class IClinicalNoteRepository(ABC):
         """Update the content of an existing note in-place. Returns None if not found."""
 
     @abstractmethod
+    async def upsert_current(self, note: ClinicalNote) -> ClinicalNote:
+        """Create or replace the current note for patient, appointment, and note type."""
+
+    @abstractmethod
+    async def delete(self, note_id: UUID) -> bool:
+        """Delete a clinical note by id. Returns whether a row was deleted."""
+
+    @abstractmethod
     async def list_by_patient(
         self,
         patient_id: UUID,

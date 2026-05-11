@@ -61,6 +61,8 @@ async def symptom_check(
     """
     # Normalize role to lowercase for consistent session access control
     normalized_role = (x_user_role or "").strip().lower()
+    if normalized_role == "patient" and body.patient_id != x_user_id:
+        raise HTTPException(status_code=403, detail="Patients can only start triage sessions for themselves")
     
     # ── Step 1: create or load the session (before streaming) ──────────────
     try:
@@ -113,6 +115,7 @@ async def symptom_check(
         raise HTTPException(status_code=403, detail="Access denied to this session")
 
     session_id = session.id
+    effective_patient_id = session.patient_id
 
     # Detect language from all user content (prior history + current)
     # Language is inferred from model response in _emit_initial_chunk via _detect_language
@@ -127,7 +130,7 @@ async def symptom_check(
     ]
 
     request = SymptomCheckRequest(
-        patient_id           = body.patient_id,
+        patient_id           = effective_patient_id,
         symptoms             = body.symptoms,
         duration             = body.duration,
         severity             = body.severity,
@@ -288,4 +291,3 @@ async def symptom_check(
         yield _sse_data("[DONE]")
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
-
