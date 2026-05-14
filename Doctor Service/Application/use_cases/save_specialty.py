@@ -3,7 +3,7 @@ from Domain.entities.specialty import Specialty
 from Domain.exceptions.domain_exceptions import SpecialtyAlreadyExistsException
 from Domain.interfaces.specialty_repository import ISpecialtyRepository
 from healthai_cache import CacheClient
-from uuid_extension import UUID7
+from uuid_extension import UUID7, uuid7
 
 _CACHE_KEY = "doctor:specialties:all"
 
@@ -15,7 +15,7 @@ class SaveSpecialtyUseCase:
 
     async def execute(self, dto: SpecialtyDTO) -> SpecialtyDTO:
         # If ID is provided, it's an update, otherwise create new
-        specialty_id = dto.id or UUID7()
+        specialty_id = dto.id or uuid7()
 
         # Check if name already exists for a different ID
         existing = await self.specialty_repo.get_by_name(dto.name)

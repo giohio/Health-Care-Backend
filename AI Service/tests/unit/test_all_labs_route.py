@@ -1,11 +1,11 @@
 """
 Unit tests for presentation/routes/all_labs.py — POST /analyze-all-labs
 
-Heavy dependencies (openai, celery, infrastructure) are stubbed in sys.modules
-before the route module is loaded so the unit tests stay lightweight.
+Heavy dependencies (openai, celery tasks) are stubbed in sys.modules before the
+route module is loaded so the unit tests stay lightweight.
 """
-import sys
 import importlib.util
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -18,12 +18,6 @@ from fastapi.testclient import TestClient
 # ---------------------------------------------------------------------------
 _mock_tasks_module = MagicMock()
 _mock_tasks_module.analyze_all_labs_task = MagicMock()
-
-# Register stubs so the lazy "from infrastructure.celery.tasks import ..." works
-sys.modules.setdefault("celery", MagicMock())
-sys.modules.setdefault("infrastructure", MagicMock())
-sys.modules.setdefault("infrastructure.celery", MagicMock())
-sys.modules["infrastructure.celery.tasks"] = _mock_tasks_module
 
 # ---------------------------------------------------------------------------
 # Load only the all_labs router module — skip presentation/routes/__init__.py
@@ -43,10 +37,31 @@ router = _module.router
 
 @pytest.fixture(autouse=True)
 def _reset_mock():
-    """Reset the stubbed task mock between tests."""
+    """Install the stubbed task module only for the duration of each test."""
+    previous_celery = sys.modules.get("celery")
+    previous_infra_celery = sys.modules.get("infrastructure.celery")
+    previous_tasks = sys.modules.get("infrastructure.celery.tasks")
+
+    sys.modules.setdefault("celery", MagicMock())
+    sys.modules.setdefault("infrastructure.celery", MagicMock())
+    sys.modules["infrastructure.celery.tasks"] = _mock_tasks_module
+
     _mock_tasks_module.analyze_all_labs_task.reset_mock()
     _mock_tasks_module.analyze_all_labs_task.delay.reset_mock()
     yield
+
+    if previous_celery is None:
+        sys.modules.pop("celery", None)
+    else:
+        sys.modules["celery"] = previous_celery
+    if previous_infra_celery is None:
+        sys.modules.pop("infrastructure.celery", None)
+    else:
+        sys.modules["infrastructure.celery"] = previous_infra_celery
+    if previous_tasks is None:
+        sys.modules.pop("infrastructure.celery.tasks", None)
+    else:
+        sys.modules["infrastructure.celery.tasks"] = previous_tasks
 
 
 @pytest.fixture
@@ -143,3 +158,16 @@ def test_analyze_all_labs_default_role_is_service_allowed(client):
     )
 
     assert response.status_code == 202
+
+
+def test_analyze_all_labs_enqueue_failure_returns_503(client):
+    _mock_tasks_module.analyze_all_labs_task.delay.side_effect = RuntimeError("broker down")
+
+    response = client.post(
+        "/analyze-all-labs",
+        json={"appointment_id": "A-1", "patient_id": "P-1", "summary_id": "S-1"},
+        headers={"X-User-Role": "service"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Could not enqueue holistic analysis task."

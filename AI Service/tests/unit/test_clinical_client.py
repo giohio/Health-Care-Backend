@@ -136,7 +136,7 @@ async def test_get_patient_context_empty_response():
     with _mock_httpx_get({}):
         ctx = await client.get_patient_context("p-004", "u-004", "patient")
 
-    assert ctx.full_name == "Bệnh nhân"
+    assert ctx.full_name == "Patient"
     assert ctx.active_diagnoses == []
     assert ctx.current_medications == []
 
@@ -154,7 +154,7 @@ async def test_get_patient_context_http_error_fallback():
         ctx = await client.get_patient_context("p-005", "u-005", "doctor")
 
     assert ctx.patient_id == "p-005"
-    assert ctx.full_name == "Bệnh nhân"
+    assert ctx.full_name == "Patient"
     assert ctx.age is None
 
 
@@ -174,7 +174,7 @@ async def test_get_patient_context_json_error_fallback():
     with patch("httpx.AsyncClient", return_value=mock_client):
         ctx = await client.get_patient_context("p-006", "u-006", "patient")
 
-    assert ctx.full_name == "Bệnh nhân"
+    assert ctx.full_name == "Patient"
 
 
 @pytest.mark.asyncio

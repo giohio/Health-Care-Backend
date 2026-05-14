@@ -46,6 +46,11 @@ class FakeLabOrderRepo(ILabOrderRepository):
     async def list_by_appointment_id(self, appointment_id: uuid.UUID) -> List[LabOrder]:
         return [order for order in self._store.values() if order.appointment_id == appointment_id]
 
+    async def delete(self, order_id: uuid.UUID) -> None:
+        if order_id not in self._store:
+            raise ValueError("Lab order not found")
+        del self._store[order_id]
+
 
 class FakeLabResultRepo(ILabResultRepository):
     def __init__(self):
@@ -88,6 +93,11 @@ class FakeLabResultRepo(ILabResultRepository):
     async def list_by_order_ids(self, order_ids: List[uuid.UUID]) -> List[LabResult]:
         order_id_set = set(order_ids)
         return [result for result in self._store.values() if result.order_id in order_id_set]
+
+    async def delete(self, result_id: uuid.UUID) -> None:
+        if result_id not in self._store:
+            raise ValueError("Lab result not found")
+        del self._store[result_id]
 
 
 # ---------------------------------------------------------------------------

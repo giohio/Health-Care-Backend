@@ -323,7 +323,7 @@ async def test_analyze_auscultation_doctor_returns_200(client):
     with patch(
         "presentation.routes.auscultation.AuscultationAnalysisUseCase.execute",
         new=AsyncMock(return_value=_fake_auscultation_result()),
-    ):
+    ) as mock_execute:
         resp = await client.post(
             "/analyze-auscultation",
             data={
@@ -339,7 +339,56 @@ async def test_analyze_auscultation_doctor_returns_200(client):
 
     assert resp.status_code == 200
     data = resp.json()
-    assert "draft_text" in data or "result_id" in data
+    assert data["patient_id"] == "p-001"
+    assert data["sound_type"] == "lung_sounds"
+    assert data["department"] == "respiratory"
+    assert data["visual_findings"]["findings"] == "Bilateral crackles."
+    assert data["draft_text"] == "Bilateral crackles suggest pulmonary oedema."
+    assert data["confidence"] == 0.80
+    assert data["model_versions"] == {"vision": "gemini-v", "text": "llama3"}
+    mock_execute.assert_awaited_once_with(
+        audio_bytes=_wav_bytes(),
+        patient_id="p-001",
+        sound_type="lung_sounds",
+        department="respiratory",
+        language="vi",
+        x_user_id="doc-001",
+        x_user_role="doctor",
+    )
+
+
+@pytest.mark.asyncio
+async def test_analyze_auscultation_heart_sound_webm_returns_200(client):
+    with patch(
+        "presentation.routes.auscultation.AuscultationAnalysisUseCase.execute",
+        new=AsyncMock(return_value=_fake_auscultation_result()),
+    ) as mock_execute:
+        resp = await client.post(
+            "/analyze-auscultation",
+            data={
+                "patient_id": "p-002",
+                "sound_type": "heart_sounds",
+                "department": "cardiology",
+                "language": "en",
+                "auth_token": "tok-test",
+            },
+            files={"file": ("heart.webm", b"webm-audio", "audio/webm")},
+            headers={"x-user-id": "doc-002", "x-user-role": "doctor"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["sound_type"] == "heart_sounds"
+    assert data["department"] == "cardiology"
+    mock_execute.assert_awaited_once_with(
+        audio_bytes=b"webm-audio",
+        patient_id="p-002",
+        sound_type="heart_sounds",
+        department="cardiology",
+        language="en",
+        x_user_id="doc-002",
+        x_user_role="doctor",
+    )
 
 
 @pytest.mark.asyncio

@@ -122,6 +122,7 @@ class TestLabOrderRepositorySave:
     async def test_save_calls_add_flush_refresh(self):
         session = make_async_session()
         model = make_order_model()
+        session.execute.return_value = make_execute_result(scalar=None)
         session.refresh.side_effect = lambda m: None  # refresh sets no attrs on mock
 
         repo = LabOrderRepository(session)

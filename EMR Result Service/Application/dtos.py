@@ -5,7 +5,7 @@ from uuid import UUID
 from Domain.value_objects.lab_result_status import LabResultStatus
 from Domain.value_objects.order_priority import OrderPriority
 from Domain.value_objects.test_type import TestType
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -100,11 +100,46 @@ class CreateLabOrderFromTemplateRequest(BaseModel):
 
 class ManualLabEntry(BaseModel):
     """A single manually-entered lab value."""
+    model_config = ConfigDict(extra="allow")
+
     test_name: str
     value: str  # string — supports qualitative values like ">500" or "Reactive"
     unit: Optional[str] = None
     reference_range: Optional[str] = None
     flag: Optional[Literal["H", "L", "N", "C"]] = None
+
+    @field_validator("flag", mode="before")
+    @classmethod
+    def normalize_flag(cls, value):
+        if value is None or value == "":
+            return None
+        normalized = str(value).strip().lower()
+        flag_aliases = {
+            "n": "N",
+            "normal": "N",
+            "negative": "N",
+            "neg": "N",
+            "within_range": "N",
+            "within_normal_range": "N",
+            "h": "H",
+            "high": "H",
+            "positive": "H",
+            "pos": "H",
+            "above": "H",
+            "above_range": "H",
+            "abnormal_high": "H",
+            "l": "L",
+            "low": "L",
+            "below": "L",
+            "below_range": "L",
+            "abnormal_low": "L",
+            "c": "C",
+            "critical": "C",
+            "critical_high": "C",
+            "critical_low": "C",
+            "panic": "C",
+        }
+        return flag_aliases.get(normalized, str(value).strip().upper())
 
 
 class CreateLabResultRequest(BaseModel):

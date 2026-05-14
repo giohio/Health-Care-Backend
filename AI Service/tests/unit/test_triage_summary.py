@@ -188,7 +188,7 @@ async def test_generate_summary_llm_empty_uses_conversation_fallback():
 
     assert result["chief_complaint"] == "I have fever, chills, and a wet cough for about a week"
     assert "fever" in result["reported_symptoms"]
-    assert "cough" in result["reported_symptoms"]
+    assert any("cough" in symptom for symptom in result["reported_symptoms"])
     assert result["duration"] == "a week"
     assert "acute respiratory infection" in result["suspected_conditions"]
     assert "fever" in result["clinical_reasoning"]

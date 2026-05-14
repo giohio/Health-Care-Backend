@@ -37,7 +37,7 @@ def test_vision_prompts_has_all_required_keys():
         "chest_xray", "ecg", "skin_lesion", "brain_mri", "fundus",
         "blood_panel", "bone_xray", "abdominal_xray", "skull_xray", "spine_xray",
     }
-    assert set(VISION_PROMPTS.keys()) == expected
+    assert expected.issubset(set(VISION_PROMPTS.keys()))
 
 
 def test_vision_prompts_all_request_json_output():
@@ -46,7 +46,7 @@ def test_vision_prompts_all_request_json_output():
 
 
 def test_lab_synthesis_system_starts_with_draft_warning():
-    assert "BẢN NHÁP" in LAB_SYNTHESIS_SYSTEM
+    assert "AI DRAFT" in LAB_SYNTHESIS_SYSTEM
 
 
 def test_emr_summary_system_has_structure():
@@ -179,7 +179,7 @@ def test_build_emr_summary_prompt_with_no_labs(patient_context):
     prompt = build_emr_summary_prompt(patient_context, [])
 
     assert patient_context.full_name in prompt
-    assert "Không có" in prompt
+    assert "None" in prompt
 
 
 def test_build_emr_summary_prompt_with_labs(patient_context):

@@ -78,7 +78,7 @@ def test_detect_mime_dcm():
 
 
 def test_detect_mime_unknown_defaults_to_jpeg():
-    assert LabAnalysisUseCase._detect_mime("report.pdf") == "image/jpeg"
+    assert LabAnalysisUseCase._detect_mime("report.pdf") == "application/pdf"
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ async def test_lab_image_path_failed_vision_returns_manual_review():
 
     assert result.visual_findings is None
     assert result.confidence == pytest.approx(0.0)
-    assert "Cần xem xét thủ công" in result.draft_text
+    assert "Manual review required" in result.draft_text
 
 
 @pytest.mark.asyncio
@@ -185,5 +185,4 @@ async def test_download_file_makes_get_request():
 
     assert result == b"image-bytes-content"
     mock_client.get.assert_called_once_with("http://example.com/image.jpg")
-
 

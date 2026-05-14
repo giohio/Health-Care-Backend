@@ -37,13 +37,24 @@ async def analyze_all_labs(
 
     from infrastructure.celery.tasks import analyze_all_labs_task
 
-    analyze_all_labs_task.delay(
-        {
-            "appointment_id": body.appointment_id,
-            "patient_id": body.patient_id,
-            "summary_id": body.summary_id,
-        }
-    )
+    try:
+        analyze_all_labs_task.delay(
+            {
+                "appointment_id": body.appointment_id,
+                "patient_id": body.patient_id,
+                "summary_id": body.summary_id,
+            }
+        )
+    except Exception:
+        logger.exception(
+            "Could not enqueue holistic analysis appointment_id=%s summary_id=%s",
+            body.appointment_id,
+            body.summary_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not enqueue holistic analysis task.",
+        )
     logger.info(
         "Holistic analysis enqueued appointment_id=%s summary_id=%s",
         body.appointment_id,

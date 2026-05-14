@@ -5,7 +5,9 @@ class PaymentHistoryItemSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    appointment_id: str
+    appointment_id: str | None = None
+    payment_type: str = "APPOINTMENT"
+    reference_id: str | None = None
     status: str
     appointment_status: str
     amount: int

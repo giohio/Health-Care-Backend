@@ -25,6 +25,8 @@ class ChunkPayload:
     disease_category:  str      # e.g. "pneumonia", "melanoma", "ckd_stage3"
     source:            str      # "radiopaedia" | "statpearls" | "dermnet" | …
     chunk_type:        str      # "parent" | "child" | "sentence_group" | "fixed" | "table"
+    document_type:     str      # "guideline" | "article" | "patient_info"
+    collection:        str      # Qdrant collection name
 
     # ── Traceability ────────────────────────────────────────────────────────
     parent_id:         Optional[str]
@@ -45,6 +47,8 @@ class ChunkPayload:
             "disease_category": self.disease_category,
             "source":           self.source,
             "chunk_type":       self.chunk_type,
+            "document_type":    self.document_type,
+            "collection":       self.collection,
             "parent_id":        self.parent_id,
             "page_title":       self.page_title,
             "section_heading":  self.section_heading,
@@ -142,6 +146,18 @@ def extract_page_metadata(markdown_text: str, filepath: Path) -> dict:
     }
 
 
+def infer_document_type(source_type: str, collection: str, filepath: Path) -> str:
+    """Map source/collection metadata to the report-level document_type tag."""
+    if collection == "patient_education":
+        return "patient_info"
+
+    slug = filepath.stem.lower()
+    if slug.startswith("lab_") or source_type in {"kdigo", "litfl", "merck_ats_ada", "lab_reference"}:
+        return "guideline"
+
+    return "article"
+
+
 # ── Main builder ────────────────────────────────────────────────────────────
 
 def build_payload(
@@ -152,9 +168,11 @@ def build_payload(
     department:    str,
     filepath:      Path,
     markdown_text: str,
+    collection:    str = "clinical_guidelines",
 ) -> ChunkPayload:
     meta        = extract_page_metadata(markdown_text, filepath)
     disease_cat = infer_disease_category(chunk_text, meta["page_title"])
+    doc_type    = infer_document_type(source_type, collection, filepath)
 
     # Ensure department is in the valid set; fall back to internal_medicine
     dept = department if department in VALID_DEPARTMENTS else "internal_medicine"
@@ -164,6 +182,8 @@ def build_payload(
         disease_category = disease_cat,
         source           = source_type,
         chunk_type       = chunk_type,
+        document_type    = doc_type,
+        collection       = collection,
         parent_id        = parent_id,
         page_title       = meta["page_title"],
         section_heading  = meta["section_heading"],

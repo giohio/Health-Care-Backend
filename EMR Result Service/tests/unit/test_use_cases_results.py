@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 import pytest
 
 from Application.dtos import CreateLabOrderRequest, CreateLabResultRequest, UpdateAIDraftRequest
-from Application.exceptions import LabOrderNotFoundError, LabResultNotFoundError, ResultNotAccessibleError
+from Application.exceptions import (
+    DuplicateLabOrderError,
+    LabOrderNotFoundError,
+    LabResultNotFoundError,
+    ResultNotAccessibleError,
+)
 from Application.use_cases.create_lab_order import CreateLabOrderUseCase
 from Application.use_cases.get_lab_readiness import GetLabReadinessUseCase
 from Application.use_cases.get_lab_results import GetLabResultUseCase, ListLabResultsUseCase
@@ -77,6 +82,27 @@ class TestCreateLabOrder:
         assert response.test_type == TestType.ECG
         assert response.department == "Cardiology"
         assert response.priority == OrderPriority.URGENT
+
+    async def test_rejects_duplicate_test_name_in_same_appointment(self, use_case):
+        appt_id = uuid.uuid4()
+        patient_id = uuid.uuid4()
+        doctor_id = uuid.uuid4()
+        request = CreateLabOrderRequest(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            appointment_id=appt_id,
+            test_name="Complete Blood Count",
+        )
+
+        await use_case.execute(request)
+
+        with pytest.raises(DuplicateLabOrderError):
+            await use_case.execute(CreateLabOrderRequest(
+                patient_id=patient_id,
+                doctor_id=doctor_id,
+                appointment_id=appt_id,
+                test_name=" complete   blood count ",
+            ))
 
 
 # ---------------------------------------------------------------------------

@@ -33,8 +33,33 @@ class TestLabPaymentPaidConsumer:
         from infrastructure.consumers.lab_payment_paid_consumer import LabPaymentPaidConsumer
         connection = MagicMock()
         cache = MagicMock()
-        session_factory = MagicMock()
-        order_repo_factory = MagicMock()
+
+        class FakeBegin:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+        class FakeSession:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+            def begin(self):
+                return FakeBegin()
+
+        class FakeRepo:
+            async def get_by_id(self, lab_order_id):
+                return make_lab_order(id=lab_order_id)
+
+            async def save(self, order):
+                return order
+
+        session_factory = MagicMock(return_value=FakeSession())
+        order_repo_factory = MagicMock(return_value=FakeRepo())
         return LabPaymentPaidConsumer(connection, cache, session_factory, order_repo_factory)
 
     @pytest.mark.asyncio
@@ -47,7 +72,7 @@ class TestLabPaymentPaidConsumer:
         import logging
         with caplog.at_level(logging.INFO):
             await consumer.handle(payload)
-        assert any("Lab order payment confirmed" in r.message for r in caplog.records)
+        assert any("marked as PAID" in r.message for r in caplog.records)
 
     @pytest.mark.asyncio
     async def test_handle_missing_lab_order_id_returns_early(self, caplog):
@@ -278,6 +303,52 @@ class TestAiServiceClient:
 
             call_json = mock_http.post.call_args.kwargs["json"]
             assert call_json["department"] == "internal_medicine"
+
+    @pytest.mark.asyncio
+    async def test_trigger_holistic_analysis_success(self):
+        from infrastructure.clients.ai_service_client import AiServiceClient
+        client = AiServiceClient()
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        appointment_id = uuid.uuid4()
+        patient_id = uuid.uuid4()
+        summary_id = uuid.uuid4()
+
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_http = AsyncMock()
+            mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+            mock_http.__aexit__ = AsyncMock(return_value=None)
+            mock_http.post = AsyncMock(return_value=mock_resp)
+            mock_cls.return_value = mock_http
+
+            await client.trigger_holistic_analysis(appointment_id, patient_id, summary_id)
+
+            call = mock_http.post.call_args
+            assert call.kwargs["json"] == {
+                "appointment_id": str(appointment_id),
+                "patient_id": str(patient_id),
+                "summary_id": str(summary_id),
+            }
+            assert call.kwargs["headers"] == {"X-User-Role": "service"}
+
+    @pytest.mark.asyncio
+    async def test_trigger_holistic_analysis_failure_is_non_fatal(self, caplog):
+        from infrastructure.clients.ai_service_client import AiServiceClient
+        import logging
+        client = AiServiceClient()
+
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_http = AsyncMock()
+            mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+            mock_http.__aexit__ = AsyncMock(return_value=None)
+            mock_http.post = AsyncMock(side_effect=RuntimeError("ai service down"))
+            mock_cls.return_value = mock_http
+
+            with caplog.at_level(logging.WARNING):
+                await client.trigger_holistic_analysis(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
+
+        assert any("non-fatal" in record.message for record in caplog.records)
 
 
 # ===========================================================================

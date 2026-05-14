@@ -50,11 +50,11 @@ def test_analyze_lab_task_success():
 
     with (
         patch("infrastructure.celery.tasks.WokuClient"),
-        patch("infrastructure.celery.tasks.GeminiClient"),
         patch("infrastructure.celery.tasks.ClinicalClient"),
         patch("infrastructure.celery.tasks.LabAnalysisUseCase") as MockUseCase,
         patch("infrastructure.celery.tasks.EmrResultClient") as MockEmrClient,
     ):
+        MockEmrClient.return_value.get_result = AsyncMock(return_value={})
         MockUseCase.return_value.execute = AsyncMock(return_value=mock_result)
         MockEmrClient.return_value.patch_ai_draft = AsyncMock()
 
@@ -78,11 +78,11 @@ def test_analyze_lab_task_passes_service_role_to_patch():
 
     with (
         patch("infrastructure.celery.tasks.WokuClient"),
-        patch("infrastructure.celery.tasks.GeminiClient"),
         patch("infrastructure.celery.tasks.ClinicalClient"),
         patch("infrastructure.celery.tasks.LabAnalysisUseCase") as MockUseCase,
         patch("infrastructure.celery.tasks.EmrResultClient") as MockEmrClient,
     ):
+        MockEmrClient.return_value.get_result = AsyncMock(return_value={})
         MockUseCase.return_value.execute = AsyncMock(return_value=mock_result)
         MockEmrClient.return_value.patch_ai_draft = AsyncMock()
 
@@ -107,11 +107,11 @@ def test_analyze_lab_task_constructs_request_from_payload():
 
     with (
         patch("infrastructure.celery.tasks.WokuClient"),
-        patch("infrastructure.celery.tasks.GeminiClient"),
         patch("infrastructure.celery.tasks.ClinicalClient"),
         patch("infrastructure.celery.tasks.LabAnalysisUseCase") as MockUseCase,
         patch("infrastructure.celery.tasks.EmrResultClient") as MockEmrClient,
     ):
+        MockEmrClient.return_value.get_result = AsyncMock(return_value={})
         MockUseCase.return_value.execute = fake_execute
         MockEmrClient.return_value.patch_ai_draft = AsyncMock()
 
@@ -135,7 +135,6 @@ def test_analyze_lab_task_retries_on_exception():
     """When execute raises, Celery task should propagate or retry (max_retries=2)."""
     with (
         patch("infrastructure.celery.tasks.WokuClient"),
-        patch("infrastructure.celery.tasks.GeminiClient"),
         patch("infrastructure.celery.tasks.ClinicalClient"),
         patch("infrastructure.celery.tasks.LabAnalysisUseCase") as MockUseCase,
         patch("infrastructure.celery.tasks.EmrResultClient"),
@@ -161,11 +160,11 @@ def test_analyze_lab_task_patches_manual_review_after_all_retries():
 
     with (
         patch("infrastructure.celery.tasks.WokuClient"),
-        patch("infrastructure.celery.tasks.GeminiClient"),
         patch("infrastructure.celery.tasks.ClinicalClient"),
         patch("infrastructure.celery.tasks.LabAnalysisUseCase") as MockUseCase,
         patch("infrastructure.celery.tasks.EmrResultClient") as MockEmrClient,
     ):
+        MockEmrClient.return_value.get_result = AsyncMock(return_value={})
         MockUseCase.return_value.execute = AsyncMock(
             side_effect=RuntimeError("LLM permanently down")
         )
@@ -186,7 +185,6 @@ def test_analyze_lab_task_fallback_patch_fails_gracefully():
     """If the fallback patch itself raises, the task still fails cleanly without another exception."""
     with (
         patch("infrastructure.celery.tasks.WokuClient"),
-        patch("infrastructure.celery.tasks.GeminiClient"),
         patch("infrastructure.celery.tasks.ClinicalClient"),
         patch("infrastructure.celery.tasks.LabAnalysisUseCase") as MockUseCase,
         patch("infrastructure.celery.tasks.EmrResultClient") as MockEmrClient,
@@ -276,6 +274,33 @@ def test_analyze_all_labs_task_marks_processing_first():
 
     # First patch must be PROCESSING
     assert "PROCESSING" in processing_calls
+
+
+def test_analyze_all_labs_task_continues_when_processing_patch_fails():
+    """A best-effort PROCESSING patch failure must not abort final analysis."""
+    mock_result = _make_holistic_result()
+    calls = []
+
+    async def fake_patch(appointment_id, payload, **kwargs):
+        calls.append(payload)
+        if payload.get("status") == "PROCESSING":
+            raise RuntimeError("EMR temporary outage")
+
+    with (
+        patch("infrastructure.celery.tasks.WokuClient"),
+        patch("infrastructure.celery.tasks.ClinicalClient"),
+        patch("infrastructure.celery.tasks.AllLabsAnalysisUseCase") as MockUseCase,
+        patch("infrastructure.celery.tasks.EmrResultClient") as MockEmrClient,
+    ):
+        MockUseCase.return_value.execute = AsyncMock(return_value=mock_result)
+        MockEmrClient.return_value.patch_holistic_summary = fake_patch
+
+        from infrastructure.celery.tasks import analyze_all_labs_task
+        task_result = analyze_all_labs_task.apply(args=[BASE_HOLISTIC_PAYLOAD])
+
+    assert task_result.successful()
+    assert calls[0]["status"] == "PROCESSING"
+    assert calls[-1]["status"] == "DONE"
 
 
 def test_analyze_all_labs_task_patches_failed_on_error():

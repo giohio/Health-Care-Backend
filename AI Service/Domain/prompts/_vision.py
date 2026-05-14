@@ -256,6 +256,33 @@ RESPOND WITH ONLY THIS JSON (no markdown):
   "confidence": 1.0
 }""",
 
+    "urinalysis": """Given this structured urinalysis or urine dipstick/microscopy data,
+convert it into standardized JSON for clinical analysis.
+
+STRICT RULES:
+- Treat the input as URINALYSIS DATA, not imaging.
+- Preserve qualitative values such as Positive (+++), Negative, Clear, Pale Yellow, Few.
+- Interpret flag/status fields if present: N/Normal = normal, H/High/Positive = abnormal_high unless the reference says positive is expected, L/Low = abnormal_low, C/Critical = critical.
+- Do not invent missing numeric ranges.
+
+RESPOND WITH ONLY THIS JSON (no markdown):
+{
+  "panel_type": "urinalysis",
+  "findings": [
+    {
+      "name": "<urine parameter>",
+      "value": "<observed value exactly as provided>",
+      "unit": "<unit or empty string>",
+      "reference_range": "<reference or expected value>",
+      "status": "normal|low|high|critical_low|critical_high|abnormal|not_applicable"
+    }
+  ],
+  "abnormal_findings": ["<clinically relevant abnormal urine finding>"],
+  "critical_values": ["<any critical value flag>"],
+  "keywords": ["urinalysis", "<abnormal finding>"],
+  "confidence": 1.0
+}""",
+
     "bone_xray": """You are a musculoskeletal radiology AI assistant. Analyze this bone or joint X-ray image.
 
 YOUR TASK: Extract ONLY observable visual findings. Do NOT make a diagnosis.

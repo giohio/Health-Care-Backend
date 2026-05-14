@@ -1,8 +1,7 @@
-"""Consumer that listens for lab_order.cancelled events published by the
-EMR Service when a doctor deletes a paid lab order.
+"""Consumer for lab order deletion events from EMR Service.
 
-When this event is received, the consumer marks the associated payment
-as REFUND_PENDING, allowing the admin to manually process the refund.
+Pending/unpaid lab payments are deleted from patient history. Paid lab payments
+move to REFUND_PENDING so admin can manually process the refund.
 """
 import logging
 from uuid import UUID
@@ -50,16 +49,11 @@ class LabOrderCancelledConsumer(BaseConsumer):
                         logger.warning("lab_order.cancelled: payment not found for lab_order %s", lab_order_id)
                         return
 
-                    # Check if payment is already PAID
                     if payment.status.value != "paid":
-                        logger.info(
-                            "lab_order.cancelled: payment %s is %s (not PAID), skipping refund",
-                            payment.id,
-                            payment.status.value,
-                        )
+                        await repo.delete_by_reference_id(lab_order_id)
+                        logger.info("Deleted unpaid payment for cancelled lab_order %s", lab_order_id)
                         return
 
-                    # Mark payment as REFUND_PENDING
                     payment.mark_as_refund_pending()
                     await repo.save(payment)
 

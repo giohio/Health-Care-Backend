@@ -48,6 +48,7 @@ class GenerateLabOrderPaymentUrlUseCase:
         # Reset to pending so the expiry window restarts from now
         payment.status = PaymentStatus.PENDING
         await self.payment_repo.save(payment)
+        await self.session.commit()
 
         return {
             "payment_id": str(payment.id),

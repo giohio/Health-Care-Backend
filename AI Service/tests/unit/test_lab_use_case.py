@@ -24,6 +24,7 @@ class FakeGeminiClient:
     def __init__(self, findings=None, fail=False):
         self.extract_findings_called = False
         self.extract_tabular_called  = False
+        self.last_tabular_test_type = None
         self._findings = findings or {"confidence": 0.85, "keywords": ["normal"]}
         self._fail     = fail
 
@@ -36,6 +37,7 @@ class FakeGeminiClient:
 
     async def extract_tabular(self, tabular_data, test_type):
         self.extract_tabular_called = True
+        self.last_tabular_test_type = test_type
         await _yield_control()
         if self._fail:
             return {"error": "vision_parse_failed", "raw": "bad json"}
@@ -145,6 +147,107 @@ async def test_lab_analysis_test_name_in_synthesis_prompt():
     await use_case.execute(request)
 
     assert "Creatinine & eGFR" in groq.last_user_prompt
+
+
+@pytest.mark.asyncio
+async def test_lab_analysis_urinalysis_uses_urinalysis_tabular_prompt():
+    groq = FakeGroqClient()
+    gemini = FakeGeminiClient(findings={
+        "panel_type": "urinalysis",
+        "findings": [{"name": "Glucose", "value": "Positive (+++)", "status": "high"}],
+        "keywords": ["urinalysis", "glycosuria"],
+        "confidence": 0.9,
+    })
+    use_case = LabAnalysisUseCase(llm=groq, gemini=gemini, clinical=FakeClinicalClient())
+
+    request = LabAnalysisRequest(
+        result_id="r-urine-001",
+        patient_id="p-001",
+        file_url="",
+        input_type=InputType.TABULAR,
+        department=Department.INTERNAL,
+        test_name="Urinalysis",
+        tabular_data={
+            "entries": [
+                {"test_name": "Glucose", "value": "Positive (+++)", "reference_range": "Negative", "flag": "H"},
+                {"test_name": "Color", "value": "Pale Yellow", "reference_range": "Yellow", "flag": "N"},
+            ]
+        },
+    )
+
+    await use_case.execute(request)
+
+    assert gemini.extract_tabular_called is True
+    assert gemini.last_tabular_test_type == "urinalysis"
+    assert "Urinalysis" in groq.last_user_prompt
+
+
+@pytest.mark.asyncio
+async def test_lab_analysis_tabular_extraction_failure_uses_manual_entries_fallback():
+    groq = FakeGroqClient(text="CBC draft from structured fallback")
+    gemini = FakeGeminiClient(fail=True)
+    use_case = LabAnalysisUseCase(llm=groq, gemini=gemini, clinical=FakeClinicalClient())
+
+    request = LabAnalysisRequest(
+        result_id="r-cbc-001",
+        patient_id="p-001",
+        file_url="",
+        input_type=InputType.TABULAR,
+        department=Department.HEMATOLOGY,
+        test_name="Complete Blood Count (CBC)",
+        tabular_data={
+            "entries": [
+                {"test_name": "WBC", "value": "6.8", "unit": "10^9/L", "reference_range": "4.0 - 10.0", "flag": "N"},
+                {"test_name": "RBC", "value": "4.5", "unit": "10^12/L", "reference_": "4.0 - 5.8", "flag": "N"},
+            ]
+        },
+    )
+
+    result = await use_case.execute(request)
+
+    assert result.draft_text == "CBC draft from structured fallback"
+    assert result.visual_findings["panel_type"] == "blood_panel"
+    assert result.visual_findings["findings"][0]["name"] == "WBC"
+    assert result.visual_findings["findings"][1]["reference_range"] == "4.0 - 5.8"
+    assert result.confidence == pytest.approx(0.8)
+    assert result.requires_specialist_review is False
+    assert "Unable to extract data from file" not in result.draft_text
+
+
+@pytest.mark.asyncio
+async def test_lab_analysis_empty_tabular_findings_uses_renal_manual_entries_fallback():
+    groq = FakeGroqClient(text="Renal panel draft from structured fallback")
+    gemini = FakeGeminiClient(findings={
+        "panel_type": "renal",
+        "findings": [],
+        "keywords": [],
+        "confidence": 0.9,
+    })
+    use_case = LabAnalysisUseCase(llm=groq, gemini=gemini, clinical=FakeClinicalClient())
+
+    request = LabAnalysisRequest(
+        result_id="r-renal-001",
+        patient_id="p-001",
+        file_url="",
+        input_type=InputType.TABULAR,
+        department=Department.NEPHROLOGY,
+        test_name="Kidney Function (Renal Panel)",
+        tabular_data={
+            "entries": [
+                {"test_name": "Urea (BUN)", "value": "8.5", "unit": "mmol/L", "reference_": "2.5 - 7.5", "flag": "H"},
+                {"test_name": "Creatinine", "value": "135", "unit": "μmol/L", "reference_": "62 - 106", "flag": "H"},
+            ]
+        },
+    )
+
+    result = await use_case.execute(request)
+
+    assert result.draft_text == "Renal panel draft from structured fallback"
+    assert result.visual_findings["panel_type"] == "blood_panel"
+    assert result.visual_findings["findings"][0]["name"] == "Urea (BUN)"
+    assert result.visual_findings["findings"][0]["status"] == "high"
+    assert result.visual_findings["findings"][1]["reference_range"] == "62 - 106"
+    assert result.requires_specialist_review is False
 
 
 # ---------------------------------------------------------------------------

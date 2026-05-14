@@ -14,7 +14,8 @@ class DeleteLabOrderUseCase:
     - Admins can delete any order.
     - Orders with an associated published/verified lab result cannot be deleted.
     - Deleting an order will also clean up any associated AI drafts or pending results.
-    - If the order has payment_status = PAID, publish lab_order.cancelled event for refund.
+    - If the order has a fee, publish lab_order.cancelled so Payment Service can
+      remove pending payments or mark paid payments for refund.
     """
 
     def __init__(
@@ -47,8 +48,9 @@ class DeleteLabOrderUseCase:
         if any(r.status == LabResultStatus.PUBLISHED for r in results):
             raise ValueError("Cannot delete an order that has already been published.")
 
-        # Publish refund event if order was paid
-        if order.payment_status == "PAID" and order.fee > 0 and self._publisher:
+        # Notify Payment Service so pending lab payments disappear from patient
+        # history, while paid orders can move into the refund workflow.
+        if order.fee > 0 and self._publisher:
             try:
                 await self._publisher.publish(
                     event_type="lab_order.cancelled",
@@ -58,6 +60,7 @@ class DeleteLabOrderUseCase:
                         "doctor_id": str(order.doctor_id),
                         "amount": order.fee,
                         "test_name": order.test_name,
+                        "payment_status": order.payment_status,
                     },
                 )
             except Exception:

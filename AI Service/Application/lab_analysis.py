@@ -60,6 +60,8 @@ _TEST_NAME_PATTERNS: list[tuple[str, str]] = [
     (r"skin\s*lesion|dermoscopy|dermatoscopy", "skin_lesion"),
     # Blood panels & lab tests
     (r"\b(?:cbc|complete\s*blood|full\s*blood|metabolic\s*panel|lipid|thyroid|coagulation|hba1c|renal|liver|kidney|glucose)\b", "blood_panel"),
+    # Urine tests
+    (r"\b(?:urinalysis|urine|urinary|ua\b|dipstick|microscopic\s*(?:rbc|wbc))\b", "urinalysis"),
 ]
 
 # Compiled once at module load
@@ -80,6 +82,9 @@ _DEPT_TO_VISION_KEY: dict[str, str] = {
     "internal_medicine": "abdominal_xray",
     "radiology":         "bone_xray",
 }
+
+# Backward-compatible public alias used by older unit tests/imports.
+DEPT_TO_VISION_KEY = _DEPT_TO_VISION_KEY
 
 
 def _resolve_vision_key(test_name: str, department: Department) -> str:
@@ -127,7 +132,9 @@ class LabAnalysisUseCase:
 
         vision_key = _resolve_vision_key(request.test_name, request.department)
 
-        if request.input_type == InputType.TABULAR and request.tabular_data:
+        is_tabular = request.input_type == InputType.TABULAR
+
+        if is_tabular and request.tabular_data:
             findings = await self._gemini.extract_tabular(
                 request.tabular_data, vision_key
             )
@@ -159,6 +166,17 @@ class LabAnalysisUseCase:
             findings    = await self._gemini.extract_findings(
                 image_bytes, mime_type, vision_key
             )
+
+        if is_tabular and request.tabular_data and (
+            findings.get("error") or self._is_empty_tabular_findings(findings)
+        ):
+            fallback_findings = self._build_tabular_findings(request.tabular_data, vision_key)
+            if fallback_findings:
+                logger.warning(
+                    "Tabular extraction failed or returned no values for %s; using deterministic structured fallback.",
+                    request.result_id,
+                )
+                findings = fallback_findings
 
         if findings.get("error"):
             logger.warning(f"Vision extraction failed for {request.result_id}")
@@ -243,3 +261,69 @@ class LabAnalysisUseCase:
             return "application/pdf"
         return "application/octet-stream"
 
+    @staticmethod
+    def _build_tabular_findings(tabular_data: dict, panel_type: str) -> dict | None:
+        entries = tabular_data.get("entries") if isinstance(tabular_data, dict) else None
+        if not isinstance(entries, list) or not entries:
+            return None
+
+        flag_status = {
+            "N": "normal",
+            "H": "high",
+            "L": "low",
+            "C": "critical_high",
+        }
+        findings = []
+        keywords = []
+        critical_values = []
+
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("test_name") or entry.get("name") or entry.get("parameter") or "").strip()
+            value = str(entry.get("value") or entry.get("result") or "").strip()
+            if not name or not value:
+                continue
+            flag = str(entry.get("flag") or "").strip().upper()
+            status = flag_status.get(flag, "not_applicable")
+            finding = {
+                "name": name,
+                "value": value,
+                "unit": str(entry.get("unit") or "").strip(),
+                "reference_range": str(
+                    entry.get("reference_range")
+                    or entry.get("ref_range")
+                    or entry.get("reference")
+                    or entry.get("reference_")
+                    or ""
+                ).strip(),
+                "status": status,
+            }
+            findings.append(finding)
+            if status != "normal" and status != "not_applicable":
+                keywords.append(name)
+            if status.startswith("critical"):
+                critical_values.append(name)
+
+        if not findings:
+            return None
+
+        return {
+            "panel_type": panel_type,
+            "findings": findings,
+            "critical_values": critical_values,
+            "keywords": keywords or [panel_type],
+            "confidence": 0.8,
+            "source": "manual_entries_fallback",
+        }
+
+    @staticmethod
+    def _is_empty_tabular_findings(findings: dict) -> bool:
+        if not isinstance(findings, dict):
+            return True
+        values = findings.get("findings")
+        if isinstance(values, list):
+            return len(values) == 0
+        if values is None:
+            return True
+        return False
