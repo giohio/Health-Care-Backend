@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Annotated
 
 from Application.use_cases.add_diagnosis import AddDiagnosisUseCase
-from Application.use_cases.clinical_notes import CreateClinicalNoteUseCase, ListClinicalNotesUseCase, UpdateClinicalNoteUseCase
+from Application.use_cases.clinical_notes import CreateClinicalNoteUseCase, DeleteClinicalNoteUseCase, ListClinicalNotesUseCase, UpdateClinicalNoteUseCase, UpsertClinicalNoteUseCase
 from Application.use_cases.get_patient_summary import GetPatientSummaryUseCase
 from Application.use_cases.list_diagnoses import ListDiagnosesUseCase
 from Application.use_cases.list_medications import ListMedicationsUseCase
@@ -112,6 +112,18 @@ def get_update_note_use_case(
     note_repo: Annotated[ClinicalNoteRepository, Depends(get_note_repo)],
 ):
     return UpdateClinicalNoteUseCase(note_repo)
+
+
+def get_upsert_note_use_case(
+    note_repo: Annotated[ClinicalNoteRepository, Depends(get_note_repo)],
+):
+    return UpsertClinicalNoteUseCase(note_repo)
+
+
+def get_delete_note_use_case(
+    note_repo: Annotated[ClinicalNoteRepository, Depends(get_note_repo)],
+):
+    return DeleteClinicalNoteUseCase(note_repo)
 
 
 def get_list_notes_use_case(

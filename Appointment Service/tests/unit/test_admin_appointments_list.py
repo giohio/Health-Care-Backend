@@ -24,7 +24,7 @@ class DummyListFilteredRepo:
 
 def _make_dummy_uc(repo):
     from Application.use_cases.list_admin_appointments import ListAdminAppointmentsUseCase
-    return ListAdminAppointmentsUseCase(repo)
+    return ListAdminAppointmentsUseCase(repo, doctor_client=None)
 
 
 def _build_app(repo):
@@ -180,7 +180,7 @@ async def test_use_case_paginates_correctly(monkeypatch):
     from Application.use_cases.list_admin_appointments import ListAdminAppointmentsUseCase
 
     fake_repo = FakeRepo((["appt1", "appt2", "appt3"], 95))
-    use_case = ListAdminAppointmentsUseCase(fake_repo)
+    use_case = ListAdminAppointmentsUseCase(fake_repo, doctor_client=None)
 
     result = await use_case.execute(page=3, limit=20)
 
@@ -196,7 +196,7 @@ async def test_use_case_total_pages_is_1_when_no_data():
     from Application.use_cases.list_admin_appointments import ListAdminAppointmentsUseCase
 
     fake_repo = FakeRepo(([], 0))
-    use_case = ListAdminAppointmentsUseCase(fake_repo)
+    use_case = ListAdminAppointmentsUseCase(fake_repo, doctor_client=None)
 
     result = await use_case.execute()
 
@@ -208,7 +208,7 @@ async def test_use_case_returns_empty_list():
     from Application.use_cases.list_admin_appointments import ListAdminAppointmentsUseCase
 
     fake_repo = FakeRepo(([], 10))
-    use_case = ListAdminAppointmentsUseCase(fake_repo)
+    use_case = ListAdminAppointmentsUseCase(fake_repo, doctor_client=None)
 
     result = await use_case.execute()
 

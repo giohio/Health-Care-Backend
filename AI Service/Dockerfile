@@ -20,7 +20,12 @@ RUN pip install --no-cache-dir --upgrade "setuptools>=70.0.0" "wheel>=0.46.2" "j
 
 COPY ["AI Service/requirements.txt", "."]
 COPY shared/ /app/shared/
-RUN uv pip install --system --no-cache --no-build-isolation -r requirements.txt
+RUN uv pip install --system --no-cache --no-build-isolation /app/shared/uuid-extension \
+    && uv pip install --system --no-cache --no-build-isolation /app/shared/healthai-cache \
+    && uv pip install --system --no-cache --no-build-isolation /app/shared/healthai-db \
+    && uv pip install --system --no-cache --no-build-isolation /app/shared/healthai-common \
+    && uv pip install --system --no-cache --no-build-isolation /app/shared/healthai-events \
+    && uv pip install --system --no-cache --no-build-isolation -r requirements.txt
 
 # ==========================================
 # STAGE 2: Runtime

@@ -7,6 +7,11 @@ class LabOrderNotFoundError(EMRApplicationError):
         super().__init__("Lab order not found.")
 
 
+class DuplicateLabOrderError(EMRApplicationError):
+    def __init__(self, test_name: str):
+        super().__init__(f'Lab order "{test_name}" already exists for this appointment.')
+
+
 class LabResultNotFoundError(EMRApplicationError):
     def __init__(self):
         super().__init__("Lab result not found.")

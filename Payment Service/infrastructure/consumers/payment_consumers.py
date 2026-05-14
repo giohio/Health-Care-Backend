@@ -67,7 +67,8 @@ class PaymentExpiryConsumer(BaseConsumer):
 
     async def handle(self, payload: dict[str, Any]) -> None:
         payment_id = uuid.UUID(str(payload.get("payment_id")))
-        appointment_id = uuid.UUID(str(payload.get("appointment_id")))
+        appointment_id_raw = payload.get("appointment_id")
+        appointment_id = uuid.UUID(str(appointment_id_raw)) if appointment_id_raw else None
 
         async with self._session_factory() as session:
             async with session.begin():
@@ -100,7 +101,8 @@ class PaymentExpiryConsumer(BaseConsumer):
                     event_type="payment.expired",
                     payload={
                         "payment_id": str(payment.id),
-                        "appointment_id": str(appointment_id),
+                        "appointment_id": str(appointment_id) if appointment_id else None,
+                        "lab_order_id": str(payment.reference_id) if payment.payment_type == "LAB_ORDER" else None,
                         "patient_id": str(payment.patient_id),
                         "doctor_id": str(payment.doctor_id),
                     },

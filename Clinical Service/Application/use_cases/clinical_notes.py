@@ -39,6 +39,36 @@ class UpdateClinicalNoteUseCase:
         return ClinicalNoteResponse.model_validate(updated, from_attributes=True)
 
 
+class UpsertClinicalNoteUseCase:
+    """Create or replace the current clinical note for an appointment/type."""
+
+    def __init__(self, note_repo: IClinicalNoteRepository):
+        self.note_repo = note_repo
+
+    async def execute(self, request: CreateClinicalNoteRequest) -> ClinicalNoteResponse:
+        note = ClinicalNote(
+            id=uuid.uuid4(),
+            patient_id=request.patient_id,
+            doctor_id=request.doctor_id,
+            appointment_id=request.appointment_id,
+            note_type=request.note_type,
+            content=request.content,
+            is_ai_generated=request.is_ai_generated,
+        )
+        saved = await self.note_repo.upsert_current(note)
+        return ClinicalNoteResponse.model_validate(saved, from_attributes=True)
+
+
+class DeleteClinicalNoteUseCase:
+    """Delete an existing clinical note."""
+
+    def __init__(self, note_repo: IClinicalNoteRepository):
+        self.note_repo = note_repo
+
+    async def execute(self, note_id: uuid.UUID) -> bool:
+        return await self.note_repo.delete(note_id)
+
+
 class ListClinicalNotesUseCase:
     """List clinical notes for a patient, with optional appointment filter."""
 

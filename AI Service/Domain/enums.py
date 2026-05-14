@@ -34,5 +34,5 @@ class TriageSessionStatus(str, Enum):
     AUTO_CONFIRMED    = "auto_confirmed"   # Routine urgency — no doctor review needed
     PENDING_REVIEW    = "pending_review"   # Priority/Emergency — doctor must review
     DOCTOR_CONFIRMED  = "doctor_confirmed" # Doctor agreed with AI suggestion
-    REFERRED_INTERNAL = "referred_internal"  # Doctor redirected to Internal Medicine
+    REFERRED_INTERNAL = "referred_internal"  # Doctor redirected to General Medicine
     ABANDONED         = "abandoned"        # Session left incomplete

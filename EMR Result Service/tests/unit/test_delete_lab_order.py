@@ -133,7 +133,7 @@ class TestDeleteLabOrderUseCase:
         assert publisher.calls[0]["payload"]["amount"] == 150_000
 
     @pytest.mark.asyncio
-    async def test_does_not_publish_event_for_unpaid_order(self):
+    async def test_publishes_cancelled_event_for_unpaid_order_with_fee(self):
         doctor_id = uuid.uuid4()
         order = _make_order(payment_status="UNPAID", fee=150_000, doctor_id=doctor_id)
         order_repo = FakeLabOrderRepo()
@@ -143,7 +143,9 @@ class TestDeleteLabOrderUseCase:
 
         await uc.execute(order.id, caller_id=doctor_id, caller_role="doctor")
 
-        assert len(publisher.calls) == 0
+        assert len(publisher.calls) == 1
+        assert publisher.calls[0]["event_type"] == "lab_order.cancelled"
+        assert publisher.calls[0]["payload"]["payment_status"] == "UNPAID"
 
     @pytest.mark.asyncio
     async def test_does_not_publish_event_for_paid_order_with_zero_fee(self):

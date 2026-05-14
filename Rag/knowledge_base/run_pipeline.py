@@ -72,7 +72,10 @@ def _is_page_not_found(text: str) -> bool:
     return any(ind in preview for ind in indicators)
 
 
-def process_file(filepath: Path) -> List[Tuple[str, np.ndarray, dict]]:
+def process_file(
+    filepath: Path,
+    collection_name: str = "clinical_guidelines",
+) -> List[Tuple[str, np.ndarray, dict]]:
     """
     Process one markdown file.
     Returns list of (chunk_id_hex, vector, payload_dict).
@@ -124,6 +127,7 @@ def process_file(filepath: Path) -> List[Tuple[str, np.ndarray, dict]]:
             department    = department,
             filepath      = filepath,
             markdown_text = text,
+            collection    = collection_name,
         )
         payloads_built.append((chunk.chunk_id, payload))
 
@@ -185,7 +189,7 @@ def main() -> None:
         for idx, filepath in enumerate(md_files, 1):
             console.print(f"[{idx}/{total_files}] {filepath.name}", end=" ")
             try:
-                chunks = process_file(filepath)
+                chunks = process_file(filepath, collection_name=collection_name)
                 all_chunks.extend(chunks)
                 console.print(f"-> {len(chunks)} chunks")
             except Exception as exc:

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from typing import Annotated, List, Optional
 from uuid import UUID
@@ -21,6 +22,7 @@ from Application.dtos import (
     VerifyLabResultRequest,
 )
 from Application.exceptions import (
+    DuplicateLabOrderError,
     LabOrderNotFoundError,
     LabResultNotFoundError,
     ResultAlreadyClaimedError,
@@ -138,7 +140,7 @@ async def upload_file(
     x_user_role: str | None = Header(None),
     use_case: UploadFileUseCase = Depends(get_upload_file_use_case),
 ):
-    _require_user_id(x_user_id)
+    user_id = _require_user_id(x_user_id)
     _require_role(x_user_role, ["doctor", "admin"])
 
     data = await file.read()
@@ -179,9 +181,12 @@ async def create_lab_order(
     x_user_role: str | None = Header(None),
     use_case: CreateLabOrderUseCase = Depends(get_create_order_use_case),
 ):
-    _require_user_id(x_user_id)
+    user_id = _require_user_id(x_user_id)
     _require_role(x_user_role, ["doctor", "admin"])
-    return await use_case.execute(body)
+    try:
+        return await use_case.execute(body)
+    except DuplicateLabOrderError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get(
@@ -392,6 +397,92 @@ async def retry_ai_analysis(
     return {"message": "AI analysis re-triggered"}
 
 
+@router.post(
+    "/lab-results/{result_id}/replace-input",
+    response_model=LabResultResponse,
+    summary="Replace a failed/stale lab result input and re-trigger AI analysis",
+)
+async def replace_lab_result_input(
+    result_id: UUID,
+    body: CreateLabResultRequest,
+    authorization: str | None = Header(None),
+    x_user_id: UUID | None = Header(None),
+    x_user_role: str | None = Header(None),
+    result_repo: LabResultRepository = Depends(get_result_repo),
+    order_repo: LabOrderRepository = Depends(get_order_repo),
+    ai_client: AiServiceClient = Depends(get_ai_service_client),
+):
+    _require_user_id(x_user_id)
+    _require_role(x_user_role, ["doctor", "admin"])
+
+    result = await result_repo.get_by_id(result_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Lab result not found")
+    if result.status == LabResultStatus.PUBLISHED:
+        raise HTTPException(status_code=409, detail="Cannot replace input for a published result")
+    if body.order_id != result.order_id:
+        raise HTTPException(status_code=400, detail="Replacement input must target the same lab order")
+
+    order = await order_repo.get_by_id(result.order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Lab order not found")
+
+    result.file_type = body.file_type
+    result.file_url = body.file_url if body.file_type != "manual" else None
+    result.raw_input_json = (
+        json.dumps([e.model_dump() for e in (body.manual_entries or [])], ensure_ascii=False, indent=2)
+        if body.file_type == "manual"
+        else None
+    )
+    result.ai_visual_findings = None
+    result.ai_draft_text = None
+    result.ai_draft_citations = None
+    result.ai_confidence = None
+    result.ai_model_versions = None
+    result.ai_processed_at = None
+    result.required_specialty = None
+    result.reviewer_doctor_id = None
+    result.status = LabResultStatus.PENDING
+
+    saved = await result_repo.save(result)
+
+    if not authorization:
+        raise HTTPException(status_code=422, detail="Missing auth token")
+
+    if body.file_type == "manual" and body.manual_entries:
+        tabular_data = {"entries": [e.model_dump() for e in body.manual_entries]}
+        asyncio.create_task(
+            ai_client.trigger_lab_analysis(
+                result_id=saved.id,
+                patient_id=saved.patient_id,
+                file_url=None,
+                file_type="manual",
+                department=order.department or "internal_medicine",
+                test_name=order.test_name,
+                auth_token=authorization.replace("Bearer ", ""),
+                x_user_id=x_user_id,
+                x_user_role=x_user_role,
+                tabular_data=tabular_data,
+            )
+        )
+    elif body.file_url:
+        asyncio.create_task(
+            ai_client.trigger_lab_analysis(
+                result_id=saved.id,
+                patient_id=saved.patient_id,
+                file_url=body.file_url,
+                file_type=body.file_type,
+                department=order.department or "internal_medicine",
+                test_name=order.test_name,
+                auth_token=authorization.replace("Bearer ", ""),
+                x_user_id=x_user_id,
+                x_user_role=x_user_role,
+            )
+        )
+
+    return saved
+
+
 @router.get(
     "/lab-results",
     response_model=List[LabResultResponse],
@@ -462,7 +553,7 @@ async def download_lab_result_pdf(
     patient_svc: "PatientServiceClient" = Depends(get_patient_service_client),
 ):
     """Generate and return a printable PDF for a lab result."""
-    _require_user_id(x_user_id)
+    user_id = _require_user_id(x_user_id)
     role = _require_role(x_user_role, ["doctor", "patient", "admin"])
 
     try:
@@ -472,6 +563,9 @@ async def download_lab_result_pdf(
     except ResultNotAccessibleError as exc:
         raise HTTPException(status_code=403, detail=str(exc))
 
+    if role == "patient" and result.patient_id != user_id:
+        raise HTTPException(status_code=403, detail="Result is not accessible")
+
     # Enrich with order + patient details
     test_name = "Lab Result"
     order = await order_repo.get_by_id(result.order_id)
@@ -479,6 +573,33 @@ async def download_lab_result_pdf(
         test_name = order.test_name
 
     patient_name = await patient_svc.get_patient_name(result.patient_id)
+
+    def fallback_pdf_response() -> StreamingResponse:
+        text = (
+            f"Lab Result Report\n"
+            f"Report ID: {result_id}\n"
+            f"Patient: {patient_name or 'N/A'}\n"
+            f"Test: {test_name}\n"
+            f"Status: {result.status.value if hasattr(result.status, 'value') else result.status}\n"
+        )
+        content = text.encode("latin-1", errors="replace")
+        stream = io.BytesIO(
+            b"%PDF-1.4\n"
+            b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
+            b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+            b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            b"/Contents 4 0 R /Resources << >> >> endobj\n"
+            b"4 0 obj << /Length "
+            + str(len(content)).encode("ascii")
+            + b" >> stream\n"
+            + content
+            + b"\nendstream endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"
+        )
+        return StreamingResponse(
+            stream,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="lab-result-{result_id}.pdf"'},
+        )
 
     try:
         from reportlab.lib import colors
@@ -493,10 +614,7 @@ async def download_lab_result_pdf(
             TableStyle,
         )
     except ImportError:
-        raise HTTPException(
-            status_code=500,
-            detail="PDF generation library not installed. Contact your administrator.",
-        )
+        return fallback_pdf_response()
 
     # ── PDF layout constants ──────────────────────────────────────────────────
     PAGE_W, _ = A4

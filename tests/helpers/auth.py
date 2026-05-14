@@ -76,6 +76,7 @@ async def register_doctor(
 
     email = f"doctor_{short_id()}@healthai.dev"
     secret = _new_test_secret("doctor")
+    full_name = f"Dr. Test {short_id()}"
 
     # Surgical cookie deletion to prevent role collisions in Kong
     if "access_token" in http.cookies:
@@ -107,7 +108,6 @@ async def register_doctor(
     user = r.json()
 
     # Ensure doctor aggregate exists in Doctor service without waiting for async event consumer.
-    full_name = f"Dr. Test {short_id()}"
     provision_resp = await http.post(
         f"{doctor_url}/",
         json={

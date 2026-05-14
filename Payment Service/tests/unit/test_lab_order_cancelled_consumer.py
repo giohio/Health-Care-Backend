@@ -39,6 +39,7 @@ class FakeRepo:
     def __init__(self, payment=None):
         self.payment = payment
         self.saved = []
+        self.deleted = []
 
     async def get_by_reference_id(self, reference_id):
         await asyncio.sleep(0)
@@ -50,6 +51,12 @@ class FakeRepo:
         await asyncio.sleep(0)
         self.saved.append(payment)
         self.payment = payment
+
+    async def delete_by_reference_id(self, reference_id):
+        await asyncio.sleep(0)
+        self.deleted.append(reference_id)
+        if self.payment and self.payment.reference_id == reference_id:
+            self.payment = None
 
 
 class FakePublisher:
@@ -116,7 +123,7 @@ class TestLabOrderCancelledConsumer:
         assert publisher.calls[0]["payload"]["lab_order_id"] == str(lab_order_id)
 
     @pytest.mark.asyncio
-    async def test_skips_non_paid_payment(self):
+    async def test_deletes_non_paid_payment(self):
         lab_order_id = uuid4()
         payment = _make_paid_payment(lab_order_id)
         payment.status = PaymentStatus.PENDING  # Not paid
@@ -126,7 +133,8 @@ class TestLabOrderCancelledConsumer:
 
         await consumer.handle({"lab_order_id": str(lab_order_id)})
 
-        assert repo.payment.status == PaymentStatus.PENDING
+        assert repo.payment is None
+        assert repo.deleted == [lab_order_id]
         assert len(repo.saved) == 0
         assert len(publisher.calls) == 0
 

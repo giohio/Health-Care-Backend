@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
+from Application.use_cases.generate_bulk_lab_order_payment_url import GenerateBulkLabOrderPaymentUrlUseCase
 from Application.use_cases.generate_lab_order_payment_url import GenerateLabOrderPaymentUrlUseCase
 from Application.use_cases.list_lab_fee_configs import ListLabFeeConfigsUseCase
 from Application.use_cases.mark_payment_refunded import MarkPaymentRefundedUseCase
@@ -19,8 +20,12 @@ from Domain.value_objects.payment_status import PaymentStatus
 # ─────────────────────── Fakes ───────────────────────────────────────────────
 
 class FakeSession:
+    def __init__(self):
+        self.commits = 0
+
     async def commit(self):
         await asyncio.sleep(0)
+        self.commits += 1
 
 
 class FakePaymentRepo:
@@ -44,6 +49,26 @@ class FakePaymentRepo:
         await asyncio.sleep(0)
         self.saved.append(payment)
         self.payment = payment
+
+
+class FakeBulkPaymentRepo:
+    def __init__(self, payments=None):
+        self.payments = payments or []
+        self.saved = []
+        self.transactions = []
+
+    async def list_by_reference_ids(self, reference_ids):
+        await asyncio.sleep(0)
+        wanted = set(reference_ids)
+        return [payment for payment in self.payments if payment.reference_id in wanted]
+
+    async def save(self, payment):
+        await asyncio.sleep(0)
+        self.saved.append(payment)
+
+    async def append_transaction(self, **kwargs):
+        await asyncio.sleep(0)
+        self.transactions.append(kwargs)
 
 
 class FakeLabFeeRepo:
@@ -346,3 +371,95 @@ class TestGenerateLabOrderPaymentUrl:
 
         assert len(provider.calls) == 1
         assert provider.calls[0].amount == 350_000
+
+
+class TestGenerateBulkLabOrderPaymentUrl:
+    def _make_uc(self, repo, provider=None, session=None):
+        return GenerateBulkLabOrderPaymentUrlUseCase(
+            session or FakeSession(),
+            repo,
+            provider or FakePaymentProvider(),
+            FakeEventPublisher(),
+        )
+
+    @pytest.mark.asyncio
+    async def test_raises_when_no_lab_orders_selected(self):
+        uc = self._make_uc(FakeBulkPaymentRepo([]))
+
+        with pytest.raises(ValueError, match="Select at least one"):
+            await uc.execute(uuid4(), [])
+
+    @pytest.mark.asyncio
+    async def test_raises_when_any_payment_missing(self):
+        patient_id = uuid4()
+        existing = _make_payment()
+        existing.patient_id = patient_id
+        missing_id = uuid4()
+        uc = self._make_uc(FakeBulkPaymentRepo([existing]))
+
+        with pytest.raises(ValueError, match=str(missing_id)):
+            await uc.execute(patient_id, [existing.reference_id, missing_id])
+
+    @pytest.mark.asyncio
+    async def test_raises_when_lab_order_belongs_to_other_patient(self):
+        payment = _make_payment()
+        uc = self._make_uc(FakeBulkPaymentRepo([payment]))
+
+        with pytest.raises(PermissionError, match="own lab orders"):
+            await uc.execute(uuid4(), [payment.reference_id])
+
+    @pytest.mark.asyncio
+    async def test_raises_when_payment_already_paid(self):
+        patient_id = uuid4()
+        payment = _make_payment(status=PaymentStatus.PAID)
+        payment.patient_id = patient_id
+        uc = self._make_uc(FakeBulkPaymentRepo([payment]))
+
+        with pytest.raises(PermissionError, match="already 'paid'"):
+            await uc.execute(patient_id, [payment.reference_id])
+
+    @pytest.mark.asyncio
+    async def test_single_lab_order_reuses_existing_payment(self):
+        patient_id = uuid4()
+        payment = _make_payment(status=PaymentStatus.EXPIRED)
+        payment.patient_id = patient_id
+        provider = FakePaymentProvider("https://vnpay.test/single")
+        session = FakeSession()
+        repo = FakeBulkPaymentRepo([payment])
+        uc = self._make_uc(repo, provider=provider, session=session)
+
+        result = await uc.execute(patient_id, [payment.reference_id])
+
+        assert result["payment_id"] == str(payment.id)
+        assert result["payment_url"] == "https://vnpay.test/single"
+        assert result["lab_order_ids"] == [str(payment.reference_id)]
+        assert payment.status == PaymentStatus.PENDING
+        assert repo.saved == [payment]
+        assert session.commits == 1
+        assert provider.calls[0].order_id == payment.reference_id
+
+    @pytest.mark.asyncio
+    async def test_bulk_payment_uses_vnpay_safe_order_description(self):
+        patient_id = uuid4()
+        doctor_id = uuid4()
+        payments = [_make_payment(), _make_payment()]
+        for payment in payments:
+            payment.patient_id = patient_id
+            payment.doctor_id = doctor_id
+
+        repo = FakeBulkPaymentRepo(payments)
+        provider = FakePaymentProvider()
+        uc = GenerateBulkLabOrderPaymentUrlUseCase(
+            FakeSession(),
+            repo,
+            provider,
+            FakeEventPublisher(),
+        )
+
+        result = await uc.execute(patient_id, [payment.reference_id for payment in payments])
+
+        assert result["amount"] == sum(payment.amount for payment in payments)
+        assert len(provider.calls) == 1
+        assert provider.calls[0].order_desc == "Lab order payment 2 tests"
+        assert "(" not in provider.calls[0].order_desc
+        assert ")" not in provider.calls[0].order_desc

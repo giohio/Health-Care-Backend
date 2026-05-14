@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from Domain.interfaces import IEventPublisher, IPaymentProvider
 from Domain.interfaces.payment_repository import IPaymentRepository
@@ -72,7 +73,52 @@ class ProcessVNPayIPnUseCase:
             )
 
             # Publish different events for lab order vs appointment payments
-            if payment.payment_type == "LAB_ORDER":
+            if payment.payment_type == "LAB_ORDER_BUNDLE":
+                transactions = await self.payment_repo.list_transactions(payment.id)
+                lab_order_ids: list[str] = []
+                for txn in transactions:
+                    metadata = txn.metadata or {}
+                    if metadata.get("source") == "bulk_lab_order_payment":
+                        lab_order_ids = list(metadata.get("lab_order_ids") or [])
+                        break
+
+                child_payments = await self.payment_repo.list_by_reference_ids(
+                    [UUID(str(order_id)) for order_id in lab_order_ids]
+                )
+                for child in child_payments:
+                    child.mark_as_paid(
+                        provider_ref=payment.vnpay_provider_ref or "",
+                        paid_at=payment.paid_at,
+                    )
+                    await self.payment_repo.save(child)
+                    await self.payment_repo.append_transaction(
+                        payment_id=child.id,
+                        appointment_id=child.appointment_id,
+                        transaction_type=PaymentTransactionType.PAYMENT_PAID,
+                        amount=child.amount,
+                        currency=child.currency,
+                        provider_ref=payment.vnpay_provider_ref,
+                        response_code=response_code,
+                        metadata={
+                            "ipn": params,
+                            "bundle_payment_id": str(payment.id),
+                        },
+                    )
+                    await self.event_publisher.publish(
+                        session=self.session,
+                        aggregate_id=child.id,
+                        aggregate_type="payment_events",
+                        event_type="lab_payment.paid",
+                        payload={
+                            "payment_id": str(child.id),
+                            "lab_order_id": str(child.reference_id),
+                            "patient_id": str(child.patient_id),
+                            "doctor_id": str(child.doctor_id),
+                            "status": child.status.value,
+                            "provider_ref": child.vnpay_provider_ref,
+                        },
+                    )
+            elif payment.payment_type == "LAB_ORDER":
                 await self.event_publisher.publish(
                     session=self.session,
                     aggregate_id=payment.id,

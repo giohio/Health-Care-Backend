@@ -283,7 +283,7 @@ async def test_doctor_refer_internal_sets_status_and_department():
 
     assert referred.status           == TriageSessionStatus.REFERRED_INTERNAL
     assert referred.doctor_id        == "doctor-2"
-    assert referred.final_department == "Internal Medicine"
+    assert referred.final_department == "General Medicine"
     assert referred.doctor_notes     == "Không chắc chắn."
     assert referred.completed_at     is not None
 

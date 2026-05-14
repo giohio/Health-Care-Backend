@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,13 @@ class Settings(BaseSettings):
     MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
 
     DEBUG: bool = False
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug(cls, value):
+        if isinstance(value, str) and value.lower() in {"release", "prod", "production"}:
+            return False
+        return value
 
 
 settings = Settings()

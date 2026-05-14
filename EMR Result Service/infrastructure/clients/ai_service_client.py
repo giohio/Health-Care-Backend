@@ -43,7 +43,7 @@ class AiServiceClient:
             "patient_id": str(patient_id),
             "file_url": file_url,
             "input_type": input_type,
-            "department": department,
+            "department": department or "internal_medicine",
             "test_name": test_name,
             "auth_token": auth_token,
             "tabular_data": tabular_data,
@@ -70,8 +70,8 @@ class AiServiceClient:
                     result_id,
                 )
         except Exception as e:
-            logger.error(
-                "Failed to trigger AI analysis for result %s: %s",
+            logger.warning(
+                "Failed to trigger AI analysis for result %s: %s (non-fatal)",
                 result_id,
                 e,
                 exc_info=True,

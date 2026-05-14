@@ -12,6 +12,7 @@ from presentation.dependencies import (
     get_event_publisher,
     get_generate_payment_url_use_case,
     get_get_payment_use_case,
+    get_payment_repo,
     get_list_admin_payment_history_use_case,
     get_list_patient_payment_history_use_case,
     get_list_patient_payments_use_case,
@@ -52,6 +53,8 @@ class DummyListPatientPaymentHistoryUseCase:
                 PaymentHistoryItem(
                     id="hist-1",
                     appointment_id=str(uuid4()),
+                    payment_type="APPOINTMENT",
+                    reference_id=None,
                     status="paid",
                     appointment_status="confirmed",
                     amount=500000,
@@ -82,6 +85,8 @@ class DummyListAdminPaymentHistoryUseCase:
                 PaymentHistoryItem(
                     id="admin-hist-1",
                     appointment_id=str(uuid4()),
+                    payment_type="APPOINTMENT",
+                    reference_id=None,
                     status="paid",
                     appointment_status="pending_payment",
                     amount=900000,
@@ -140,6 +145,14 @@ class DummyGeneratePaymentUrlUseCase:
         return self.payload
 
 
+class DummyPaymentRepo:
+    async def get_by_vnpay_txn_ref(self, txn_ref):
+        await asyncio.sleep(0)
+        if txn_ref == "LAB-BUNDLE":
+            return SimpleNamespace(payment_type="LAB_ORDER_BUNDLE")
+        return SimpleNamespace(payment_type="APPOINTMENT")
+
+
 @pytest.fixture
 def app_with_overrides():
     app = FastAPI()
@@ -156,6 +169,7 @@ def app_with_overrides():
     app.dependency_overrides[get_get_payment_use_case] = lambda: get_payment_uc
     app.dependency_overrides[get_process_vnpay_ipn_use_case] = lambda: ipn_uc
     app.dependency_overrides[get_generate_payment_url_use_case] = lambda: gen_url_uc
+    app.dependency_overrides[get_payment_repo] = lambda: DummyPaymentRepo()
     app.dependency_overrides[get_list_patient_payments_use_case] = lambda: list_payments_uc
     app.dependency_overrides[get_list_patient_payment_history_use_case] = lambda: patient_history_uc
     app.dependency_overrides[get_list_admin_payment_history_use_case] = lambda: admin_history_uc
@@ -241,6 +255,20 @@ async def test_vnpay_return_redirects_with_derived_status(app_with_overrides, pa
     qs = parse_qs(parsed.query)
     assert qs["status"][0] == expected_status
     assert qs["txn_ref"][0] == params.get("vnp_TxnRef", "")
+    assert qs["payment_type"][0] == "APPOINTMENT"
+
+
+@pytest.mark.asyncio
+async def test_vnpay_return_redirect_includes_lab_payment_type(app_with_overrides):
+    transport = httpx.ASGITransport(app=app_with_overrides)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver", follow_redirects=False) as client:
+        r = await client.get(
+            "/vnpay/return",
+            params={"vnp_ResponseCode": "00", "vnp_TransactionStatus": "00", "vnp_TxnRef": "LAB-BUNDLE"},
+        )
+
+    qs = parse_qs(urlparse(r.headers["location"]).query)
+    assert qs["payment_type"][0] == "LAB_ORDER_BUNDLE"
 
 
 @pytest.mark.asyncio

@@ -7,7 +7,7 @@ from Domain.interfaces.payment_repository import IPaymentRepository
 from Domain.value_objects.payment_status import PaymentStatus
 from Domain.value_objects.payment_transaction_type import PaymentTransactionType
 from infrastructure.database.models import PaymentModel, PaymentTransactionModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -191,6 +191,26 @@ class PaymentRepository(IPaymentRepository):
         model = result.scalars().first()
         return self._to_entity(model) if model else None
 
+    async def list_by_reference_ids(self, reference_ids: list[UUID]) -> list[Payment]:
+        """Fetch LAB_ORDER payments by reference ids."""
+        if not reference_ids:
+            return []
+        stmt = select(PaymentModel).where(
+            PaymentModel.reference_id.in_(reference_ids),
+            PaymentModel.payment_type == "LAB_ORDER",
+        )
+        result = await self.session.execute(stmt)
+        return [self._to_entity(model) for model in result.scalars().all()]
+
+    async def delete_by_reference_id(self, reference_id: UUID) -> None:
+        """Delete a LAB_ORDER payment by reference_id."""
+        stmt = delete(PaymentModel).where(
+            PaymentModel.reference_id == reference_id,
+            PaymentModel.payment_type == "LAB_ORDER",
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()
+
     async def _find_model(self, payment_id: UUID) -> PaymentModel | None:
         """Internal: find model by ID"""
         return await self.session.get(PaymentModel, payment_id)
@@ -204,7 +224,7 @@ class PaymentRepository(IPaymentRepository):
         patient_id: UUID | None = None,
         doctor_id: UUID | None = None,
     ) -> list:
-        filters = []
+        filters = [PaymentModel.payment_type != "LAB_ORDER_BUNDLE"]
         if patient_id is not None:
             filters.append(PaymentModel.patient_id == patient_id)
         if doctor_id is not None:

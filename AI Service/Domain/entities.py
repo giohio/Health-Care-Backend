@@ -28,6 +28,8 @@ class PatientContext:
     weight_kg:           Optional[float] = None
     blood_pressure:      Optional[str] = None
     heart_rate_bpm:      Optional[int] = None
+    temperature_celsius: Optional[float] = None
+    oxygen_saturation:   Optional[int] = None
     recent_notes:        list[str] = field(default_factory=list)
 
 

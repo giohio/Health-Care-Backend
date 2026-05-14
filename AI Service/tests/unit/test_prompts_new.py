@@ -142,9 +142,7 @@ def test_build_emr_summary_injects_rag_context():
 # ---------------------------------------------------------------------------
 
 def test_lab_chat_patient_system_forbids_diagnosis():
-    assert "không chẩn đoán" in LAB_CHAT_SYSTEM_PATIENT.lower() or \
-           "không chẩn đoán" in LAB_CHAT_SYSTEM_PATIENT or \
-           "chẩn đoán" in LAB_CHAT_SYSTEM_PATIENT
+    assert "diagnose" in LAB_CHAT_SYSTEM_PATIENT.lower()
 
 
 def test_lab_chat_patient_system_encourages_consulting_doctor():
@@ -372,6 +370,28 @@ def test_lab_tabular_synthesis_system_has_no_oncology_rules():
     # Oncology rules belong to the imaging path only
     assert "ONCOLOGY" not in LAB_TABULAR_SYNTHESIS_SYSTEM
     assert "mass_present" not in LAB_TABULAR_SYNTHESIS_SYSTEM
+
+
+def test_lab_tabular_synthesis_system_escalates_diagnostic_glucose_abnormalities():
+    lower = LAB_TABULAR_SYNTHESIS_SYSTEM.lower()
+    assert "fasting glucose >= 7.0 mmol/l" in lower
+    assert "hba1c >= 6.5%" in lower
+    assert "must be at least priority" in lower
+    assert "do not label the draft routine/low" in lower
+
+
+def test_lab_tabular_synthesis_system_covers_common_lab_panels():
+    lower = LAB_TABULAR_SYNTHESIS_SYSTEM.lower()
+    for marker in [
+        "cbc examples",
+        "liver examples",
+        "lipid examples",
+        "thyroid examples",
+        "urinalysis examples",
+        "coagulation examples",
+        "must be at least priority",
+    ]:
+        assert marker in lower
 
 
 # ---------------------------------------------------------------------------

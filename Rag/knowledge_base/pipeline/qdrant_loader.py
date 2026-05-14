@@ -17,6 +17,7 @@ from qdrant_client import QdrantClient
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from qdrant_client.models import (
     Distance,
+    HnswConfigDiff,
     VectorParams,
     PointStruct,
     PayloadSchemaType,
@@ -33,6 +34,8 @@ INDEXED_FIELDS: List[Tuple[str, PayloadSchemaType]] = [
     ("disease_category", PayloadSchemaType.KEYWORD),
     ("source",           PayloadSchemaType.KEYWORD),
     ("chunk_type",       PayloadSchemaType.KEYWORD),
+    ("document_type",    PayloadSchemaType.KEYWORD),
+    ("collection",       PayloadSchemaType.KEYWORD),
 ]
 
 
@@ -53,6 +56,7 @@ def ensure_collection(client: QdrantClient, collection_name: str = COLLECTION_NA
             vectors_config=VectorParams(
                 size=VECTOR_DIM,
                 distance=Distance.COSINE,
+                hnsw_config=HnswConfigDiff(m=16, ef_construct=100),
             ),
         )
         print(f"[INFO] Created Qdrant collection: {collection_name}")

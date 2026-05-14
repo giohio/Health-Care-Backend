@@ -125,7 +125,7 @@ async def test_stream_completion_error_yields_error_message():
         result.append(token)
 
     assert len(result) == 1
-    assert "[LỖI]" in result[0]
+    assert "[ERROR]" in result[0]
 
 
 # ---------------------------------------------------------------------------

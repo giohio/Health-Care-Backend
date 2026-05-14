@@ -148,6 +148,7 @@ async def record_vitals(
     blood_pressure_diastolic: int | None = Query(default=None),
     heart_rate: int | None = Query(default=None),
     temperature_celsius: float | None = Query(default=None),
+    oxygen_saturation: int | None = Query(default=None),
 ):
     vitals_data = {
         "height_cm": height_cm,
@@ -156,6 +157,7 @@ async def record_vitals(
         "blood_pressure_diastolic": blood_pressure_diastolic,
         "heart_rate": heart_rate,
         "temperature_celsius": temperature_celsius,
+        "oxygen_saturation": oxygen_saturation,
     }
     # Filter out None values
     vitals_data = {k: v for k, v in vitals_data.items() if v is not None}
@@ -167,6 +169,7 @@ async def record_vitals(
         "blood_pressure_diastolic": result.blood_pressure_diastolic,
         "heart_rate": result.heart_rate,
         "temperature_celsius": result.temperature_celsius,
+        "oxygen_saturation": getattr(result, "oxygen_saturation", None),
         "recorded_at": str(result.recorded_at),
     }
 
@@ -178,7 +181,7 @@ async def get_latest_vitals(
     x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
     x_user_role: str | None = Header(default=None, alias="X-User-Role", include_in_schema=False),
 ):
-    if not x_user_id:
+    if not x_user_id and x_user_role != "service":
         raise HTTPException(status_code=401, detail="Authentication required")
     # Patients can only access their own vitals; doctors/admins can access any
     if x_user_role == "patient" and x_user_id != patient_id:
@@ -194,6 +197,7 @@ async def get_latest_vitals(
             "blood_pressure_diastolic": vitals.blood_pressure_diastolic,
             "heart_rate": vitals.heart_rate,
             "temperature_celsius": vitals.temperature_celsius,
+            "oxygen_saturation": getattr(vitals, "oxygen_saturation", None),
             "recorded_at": str(vitals.recorded_at),
         }
     }
@@ -216,6 +220,7 @@ async def get_vitals_history(
             "blood_pressure_diastolic": v.blood_pressure_diastolic,
             "heart_rate": v.heart_rate,
             "temperature_celsius": v.temperature_celsius,
+            "oxygen_saturation": getattr(v, "oxygen_saturation", None),
             "recorded_at": str(v.recorded_at),
         }
         for v in vitals

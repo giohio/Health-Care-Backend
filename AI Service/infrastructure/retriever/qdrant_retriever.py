@@ -111,7 +111,8 @@ class QdrantRetriever(IRetriever):
         return [
             {
                 "text":    (hit.get("payload") or {}).get("text", ""),
-                "source":  (hit.get("payload") or {}).get("source", ""),
+                "source":  (hit.get("payload") or {}).get("source_url", "")
+                           or (hit.get("payload") or {}).get("source", ""),
                 "section": (hit.get("payload") or {}).get("section_heading", ""),
                 "score":   hit.get("score", 0.0),
             }

@@ -105,8 +105,9 @@ def analyze_lab_task(self, payload: dict):
                         "⚠️ AI analysis could not complete after multiple attempts. "
                         "Please review the result manually."
                     ),
+                    "ai_confidence": 0.0,
                     "requires_specialist_review": True,
-                    "status": AnalysisStatus.NEEDS_REVIEW.value,
+                    "status": AnalysisStatus.FAILED.value,
                 },
                 x_user_id=payload.get("x_user_id"),
                 x_user_role="service",  # internal AI→EMR callback; always service role

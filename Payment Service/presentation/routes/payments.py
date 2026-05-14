@@ -5,6 +5,7 @@ from uuid import UUID
 
 from Application.use_cases.generate_payment_url import GeneratePaymentUrlUseCase
 from Application.use_cases.generate_lab_order_payment_url import GenerateLabOrderPaymentUrlUseCase
+from Application.use_cases.generate_bulk_lab_order_payment_url import GenerateBulkLabOrderPaymentUrlUseCase
 from Application.use_cases.list_admin_payment_history import ListAdminPaymentHistoryUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
 from Application.use_cases.list_patient_payments import ListPatientPaymentsUseCase
@@ -17,10 +18,13 @@ from Domain.value_objects.payment_status import PaymentStatus
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from infrastructure.config import settings
+from infrastructure.repositories.payment_repository import PaymentRepository
 from presentation.dependencies import (
     get_generate_payment_url_use_case,
     get_generate_lab_order_payment_url_use_case,
+    get_generate_bulk_lab_order_payment_url_use_case,
     get_get_payment_use_case,
+    get_payment_repo,
     get_list_admin_payment_history_use_case,
     get_list_patient_payment_history_use_case,
     get_list_patient_payments_use_case,
@@ -206,6 +210,7 @@ async def handle_vnpay_ipn(
 async def handle_vnpay_return(
     request: Request,
     use_case: Annotated[ProcessVNPayIPnUseCase, Depends(get_process_vnpay_ipn_use_case)],
+    payment_repo: Annotated[PaymentRepository, Depends(get_payment_repo)],
 ):
     """
     VNPAY return URL (redirect from payment page).
@@ -222,6 +227,8 @@ async def handle_vnpay_return(
     response_code = str(params.get("vnp_ResponseCode", ""))
     transaction_status = str(params.get("vnp_TransactionStatus", ""))
     txn_ref = str(params.get("vnp_TxnRef", ""))
+    payment = await payment_repo.get_by_vnpay_txn_ref(txn_ref) if txn_ref else None
+    payment_type = payment.payment_type if payment else ""
 
     if response_code == "00" and transaction_status in ("00", ""):
         payment_status = "success"
@@ -236,6 +243,7 @@ async def handle_vnpay_return(
             "txn_ref": txn_ref,
             "response_code": response_code,
             "transaction_status": transaction_status,
+            "payment_type": payment_type,
         }
     )
     redirect_url = f"{settings.VNPAY_RETURN_URL}?{query}"
@@ -357,3 +365,48 @@ async def generate_lab_order_payment_url(
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/lab-orders/pay-selected",
+    response_model=dict,
+    responses={
+        200: {"description": "Payment URL generated successfully"},
+        400: {"description": "Invalid lab order selection"},
+        403: {"description": "Lab order does not belong to current patient"},
+        409: {"description": "One or more lab orders cannot be paid"},
+    },
+    summary="Generate one payment URL for selected lab orders",
+    tags=["Lab Order Payment"],
+)
+async def generate_selected_lab_order_payment_url(
+    body: dict,
+    request: Request,
+    use_case: Annotated[
+        GenerateBulkLabOrderPaymentUrlUseCase,
+        Depends(get_generate_bulk_lab_order_payment_url_use_case),
+    ],
+    x_user_id: UUID | None = Header(default=None, alias="X-User-Id", include_in_schema=False),
+):
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="X-User-Id header is missing")
+
+    raw_ids = body.get("lab_order_ids")
+    if not isinstance(raw_ids, list):
+        raise HTTPException(status_code=400, detail="lab_order_ids must be a list")
+
+    try:
+        lab_order_ids = [UUID(str(value)) for value in raw_ids]
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid lab_order_ids")
+
+    try:
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        return await use_case.execute(x_user_id, lab_order_ids, client_ip)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        message = str(e)
+        if "your own" in message:
+            raise HTTPException(status_code=403, detail=message)
+        raise HTTPException(status_code=409, detail=message)

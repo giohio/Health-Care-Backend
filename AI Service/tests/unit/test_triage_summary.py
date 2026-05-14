@@ -7,7 +7,7 @@ Tests the generate_summary() method and the enriched schema with:
 
 Test cases:
 1. Rich conversation → all fields including new ones are populated
-2. Short conversation → patient_description and clinical_reasoning are empty strings
+2. Short conversation → missing reasoning is backfilled from conversation
 3. Schema validation: TriageSummaryResponse accepts new fields
 4. Doctor can call summary; patient gets TriageSessionAccessDenied
 """
@@ -127,11 +127,11 @@ async def test_generate_summary_rich_conversation_returns_all_new_fields():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Test 2: Short conversation → new fields gracefully empty
+#  Test 2: Short conversation → missing fields are backfilled
 # ─────────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_generate_summary_short_conversation_returns_empty_new_fields():
+async def test_generate_summary_short_conversation_backfills_empty_reasoning_fields():
     svc = _make_service()
 
     session = await svc.start_session("patient-1")
@@ -163,9 +163,39 @@ async def test_generate_summary_short_conversation_returns_empty_new_fields():
         llm_client=fake_llm,
     )
 
-    assert result["patient_description"] == ""
-    assert result["clinical_reasoning"] == ""
+    assert result["patient_description"] == "Đau đầu nhẹ"
+    assert "primary headache syndrome" in result["clinical_reasoning"]
     assert result["chief_complaint"] == "Mild headache"
+
+
+@pytest.mark.asyncio
+async def test_generate_summary_llm_empty_uses_conversation_fallback():
+    svc = _make_service()
+    session = await svc.start_session("patient-1")
+    await svc.finish_turn(
+        session.id,
+        patient_message="I have fever, chills, and a wet cough for about a week",
+        assistant_response="[R] I recommend General Medicine. Urgency: Priority.",
+        is_recommendation=True,
+    )
+
+    result = await svc.generate_summary(
+        session_id=session.id,
+        requester_id="doctor-1",
+        role="doctor",
+        llm_client=FakeLLMClient(None),
+    )
+
+    assert result["chief_complaint"] == "I have fever, chills, and a wet cough for about a week"
+    assert "fever" in result["reported_symptoms"]
+    assert any("cough" in symptom for symptom in result["reported_symptoms"])
+    assert result["duration"] == "a week"
+    assert "acute respiratory infection" in result["suspected_conditions"]
+    assert "fever" in result["clinical_reasoning"]
+    assert "wet cough" in result["clinical_reasoning"]
+    assert result["recommended_department"] == "General Medicine"
+    assert result["urgency_level"] == "Priority"
+    assert "General Medicine is appropriate" in result["department_reasoning"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

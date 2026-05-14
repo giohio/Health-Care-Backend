@@ -11,6 +11,8 @@ router = APIRouter(prefix="/analyze-auscultation", tags=["AI - Auscultation"])
 _ALLOWED_AUDIO_TYPES = {
     "audio/wav", "audio/x-wav",
     "audio/mpeg", "audio/mp3",
+    "audio/webm",
+    "audio/mp4", "audio/m4a",
     "audio/ogg",
     "application/octet-stream",
 }
@@ -73,9 +75,13 @@ async def analyze_auscultation(
     )
 
     return JSONResponse({
+        "patient_id":       patient_id,
+        "sound_type":       sound_type,
+        "department":       department,
         "visual_findings": result.visual_findings,
         "draft_text":      result.draft_text,
         "confidence":      result.confidence,
         "model_versions":  result.model_versions,
+        "requires_specialist_review": result.requires_specialist_review,
         "note":            "AI draft — requires physician review and approval.",
     })

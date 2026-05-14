@@ -24,6 +24,8 @@ DEFAULT_FEES = [
     {"test_id": "ct_brain", "test_name": "Brain CT Scan", "fee": 900000},
     {"test_id": "mri_brain", "test_name": "Brain MRI", "fee": 1500000},
     {"test_id": "ultrasound_abdomen", "test_name": "Abdominal Ultrasound", "fee": 350000},
+    {"test_id": "lung_sounds", "test_name": "Lung Sound Recording", "fee": 180000},
+    {"test_id": "heart_sounds", "test_name": "Heart Sound Recording", "fee": 220000},
 ]
 
 

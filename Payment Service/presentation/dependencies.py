@@ -3,6 +3,7 @@ from typing import Annotated, AsyncGenerator
 from Application.use_cases.create_payment import CreatePaymentFromEventUseCase
 from Application.use_cases.generate_payment_url import GeneratePaymentUrlUseCase
 from Application.use_cases.generate_lab_order_payment_url import GenerateLabOrderPaymentUrlUseCase
+from Application.use_cases.generate_bulk_lab_order_payment_url import GenerateBulkLabOrderPaymentUrlUseCase
 from Application.use_cases.list_admin_payment_history import ListAdminPaymentHistoryUseCase
 from Application.use_cases.handle_vnpay_ipn import ProcessVNPayIPnUseCase
 from Application.use_cases.list_patient_payments import ListPatientPaymentsUseCase
@@ -80,6 +81,15 @@ def get_generate_lab_order_payment_url_use_case(
     vnpay: Annotated[IPaymentProvider, Depends(get_vnpay_provider)],
 ) -> GenerateLabOrderPaymentUrlUseCase:
     return GenerateLabOrderPaymentUrlUseCase(session, repo, vnpay)
+
+
+def get_generate_bulk_lab_order_payment_url_use_case(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    repo: Annotated[PaymentRepository, Depends(get_payment_repo)],
+    vnpay: Annotated[IPaymentProvider, Depends(get_vnpay_provider)],
+    event_publisher: Annotated[IEventPublisher, Depends(get_event_publisher)],
+) -> GenerateBulkLabOrderPaymentUrlUseCase:
+    return GenerateBulkLabOrderPaymentUrlUseCase(session, repo, vnpay, event_publisher)
 
 
 def get_create_payment_use_case(

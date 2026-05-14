@@ -4,7 +4,9 @@ from dataclasses import dataclass, field
 @dataclass
 class PaymentHistoryItem:
     id: str
-    appointment_id: str
+    appointment_id: str | None
+    payment_type: str
+    reference_id: str | None
     status: str
     appointment_status: str
     amount: int
@@ -29,7 +31,9 @@ class PaymentHistoryPage:
 def serialize_payment(payment, include_owner_fields: bool = False) -> PaymentHistoryItem:
     return PaymentHistoryItem(
         id=str(payment.id),
-        appointment_id=str(payment.appointment_id),
+        appointment_id=str(payment.appointment_id) if payment.appointment_id else None,
+        payment_type=payment.payment_type,
+        reference_id=str(payment.reference_id) if payment.reference_id else None,
         status=payment.status.value,
         appointment_status=payment.appointment_status,
         amount=payment.amount,

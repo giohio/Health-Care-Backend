@@ -3,6 +3,7 @@ import uuid
 from typing import Optional
 
 from Application.dtos import CreateLabOrderRequest, LabOrderResponse
+from Application.exceptions import DuplicateLabOrderError
 from Domain.entities.lab_order import LabOrder
 from Domain.interfaces.lab_order_repository import ILabOrderRepository
 
@@ -17,6 +18,12 @@ class CreateLabOrderUseCase:
         self._publisher = event_publisher
 
     async def execute(self, request: CreateLabOrderRequest) -> LabOrderResponse:
+        if request.appointment_id:
+            existing_orders = await self.order_repo.list_by_appointment_id(request.appointment_id)
+            requested_name = self._normalize_test_name(request.test_name)
+            if any(self._normalize_test_name(order.test_name) == requested_name for order in existing_orders):
+                raise DuplicateLabOrderError(request.test_name)
+
         order = LabOrder(
             id=uuid.uuid4(),
             patient_id=request.patient_id,
@@ -49,3 +56,7 @@ class CreateLabOrderUseCase:
                 logger.exception("Failed to publish lab_order.payment_required for order %s", saved.id)
 
         return LabOrderResponse.model_validate(saved, from_attributes=True)
+
+    @staticmethod
+    def _normalize_test_name(value: str) -> str:
+        return " ".join(str(value or "").strip().lower().split())

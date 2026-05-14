@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 import pytest
 
 from Application.dtos import CreateClinicalNoteRequest
-from Application.use_cases.clinical_notes import CreateClinicalNoteUseCase, ListClinicalNotesUseCase
+from Application.use_cases.clinical_notes import CreateClinicalNoteUseCase, ListClinicalNotesUseCase, UpsertClinicalNoteUseCase
 from Application.use_cases.get_patient_summary import GetPatientSummaryUseCase
 from Domain.value_objects.diagnosis_status import DiagnosisStatus
 from Domain.value_objects.medication_status import MedicationStatus
@@ -89,6 +89,43 @@ class TestCreateClinicalNote:
         )
         response = await use_case.execute(request)
         assert response.appointment_id == appt_id
+
+
+class TestUpsertClinicalNote:
+    @pytest.fixture
+    def repo(self) -> FakeNoteRepo:
+        return FakeNoteRepo()
+
+    @pytest.fixture
+    def use_case(self, repo: FakeNoteRepo) -> UpsertClinicalNoteUseCase:
+        return UpsertClinicalNoteUseCase(note_repo=repo)
+
+    async def test_replaces_current_note_for_same_patient_appointment_and_type(self, use_case, repo):
+        patient_id = uuid.uuid4()
+        doctor_id = uuid.uuid4()
+        appt_id = uuid.uuid4()
+
+        first = await use_case.execute(CreateClinicalNoteRequest(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            appointment_id=appt_id,
+            content="Initial SOAP.",
+            note_type=NoteType.SOAP,
+            is_ai_generated=True,
+        ))
+        second = await use_case.execute(CreateClinicalNoteRequest(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            appointment_id=appt_id,
+            content="Updated SOAP.",
+            note_type=NoteType.SOAP,
+            is_ai_generated=False,
+        ))
+
+        assert second.id == first.id
+        assert second.content == "Updated SOAP."
+        assert second.is_ai_generated is False
+        assert len(repo._store) == 1
 
 
 # ---------------------------------------------------------------------------

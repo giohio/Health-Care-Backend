@@ -180,7 +180,7 @@ async def confirm_triage_session(
         raise HTTPException(status_code=404, detail="Triage session not found")
 
 
-# ── Doctor: refer to Internal Medicine ───────────────────────────────────────
+# ── Doctor: refer to General Medicine ────────────────────────────────────────
 
 @router.post("/{session_id}/refer-internal", response_model=TriageSessionResponse)
 async def refer_internal(
@@ -190,7 +190,7 @@ async def refer_internal(
     x_user_role: str = Header(...),
 ):
     """
-    Doctor is unsure and redirects patient to Internal Medicine.
+    Doctor is unsure and redirects patient to General Medicine.
     Status → **referred_internal**; final_department = internal_medicine.
     """
     if x_user_role not in ("doctor", "admin"):

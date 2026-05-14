@@ -210,6 +210,9 @@ class WokuClient(ILLMClient, IVisionClient):
 
                         if tcb:
                             run_outer = await self._process_tool_calls(tcb, handler, messages)
+                        if not tcb:
+                            async for chunk in self._yield_disclaimer(messages):
+                                yield chunk
                         break  # success — break retry loop
                     except Exception as e:
                         if attempt < 2 and self._is_retryable(e):
@@ -490,6 +493,11 @@ class WokuClient(ILLMClient, IVisionClient):
     # ── Internal helpers ──────────────────────────────────────
 
     def _fallback_message(self, messages: list[dict]) -> str:
+        lang = _detect_language(
+            next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
+        )
+        if lang == "vi":
+            return "[R] Xin lỗi, tôi không thể kết nối tới AI ngay bây giờ. Vui lòng thử lại sau."
         return _FALLBACK
 
     def _is_retryable(self, exc: Exception) -> bool:

@@ -73,6 +73,11 @@ Từ lượt thứ 2 trở đi, đưa [R] NGAY LẬP TỨC khi bất kỳ điề
   • Bệnh nhân nói "hết rồi", "không có gì thêm", "chỉ vậy thôi", hoặc tương đương.
   • Đã hỏi 4 lần — lượt tiếp theo PHẢI cho [R] bất kể thông tin có đủ hay không.
 
+LƯU Ý RIÊNG CHO SỐT / HO / TRIỆU CHỨNG HÔ HẤP:
+  • Không được đưa [R] chỉ dựa trên "sốt + ho + kéo dài khoảng 1 tuần".
+  • Nếu chưa biết mức độ nặng hoặc dấu hiệu nguy hiểm, hãy hỏi thêm đúng 1 câu tập trung về: khó thở, đau/tức ngực, sốt rất cao, ho ra máu, hoặc ảnh hưởng ăn ngủ/sinh hoạt.
+  • Không hỏi chung chung "Còn triệu chứng nào khác không?". Hãy hỏi một câu có giá trị sàng lọc nguy cơ.
+
 DẤU HIỆU NGUY HIỂM → [R] Cấp cứu ngay, không hỏi thêm:
   • Đau đầu dữ dội đột ngột ("tệ nhất trong đời" / sét đánh)
   • Đau ngực hoặc tức ngực, đặc biệt lan ra tay, hàm, hoặc lưng
@@ -87,7 +92,8 @@ CHIẾN LƯỢC HỎI THĂM
 ══════════════════════════════
 • MỖI LƯỢT CHỈ ĐẶT 1 CÂU HỎI — luôn luôn.
 • Hỏi điều có giá trị lâm sàng quyết định nhất còn thiếu.
-• Nếu bệnh nhân đã mô tả thời gian, mức độ, và triệu chứng kèm theo — đủ rồi. Cho [R].
+• Nếu bệnh nhân đã mô tả thời gian, mức độ/ảnh hưởng, và triệu chứng kèm theo — đủ rồi. Cho [R].
+• Với sốt/ho, nếu chỉ mới biết thời gian và có ho, hãy hỏi thêm 1 câu về red flags hoặc mức độ ảnh hưởng trước khi [R].
 • KHÔNG hỏi về đặt lịch, ưu tiên cá nhân, hay sắp xếp trong giai đoạn triage.
 • KHÔNG hỏi "Còn điều gì khác không?" — quyết định dựa trên thông tin đã có.
 
@@ -284,6 +290,11 @@ From the 2nd turn onward, give [R] IMMEDIATELY when ANY of these is true:
   • The patient says "that's all", "nothing else", "just that", or equivalent.
   • You have asked 4 questions already — give [R] on the next turn regardless.
 
+SPECIAL RULE FOR FEVER / COUGH / RESPIRATORY COMPLAINTS:
+  • Do NOT give [R] based only on "fever + cough + about 1 week".
+  • If severity/impact or red-flag status is still unknown, ask exactly 1 focused question about shortness of breath, chest pain/tightness, very high fever, coughing blood, or impact on eating/sleep/work.
+  • Do not ask the generic question "Any other symptoms?". Ask a focused risk-screening question.
+
 RED FLAGS → [R] Emergency immediately, no further questions:
   • Sudden severe headache ("worst of my life" / thunderclap)
   • Chest pain or pressure, especially with radiation to arm, jaw, or back
@@ -298,7 +309,8 @@ QUESTION STRATEGY
 ══════════════════════════════
 • ONE question per turn — always.
 • Target the most clinically decisive missing piece.
-• If the patient already described duration, severity, and associated symptoms — you have enough. Give [R].
+• If the patient already described duration, severity/impact, and associated symptoms — you have enough. Give [R].
+• For fever/cough, if you only know duration and cough is present, ask one more red-flag or impact question before [R].
 • Do NOT ask about booking, preferences, or logistics during triage. Only ask clinical questions.
 • Never ask "Is there anything else?" — decide based on what you have.
 
@@ -661,7 +673,7 @@ _BOOKING_INTENT_KEYWORDS = frozenset([
     # English — explicit booking intent only
     "book", "schedule", "appointment", "make an appointment", "set up an appointment",
     "help me book", "i want to book", "want to book", "i'd like to book", "reserve",
-    "yes please book", "go ahead and book", "just book", "book for me", "book it",
+    "yes please", "yes pls", "yes, please", "yes please book", "go ahead and book", "just book", "book for me", "book it",
     "i want to schedule", "i'd like to schedule", "confirm the booking",
     # Vietnamese — explicit booking phrases only
     "đặt lịch", "đặt hẹn", "đặt cho tôi", "đặt cho", "đặt giúp", "giúp tôi đặt",

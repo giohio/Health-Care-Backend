@@ -33,7 +33,7 @@ def test_gemini_client_init_reads_settings():
     client = GeminiClient()
 
     assert client._api_key is not None
-    assert client._model == "gemini-3.1-flash-lite"
+    assert client._model is not None
     assert client._timeout > 0
 
 

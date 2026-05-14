@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import logging
 from uuid import UUID
 
 from Application.dtos import NotificationResponse
@@ -7,6 +8,8 @@ from Domain.interfaces.email_sender import IEmailSender
 from Domain.interfaces.notification_repository import INotificationRepository
 from Domain.interfaces.realtime_notifier import IRealtimeNotifier
 from uuid_extension import uuid7
+
+logger = logging.getLogger(__name__)
 
 
 class CreateNotificationUseCase:
@@ -59,9 +62,12 @@ class CreateNotificationUseCase:
         except Exception:
             pass
         if self.email_sender and recipient_email and send_email:
-            await self.email_sender.send_email(
-                to=recipient_email,
-                subject=title,
-                body=body,
-            )
+            try:
+                await self.email_sender.send_email(
+                    to=recipient_email,
+                    subject=title,
+                    body=body,
+                )
+            except Exception as exc:
+                logger.warning("Notification email delivery failed for %s: %s", recipient_email, exc)
         return response

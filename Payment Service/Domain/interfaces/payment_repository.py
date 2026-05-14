@@ -82,5 +82,13 @@ class IPaymentRepository(ABC):
         """Fetch LAB_ORDER payment by reference_id (= lab_order_id)."""
 
     @abstractmethod
+    async def list_by_reference_ids(self, reference_ids: list[UUID]) -> list[Payment]:
+        """Fetch LAB_ORDER payments by their reference ids."""
+
+    @abstractmethod
+    async def delete_by_reference_id(self, reference_id: UUID) -> None:
+        """Delete a payment by its LAB_ORDER reference id."""
+
+    @abstractmethod
     async def list_transactions(self, payment_id: UUID) -> list[PaymentTransaction]:
         """List all payment transactions ordered by created_at"""

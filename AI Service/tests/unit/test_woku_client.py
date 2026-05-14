@@ -72,6 +72,7 @@ def _make_woku_client(stream_chunks=None, complete_text="", raise_error=None) ->
     fake_openai.chat = fake_chat
     client._client = fake_openai
     client._model = "gemini-2.5-flash"
+    client._fallback_model = None
     client._timeout = 60
     return client
 
@@ -137,7 +138,7 @@ async def test_stream_completion_error_yields_error_message():
         result.append(token)
 
     assert len(result) == 1
-    assert "[LỖI]" in result[0]
+    assert "[Lỗi]" in result[0]
 
 
 @pytest.mark.asyncio
@@ -210,6 +211,7 @@ async def test_complete_passes_temperature_and_max_tokens():
     fake_openai.chat = fake_chat
     client._client = fake_openai
     client._model = "gemini-2.5-flash"
+    client._fallback_model = None
     client._timeout = 60
 
     await client.complete("sys", "usr", temperature=0.1, max_tokens=512)

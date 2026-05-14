@@ -6,11 +6,12 @@ Responsibilities:
   • Load an existing session and validate access rights.
   • Persist completed turns (patient message + AI response).
   • Auto-transition status after the AI issues its recommendation ([R]).
-  • Provide doctor review actions: confirm or refer to Internal Medicine.
+  • Provide doctor review actions: confirm or refer to General Medicine.
   • Generate a clinical summary for doctor review (on-demand, no DB write).
 """
 
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
@@ -118,6 +119,160 @@ def _parse_department(text: str) -> Optional[str]:
         if keyword in lowered:
             return dept
     return None
+
+
+_BOOKING_FILLER_RE = re.compile(
+    r"^\s*(yes|yep|yeah|ok|okay|oks|sure|please|pls|confirm|book|book it|go ahead|"
+    r"change time|reschedule|thanks|thank you)\b",
+    re.IGNORECASE,
+)
+
+_SYMPTOM_KEYWORDS = (
+    "shortness of breath", "wet cough", "dry cough", "fever", "chills", "cough",
+    "breathless", "chest pain", "body aches", "headache", "dizzy", "dizziness",
+    "nausea", "vomiting", "diarrhea", "sore throat", "fatigue", "rash",
+    "sốt", "ớn lạnh", "ho", "khó thở", "đau ngực", "đau đầu", "chóng mặt",
+    "buồn nôn", "nôn", "tiêu chảy", "đau họng", "mệt", "phát ban",
+)
+
+
+def _turn_role(msg: dict) -> str:
+    return str(msg.get("role") or "").lower()
+
+
+def _turn_content(msg: dict) -> str:
+    return str(msg.get("content") or "").strip()
+
+
+def _join_clinical_terms(items: list[str]) -> str:
+    clean = [item for item in items if item]
+    if not clean:
+        return "the reported symptoms"
+    if len(clean) == 1:
+        return clean[0]
+    return ", ".join(clean[:-1]) + f", and {clean[-1]}"
+
+
+def _infer_fallback_conditions(symptoms: list[str], combined: str) -> list[str]:
+    symptom_set = set(symptoms)
+    has_cough = any(term in symptom_set for term in ("cough", "wet cough", "dry cough", "ho"))
+    has_fever = any(term in symptom_set for term in ("fever", "sốt"))
+    has_chills = any(term in symptom_set for term in ("chills", "ớn lạnh"))
+
+    if has_fever and has_cough:
+        conditions = ["acute respiratory infection"]
+        if has_chills or "body aches" in symptom_set:
+            conditions.append("influenza-like illness")
+        return conditions
+    if has_fever or has_chills:
+        return ["acute febrile illness"]
+    if "chest pain" in symptom_set or "đau ngực" in symptom_set:
+        return ["cardiopulmonary cause of chest pain"]
+    if "headache" in symptom_set or "đau đầu" in symptom_set:
+        return ["primary headache syndrome"]
+    if any(term in combined for term in ("abdominal pain", "stomach pain", "đau bụng")):
+        return ["acute gastrointestinal condition"]
+    return []
+
+
+def _infer_fallback_severity(combined: str) -> str:
+    if re.search(r"\b(severe|very bad|worst|can't breathe|cannot breathe|không thở|khó thở nhiều|dữ dội)\b", combined):
+        return "severe"
+    if re.search(r"\b(moderate|medium|vừa|trung bình)\b", combined):
+        return "moderate"
+    if re.search(r"\b(mild|slight|nhẹ)\b", combined):
+        return "mild"
+    return "unknown"
+
+
+def _fallback_clinical_reasoning(symptoms: list[str], duration: str, conditions: list[str]) -> str:
+    symptom_text = _join_clinical_terms(symptoms)
+    duration_text = "" if not duration or duration == "unknown" else f" lasting {duration}"
+    if conditions:
+        condition_text = _join_clinical_terms(conditions)
+        return (
+            f"The combination of {symptom_text}{duration_text} supports concern for {condition_text}. "
+            "Persistence of these symptoms warrants clinician assessment rather than continued observation alone."
+        )
+    return (
+        f"The AI recommendation was based on {symptom_text}{duration_text}. "
+        "The available conversation is limited, so the doctor should verify severity, red flags, and relevant history."
+    )
+
+
+def _fallback_department_reasoning(department: str, symptoms: list[str], urgency: str) -> str:
+    dept = (department or "").lower()
+    urgency_part = ""
+    if urgency and urgency != "Unknown":
+        urgency_part = f" The {urgency.lower()} urgency reflects symptom persistence or potential red flags that need timely review."
+    if "general medicine" in dept or "internal medicine" in dept:
+        return (
+            "General Medicine is appropriate for initial evaluation of systemic symptoms, respiratory examination, "
+            "and deciding whether tests or specialist referral are needed."
+            + urgency_part
+        )
+    if "cardiology" in dept:
+        return "Cardiology is appropriate because chest or breathing symptoms can require cardiac evaluation." + urgency_part
+    if "neurology" in dept:
+        return "Neurology is appropriate when headache, dizziness, weakness, or other neurologic symptoms need specialist assessment." + urgency_part
+    if "ophthalmology" in dept:
+        return "Ophthalmology is appropriate when eye or visual symptoms require focused examination." + urgency_part
+    if "dermatology" in dept:
+        return "Dermatology is appropriate when skin symptoms require focused assessment." + urgency_part
+    symptom_text = _join_clinical_terms(symptoms)
+    return f"The department recommendation is based on {symptom_text} and should be confirmed by the reviewing doctor." + urgency_part
+
+
+def _summary_fallback_from_session(session: TriageSession, _reason: str = "") -> dict:
+    patient_messages = [
+        _turn_content(m)
+        for m in (session.messages or [])
+        if _turn_role(m) in ("user", "patient") and _turn_content(m)
+    ]
+    clinical_messages = [
+        msg for msg in patient_messages
+        if len(msg) >= 8 and not _BOOKING_FILLER_RE.search(msg)
+    ]
+    patient_description = clinical_messages[0] if clinical_messages else (patient_messages[0] if patient_messages else "")
+    chief_complaint = patient_description or "Summary unavailable"
+
+    combined = " ".join(clinical_messages).lower()
+    reported_symptoms = []
+    for kw in _SYMPTOM_KEYWORDS:
+        if kw == "cough" and any(s in reported_symptoms for s in ("wet cough", "dry cough")):
+            continue
+        if kw in combined and kw not in reported_symptoms:
+            reported_symptoms.append(kw)
+
+    duration = "unknown"
+    duration_match = re.search(
+        r"\b(?:for\s+)?(?:about\s+|around\s+|maybe\s+)?(\d+\s*(?:day|days|week|weeks|month|months)|a\s+week|one\s+week|today|yesterday)\b",
+        combined,
+    )
+    if duration_match:
+        duration = duration_match.group(1)
+
+    recommended_department = session.suggested_department or "Unknown"
+    urgency_level = session.urgency_level or "Unknown"
+    suspected_conditions = _infer_fallback_conditions(reported_symptoms, combined)
+    severity = _infer_fallback_severity(combined)
+
+    return {
+        "chief_complaint":        chief_complaint,
+        "reported_symptoms":      reported_symptoms,
+        "duration":               duration,
+        "severity":               severity,
+        "suspected_conditions":   suspected_conditions,
+        "department_reasoning":   _fallback_department_reasoning(recommended_department, reported_symptoms, urgency_level),
+        "recommended_department": recommended_department,
+        "urgency_level":          urgency_level,
+        "patient_description":    patient_description,
+        "clinical_reasoning":     _fallback_clinical_reasoning(reported_symptoms, duration, suspected_conditions),
+    }
+
+
+def _summary_value_missing(value) -> bool:
+    return value is None or value == "" or value == []
 
 
 class TriageSessionService:
@@ -256,7 +411,7 @@ class TriageSessionService:
         doctor_id:  str,
         notes:      Optional[str] = None,
     ) -> TriageSession:
-        """Doctor is unsure; redirect patient to Internal Medicine."""
+        """Doctor is unsure; redirect patient to General Medicine."""
         session = await self._repo.get_by_id(session_id)
         if not session:
             raise TriageSessionNotFound(session_id)
@@ -317,18 +472,10 @@ class TriageSessionService:
 
         # Minimal fallback when there is nothing useful to summarise
         if not session.messages or not session.suggested_department:
-            return {
-                "chief_complaint":        "Insufficient conversation data",
-                "reported_symptoms":      [],
-                "duration":               "unknown",
-                "severity":               "unknown",
-                "suspected_conditions":   [],
-                "department_reasoning":   "The triage conversation was too short to extract a clinical summary.",
-                "recommended_department": session.suggested_department or "Unknown",
-                "urgency_level":          session.urgency_level or "Unknown",
-                "patient_description":     "",
-                "clinical_reasoning":     "",
-            }
+            return _summary_fallback_from_session(
+                session,
+                "The triage conversation was too short to extract a complete AI summary.",
+            )
 
         user_prompt = build_triage_summary_prompt(
             messages=session.messages,
@@ -345,18 +492,10 @@ class TriageSessionService:
         )
 
         if not result:
-            return {
-                "chief_complaint":        "Summary unavailable",
-                "reported_symptoms":      [],
-                "duration":               "unknown",
-                "severity":               "unknown",
-                "suspected_conditions":   [],
-                "department_reasoning":   "The AI could not generate a summary at this time.",
-                "recommended_department": session.suggested_department or "Unknown",
-                "urgency_level":          session.urgency_level or "Unknown",
-                "patient_description":     "",
-                "clinical_reasoning":     "",
-            }
+            return _summary_fallback_from_session(
+                session,
+                "The AI summary model did not return structured output, so this summary was generated from the conversation history.",
+            )
 
         # Ensure all required keys are present (LLM may omit optional fields)
         defaults = {
@@ -372,4 +511,19 @@ class TriageSessionService:
             "clinical_reasoning":     "",
         }
         defaults.update(result)
+        fallback = None
+        for key in (
+            "chief_complaint",
+            "reported_symptoms",
+            "duration",
+            "severity",
+            "suspected_conditions",
+            "department_reasoning",
+            "patient_description",
+            "clinical_reasoning",
+        ):
+            if _summary_value_missing(defaults.get(key)):
+                if fallback is None:
+                    fallback = _summary_fallback_from_session(session)
+                defaults[key] = fallback[key]
         return defaults

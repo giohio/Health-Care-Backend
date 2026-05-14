@@ -176,7 +176,7 @@ class TestAuscultationAnalysisUseCase:
             )
 
         # The early-return path sets draft_text to the handcoded warning
-        assert "Không thể phân tích" in result.draft_text
+        assert "Unable to analyze audio" in result.draft_text
         assert result.confidence == 0.0
 
     @pytest.mark.asyncio

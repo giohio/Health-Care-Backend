@@ -102,6 +102,36 @@ class FakeNoteRepo(IClinicalNoteRepository):
         self._store[note_id] = updated
         return updated
 
+    async def upsert_current(self, note: ClinicalNote) -> ClinicalNote:
+        from dataclasses import replace
+
+        matches = [
+            existing
+            for existing in self._store.values()
+            if existing.patient_id == note.patient_id
+            and existing.appointment_id == note.appointment_id
+            and existing.note_type == note.note_type
+        ]
+        if not matches:
+            self._store[note.id] = note
+            return note
+
+        current = sorted(matches, key=lambda n: n.created_at or datetime.min, reverse=True)[0]
+        updated = replace(
+            current,
+            doctor_id=note.doctor_id,
+            content=note.content,
+            is_ai_generated=note.is_ai_generated,
+        )
+        self._store[current.id] = updated
+        for duplicate in matches:
+            if duplicate.id != current.id:
+                self._store.pop(duplicate.id, None)
+        return updated
+
+    async def delete(self, note_id: uuid.UUID) -> bool:
+        return self._store.pop(note_id, None) is not None
+
 
 class FakeVaccinationRepo(IVaccinationRepository):
     def __init__(self):

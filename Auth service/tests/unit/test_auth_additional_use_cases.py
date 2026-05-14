@@ -88,6 +88,7 @@ async def test_login_user_not_found_raises_value_error():
 @pytest.mark.asyncio
 async def test_login_inactive_user_raises_and_skips_token_creation():
     user = User("u@example.com", "hashed", UserRole.PATIENT)
+    user.is_email_verified = True
     user.is_active = False
     token_repo = FakeTokenRepo()
     use_case = LoginUseCase(

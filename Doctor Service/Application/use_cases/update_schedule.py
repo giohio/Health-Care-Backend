@@ -6,7 +6,7 @@ from Domain.exceptions.domain_exceptions import DoctorNotFoundException
 from Domain.interfaces.doctor_repository import IDoctorRepository
 from Domain.interfaces.schedule_repository import IScheduleRepository
 from healthai_cache import CacheClient
-from uuid_extension import UUID7
+from uuid_extension import UUID7, uuid7
 
 
 class UpdateScheduleUseCase:
@@ -33,7 +33,7 @@ class UpdateScheduleUseCase:
         new_schedules = []
         for dto in dtos:
             schedule = DoctorSchedule(
-                id=dto.id or UUID7(),
+                id=dto.id or uuid7(),
                 doctor_id=doctor_id,
                 day_of_week=dto.day_of_week,
                 start_time=dto.start_time,

@@ -26,6 +26,8 @@ REQUIRED_FIELDS = [
     "disease_category",
     "source",
     "chunk_type",
+    "document_type",
+    "collection",
     "page_title",
     "text",
     "char_count",

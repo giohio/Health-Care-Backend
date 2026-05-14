@@ -88,6 +88,7 @@ _SPECIALTY_KEYWORDS = _SPECIALTY_KEYWORDS_EN  # legacy alias — kept for backwa
 
 # Injected at the end of every non-emergency [R] if the model forgets to ask
 _BOOKING_OFFER_EN = "\nWould you like me to help you book an appointment? If so, just let me know your preferred date and time."
+_BOOKING_DATE_PROMPT_EN = "[Q] What date would you like to book, or would you prefer the earliest available?"
 
 # Signatures that identify a slot-listing [Q] response (produced by booking bypass)
 _SLOT_LISTING_SIGNATURES = (
@@ -103,6 +104,62 @@ _CONFIRMATION_KEYWORDS = frozenset([
     "first", "second", "third", "please", "book it", "do it", "proceed",
     "that works", "sounds good", "perfect", "great", "that one",
 ])
+
+_BOOKING_OFFER_ACCEPT_RE = re.compile(
+    r"\b(yes|yep|yeah|yup|ok|okay|oks|sure|please|pls|go ahead|do it|proceed|sounds good)\b"
+)
+
+BOOKING_SEMANTICS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "intent": {
+            "type": "string",
+            "enum": [
+                "accept_booking",
+                "provide_date_constraint",
+                "earliest_available",
+                "decline_booking",
+                "ask_question",
+                "unrelated",
+                "unknown",
+            ],
+        },
+        "date_constraint": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": ["exact", "after", "before", "range", "earliest", "unknown"],
+                },
+                "raw_text": {"type": "string"},
+                "normalized_date": {
+                    "type": "string",
+                    "description": "Preferred appointment date in YYYY-MM-DD, or empty string if no safe date can be inferred.",
+                },
+            },
+            "required": ["kind", "raw_text", "normalized_date"],
+        },
+        "time_preference": {
+            "type": "string",
+            "description": "Preferred appointment time in HH:MM 24-hour format, or empty string.",
+        },
+        "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+        },
+    },
+    "required": ["intent", "date_constraint", "time_preference", "confidence"],
+}
+
+_BOOKING_SEMANTICS_SYSTEM = (
+    "You classify a patient's latest message for medical appointment booking. "
+    "Return ONLY valid JSON matching the schema. Do not call tools. "
+    "Use the provided current date to normalize appointment date constraints. "
+    "If the user says they are busy until/till/through a day and 'after that works', "
+    "choose the next clinic weekday after the blocked day. Clinic weekdays are Monday-Friday. "
+    "Do not treat symptom onset dates as booking dates unless the assistant just asked for a booking date. "
+)
 
 # NOTE: _pending_slots and _recent_recommendation were previously module-level dicts.
 # They are now stored in Redis via ITriageStateRepository to support multi-worker
@@ -121,11 +178,23 @@ _WEEKDAY_NAMES_EN = {
     "monday": 0, "mon": 0,
     "tuesday": 1, "tue": 1, "tues": 1,
     "wednesday": 2, "wed": 2,
-    "thursday": 3, "thu": 3, "thur": 3, "thurs": 3,
+    "thursday": 3, "thu": 3, "thur": 3, "thurs": 3, "thurday": 3, "thrusday": 3,
     "friday": 4, "fri": 4,
     "saturday": 5, "sat": 5,
     "sunday": 6, "sun": 6,
 }
+
+
+def _resolve_weekday_date(name: str, force_next_week: bool = False) -> date:
+    target_wd = _WEEKDAY_NAMES_EN[name]
+    today = date.today()
+    days_ahead = (target_wd - today.weekday()) % 7
+    if days_ahead == 0:
+        days_ahead = 7
+    if force_next_week and days_ahead <= (6 - today.weekday()):
+        days_ahead += 7
+    return today + timedelta(days=days_ahead)
+
 
 def _parse_date_from_message(text: str) -> str | None:
     """
@@ -133,35 +202,54 @@ def _parse_date_from_message(text: str) -> str | None:
       - "next wednesday", "next friday"
       - "tomorrow"
       - bare weekday ("wednesday")
+      - "next week ... thursday"
+      - "after next tuesday"
+      - "busy till next tuesday so after that would work"
     Returns YYYY-MM-DD or None if no date found.
     """
-    today = date.today()
     lower = text.lower().strip()
+    weekday_re = "|".join(_WEEKDAY_NAMES_EN.keys())
 
     # "tomorrow"
     if re.search(r"\btomorrow\b", lower):
-        d = today + timedelta(days=1)
+        d = date.today() + timedelta(days=1)
+        return d.strftime("%Y-%m-%d")
+
+    # "after next Tuesday" / "after Tuesday" means the next clinic weekday after that day.
+    m = re.search(r"\bafter\s+(next\s+)?(" + weekday_re + r")\b", lower)
+    if m:
+        d = _resolve_weekday_date(m.group(2), force_next_week=bool(m.group(1)))
+        return _next_weekday_after(d.strftime("%Y-%m-%d"))
+
+    # "busy till/until next Tuesday ... after that" means start looking after that blocked day.
+    m = re.search(
+        r"\b(?:until|till|til|through|thru)\s+(next\s+)?("
+        + weekday_re
+        + r")\b.*\bafter\s+(?:that|then)\b",
+        lower,
+    )
+    if m:
+        d = _resolve_weekday_date(m.group(2), force_next_week=bool(m.group(1)))
+        return _next_weekday_after(d.strftime("%Y-%m-%d"))
+
+    # "next week, maybe Thursday" / "Thursday next week"
+    m = re.search(r"\bnext\s+week\b.*\b(" + weekday_re + r")\b", lower)
+    if not m:
+        m = re.search(r"\b(" + weekday_re + r")\b.*\bnext\s+week\b", lower)
+    if m:
+        d = _resolve_weekday_date(m.group(1), force_next_week=True)
         return d.strftime("%Y-%m-%d")
 
     # "next <weekday>" in English
-    m = re.search(r"\bnext\s+(" + "|".join(_WEEKDAY_NAMES_EN.keys()) + r")\b", lower)
+    m = re.search(r"\bnext\s+(" + weekday_re + r")\b", lower)
     if m:
-        target_wd = _WEEKDAY_NAMES_EN[m.group(1)]
-        days_ahead = (target_wd - today.weekday()) % 7
-        if days_ahead == 0:
-            days_ahead = 7
-        if days_ahead <= (6 - today.weekday()):
-            days_ahead += 7
-        d = today + timedelta(days=days_ahead)
+        d = _resolve_weekday_date(m.group(1), force_next_week=True)
         return d.strftime("%Y-%m-%d")
 
     # Bare English weekday (nearest upcoming, including today)
     for name, wd in _WEEKDAY_NAMES_EN.items():
         if re.search(r"\b" + re.escape(name) + r"\b", lower):
-            days_ahead = (wd - today.weekday()) % 7
-            if days_ahead == 0:
-                days_ahead = 7  # if today is that weekday, go to next occurrence
-            d = today + timedelta(days=days_ahead)
+            d = _resolve_weekday_date(name)
             return d.strftime("%Y-%m-%d")
 
     return None
@@ -210,6 +298,154 @@ def _next_weekday_after(date_str: str) -> str:
     while d.weekday() >= 5:
         d += timedelta(days=1)
     return d.strftime("%Y-%m-%d")
+
+
+def _wants_earliest_available(text: str) -> bool:
+    lower = text.lower()
+    return any(
+        phrase in lower
+        for phrase in (
+            "earliest",
+            "soonest",
+            "asap",
+            "as soon as possible",
+            "any time",
+            "anytime",
+            "first available",
+        )
+    )
+
+
+def _last_assistant_asked_booking_date(request) -> bool:
+    if not request.conversation_history:
+        return False
+    last_assistant = next(
+        (t for t in reversed(request.conversation_history) if t.role != "patient"),
+        None,
+    )
+    if last_assistant is None:
+        return False
+    content = last_assistant.content.lower()
+    return any(
+        sig in content
+        for sig in (
+            "what date would you like to book",
+            "would you prefer the earliest available",
+            "preferred date",
+            "which day works",
+            "which date works",
+        )
+    )
+
+
+def _last_assistant_offered_booking(request) -> bool:
+    if not request.conversation_history:
+        return False
+    last_assistant = next(
+        (t for t in reversed(request.conversation_history) if t.role != "patient"),
+        None,
+    )
+    if last_assistant is None:
+        return False
+    content = last_assistant.content.lower()
+    if any(m in content for m in _EMERGENCY_MARKERS):
+        return False
+    return any(
+        sig in content
+        for sig in (
+            "would you like me to help you book",
+            "would you like to book",
+            "help you book an appointment",
+            "book an appointment?",
+        )
+    )
+
+
+def _accepts_booking_offer(request) -> bool:
+    if not _last_assistant_offered_booking(request):
+        return False
+    return bool(_BOOKING_OFFER_ACCEPT_RE.search(request.symptoms.lower()))
+
+
+def _last_recommendation_is_non_emergency(request) -> bool:
+    if not request.conversation_history:
+        return False
+    last_r: str | None = None
+    for turn in request.conversation_history:
+        if turn.role != "patient" and turn.content.lstrip().startswith("[R]"):
+            last_r = turn.content
+    return bool(last_r and not any(m in last_r.lower() for m in _EMERGENCY_MARKERS))
+
+
+def _is_iso_date(value: str | None) -> bool:
+    if not value:
+        return False
+    return bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", value.strip()))
+
+
+def _build_booking_semantics_prompt(request, department: str) -> str:
+    history_lines: list[str] = []
+    for turn in (request.conversation_history or [])[-8:]:
+        role = "patient" if turn.role == "patient" else "assistant"
+        history_lines.append(f"{role}: {turn.content}")
+
+    return "\n".join([
+        f"Today: {date.today().strftime('%Y-%m-%d (%A)')}",
+        f"Department context: {department or 'General Medicine'}",
+        "Conversation history:",
+        "\n".join(history_lines) if history_lines else "(none)",
+        "",
+        f"Latest patient message: {request.symptoms}",
+        "",
+        "Classify only the latest patient message in context.",
+        "Use intent=accept_booking when the patient agrees to book but gives no date.",
+        "Use intent=provide_date_constraint when the patient gives availability such as 'after next Tuesday', 'free Thursday', or 'busy until next week'.",
+        "Use intent=earliest_available for 'as soon as possible', 'earliest', or equivalent.",
+        "Use intent=ask_question if they ask a medical or profile question instead of booking.",
+    ])
+
+
+async def _extract_booking_semantics(llm: ILLMClient, request, department: str) -> dict:
+    try:
+        result = await llm.complete_structured(
+            system_prompt=_BOOKING_SEMANTICS_SYSTEM,
+            user_prompt=_build_booking_semantics_prompt(request, department),
+            response_schema=BOOKING_SEMANTICS_SCHEMA,
+            temperature=0.0,
+            max_tokens=256,
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("BOOKING_SEMANTICS: extraction failed")
+        return {}
+    if not isinstance(result, dict):
+        return {}
+    return result
+
+
+def _semantic_booking_intent(result: dict) -> str:
+    intent = str(result.get("intent") or "unknown")
+    try:
+        confidence = float(result.get("confidence") or 0)
+    except (TypeError, ValueError):
+        confidence = 0
+    if confidence < 0.55:
+        return "unknown"
+    return intent
+
+
+def _semantic_booking_date(result: dict) -> str | None:
+    constraint = result.get("date_constraint") if isinstance(result, dict) else None
+    if not isinstance(constraint, dict):
+        return None
+    normalized = str(constraint.get("normalized_date") or "").strip()
+    return normalized if _is_iso_date(normalized) else None
+
+
+def _semantic_time_preference(result: dict) -> str | None:
+    value = str(result.get("time_preference") or "").strip()
+    if re.fullmatch(r"\d{2}:\d{2}", value):
+        return value
+    return None
 
 
 def _extract_department_from_history(history) -> str:
@@ -604,6 +840,21 @@ class SymptomCheckUseCase:
             and _cache_session_id
             and _cache_session_id == _request_session_id
         )
+        _awaiting_booking_date = _last_assistant_asked_booking_date(request)
+        _accepted_booking_offer = _accepts_booking_offer(request)
+        _booking_mode = _detect_booking_mode(request)
+        _deterministic_booking_mode = _booking_mode or (_has_booking_intent and _same_session_cache) or _accepted_booking_offer
+        _deterministic_date = _parse_date_from_message(request.symptoms)
+        _deterministic_earliest = _wants_earliest_available(request.symptoms)
+
+        # Department priority: explicit field > history extraction > server cache > default
+        _hist_dept = _normalize_specialty(_extract_department_from_history(request.conversation_history or []))
+        department = (
+            request.suggested_department
+            or (_hist_dept if _hist_dept != "General Medicine" else None)
+            or (_recent_rec["department"] if _recent_rec else None)
+            or "General Medicine"
+        )
 
         # First-turn direct booking: user says "book for me" with zero history and no
         # prior recommendation cached — go straight to availability instead of asking
@@ -614,26 +865,53 @@ class SymptomCheckUseCase:
             and not _request_session_id
         )
 
-        if _detect_booking_mode(request) or (_has_booking_intent and _same_session_cache) or _is_first_turn_booking:
-            from infrastructure.llm.booking_tools import fn_check_availability
-            # Department priority: explicit field > history extraction > server cache > default
-            _hist_dept = _normalize_specialty(_extract_department_from_history(request.conversation_history or []))
-            department = (
-                request.suggested_department
-                or (_hist_dept if _hist_dept != "General Medicine" else None)
-                or (_recent_rec["department"] if _recent_rec else None)
-                or "General Medicine"
-            )
-            _from_cache = _same_session_cache and not _detect_booking_mode(request)
+        _semantic = {}
+        _semantic_intent = "unknown"
+        _semantic_context = (
+            _last_recommendation_is_non_emergency(request)
+            or _same_session_cache
+            or _awaiting_booking_date
+            or _last_assistant_offered_booking(request)
+        )
+        _needs_semantic = (
+            not _deterministic_booking_mode
+            or (_awaiting_booking_date and not _deterministic_date and not _deterministic_earliest)
+        )
+        if _semantic_context and _needs_semantic and not _is_first_turn_booking:
+            _semantic = await _extract_booking_semantics(self._llm, request, department)
+            _semantic_intent = _semantic_booking_intent(_semantic)
+
+        _semantic_blocks_booking = _semantic_intent in {"decline_booking", "ask_question", "unrelated"}
+        _semantic_booking_mode = _semantic_intent in {
+            "accept_booking",
+            "provide_date_constraint",
+            "earliest_available",
+        }
+        _awaiting_date_booking_mode = _awaiting_booking_date and not _semantic_blocks_booking
+
+        if (
+            _deterministic_booking_mode
+            or _semantic_booking_mode
+            or _is_first_turn_booking
+            or _awaiting_date_booking_mode
+            or _accepted_booking_offer
+        ):
+            _from_cache = _same_session_cache and not _booking_mode and not _accepted_booking_offer
             self._log.warning(
-                "BOOKING BYPASS FIRED: dept=%r symptoms=%r history_len=%d from_cache=%r first_turn=%r req_sid=%r cache_sid=%r",
+                "BOOKING BYPASS FIRED: dept=%r symptoms=%r history_len=%d from_cache=%r first_turn=%r semantic_intent=%r req_sid=%r cache_sid=%r",
                 department, request.symptoms[:60],
                 len(request.conversation_history or []),
-                _from_cache, _is_first_turn_booking,
+                _from_cache, _is_first_turn_booking, _semantic_intent,
                 _request_session_id, _cache_session_id,
             )
-            date_str = _parse_date_from_message(request.symptoms) or _get_next_weekday_str()
-            time_pref = _parse_time_preference(request.symptoms)
+            requested_date = _deterministic_date or _semantic_booking_date(_semantic)
+            wants_earliest = _deterministic_earliest or _semantic_intent == "earliest_available"
+            if not requested_date and not wants_earliest and not _is_first_turn_booking:
+                yield _BOOKING_DATE_PROMPT_EN
+                return
+            date_str = requested_date or _get_next_weekday_str()
+            time_pref = _parse_time_preference(request.symptoms) or _semantic_time_preference(_semantic)
+            from infrastructure.llm.booking_tools import fn_check_availability
             availability = await fn_check_availability(department, date_str)
             formatter = _format_availability_en
             # Store slots keyed by patient_id for confirmation bypass on the next turn
@@ -813,4 +1091,3 @@ class SymptomCheckUseCase:
                         request.patient_id, specialties[0],
                     )
                 yield f"{self.SPECIALTIES_MARKER}{json.dumps(specialties)}{self.SPECIALTIES_MARKER}"
-

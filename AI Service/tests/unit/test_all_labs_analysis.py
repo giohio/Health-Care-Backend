@@ -44,14 +44,14 @@ class FakeLLM:
         self.calls = []
         self._response = response
 
-    async def complete(self, system, user, **kwargs):
+    async def complete(self, system_prompt=None, user_prompt=None, **kwargs):
         await asyncio.sleep(0)
-        self.calls.append({"system": system, "user": user})
+        self.calls.append({"system": system_prompt, "user": user_prompt})
         return self._response
 
 
 class FakeLLMFailing:
-    async def complete(self, system, user, **kwargs):
+    async def complete(self, system_prompt=None, user_prompt=None, **kwargs):
         await asyncio.sleep(0)
         raise RuntimeError("LLM timeout")
 
